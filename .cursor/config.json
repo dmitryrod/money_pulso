@@ -1,0 +1,48 @@
+{
+  "project": {
+    "app": "app",
+    "docs": "app/docs",
+    "comment": "Единственное место где менять пути при переносе проекта."
+  },
+  "documentation": {
+    "paths": {
+      "root": "app/docs",
+      "readme": "app/docs/README.md",
+      "changelog": "app/docs/CHANGELOG.md",
+      "architecture": "app/docs/ARCHITECTURE.md",
+      "contributing": "app/docs/CONTRIBUTING.md",
+      "roadmap": "app/docs/ROADMAP.md",
+      "troubleshooting": "app/docs/troubleshooting.md",
+      "env_example": "app/.env.example",
+      "plans": ".cursor/plans",
+      "reports": ".cursor/reports"
+    },
+    "enabled": {
+      "readme": true,
+      "changelog": true,
+      "architecture": true,
+      "contributing": true,
+      "roadmap": true,
+      "troubleshooting": true,
+      "env_example": true,
+      "plans": true,
+      "reports": true,
+      "issues": false,
+      "features": false,
+      "api": false,
+      "components": false,
+      "design": false
+    },
+    "comment": "Disabled sections не существуют в этом проекте. При добавлении новой документации — включить enabled и задать путь."
+  },
+  "testing": {
+    "command": "uv run pytest app/tests/",
+    "path": "app/tests/",
+    "comment": "Python проект: uv + pytest. Запускать из корня проекта (d:/WorkProjects/trade-paid-screener)."
+  },
+  "metrics": {
+    "sessionsPath": ".cursor/reports",
+    "enabled": true,
+    "comment": "Session reports сохраняются в .cursor/reports/session-*.json. Скрипт: node .cursor/scripts/metrics-report.js"
+  }
+}

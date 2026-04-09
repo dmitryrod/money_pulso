@@ -1,0 +1,32 @@
+{% extends "layout.html" %} {% block content %} {{ super() }}
+
+<style>
+    .page-title {
+        display: none;
+    }
+
+    /* Стили для вкладок */
+    tab {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    .tab button {
+        background-color: #333;
+        color: white;
+        padding: 10px 20px;
+        margin-right: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .tab button.active {
+        background-color: darkgrey;
+    }
+
+    .tabcontent {
+        display: none;
+    }

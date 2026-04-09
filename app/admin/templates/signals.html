@@ -1,0 +1,1256 @@
+{% extends "layout.html" %}
+{% block content %}{{ super() }}
+
+<style>
+  /* ── Скрываем стандартный заголовок страницы ── */
+  .page-title { display: none; }
+  .page-header { display: none !important; }
+
+  /* ── Основной контейнер ── */
+  .signals-page {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px 80px;
+    max-width: 100%;
+  }
+
+  /* ── Шапка: переключатель источника + статус + пагинация ── */
+  .signals-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    background: #1a1f2e;
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+
+  .signals-toolbar .toolbar-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #e0e6f0;
+    margin-right: 4px;
+  }
+
+  /* Переключатель источника */
+  .source-switcher {
+    display: flex;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid #2d3550;
+  }
+  .source-switcher button {
+    background: #232a3e;
+    color: #8899bb;
+    border: none;
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .source-switcher button.active {
+    background: #3a5bbf;
+    color: #fff;
+    font-weight: 600;
+  }
+  .source-switcher button:hover:not(.active) {
+    background: #2d3a5e;
+    color: #c0ccdd;
+  }
+
+  /* Индикатор соединения */
+  .sse-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #8899bb;
+    margin-left: auto;
+  }
+  .sse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .sse-dot.disconnected { background: #f44336; }
+  .sse-dot.connecting   { background: #ff9800; }
+
+  /* Выбор количества на странице */
+  .per-page-select {
+    background: #232a3e;
+    color: #c0ccdd;
+    border: 1px solid #2d3550;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .per-page-select:focus { outline: none; border-color: #3a5bbf; }
+
+  /* ── Переключатель звука ── */
+  .sound-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sound-label {
+    font-size: 13px;
+    color: #8899bb;
+    user-select: none;
+  }
+  .sound-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .sound-switch input { display: none; }
+  .sound-slider {
+    position: absolute;
+    inset: 0;
+    background: #2d3550;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sound-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .sound-switch input:checked + .sound-slider { background: #3a5bbf; }
+  .sound-switch input:checked + .sound-slider::before { transform: translateX(16px); }
+
+  /* Пагинация */
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .pagination-bar button {
+    background: #232a3e;
+    color: #8899bb;
+    border: 1px solid #2d3550;
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 32px;
+    transition: background 0.15s;
+  }
+  .pagination-bar button.active {
+    background: #3a5bbf;
+    color: #fff;
+    border-color: #3a5bbf;
+  }
+  .pagination-bar button:hover:not(.active):not(:disabled) {
+    background: #2d3a5e;
+    color: #c0ccdd;
+  }
+  .pagination-bar button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .pagination-info {
+    font-size: 12px;
+    color: #6677aa;
+    white-space: nowrap;
+  }
+
+  /* Новые сигналы: живой счётчик */
+  .new-badge {
+    background: #3a5bbf;
+    color: #fff;
+    border-radius: 12px;
+    padding: 1px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    display: none;
+  }
+  .new-badge.visible { display: inline-block; }
+
+  /* ── Лента карточек ── */
+  .signals-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .signals-feed .signal-card--test {
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .signals-empty {
+    color: #5566aa;
+    font-size: 14px;
+    padding: 20px 0;
+  }
+
+  /* Режим «Тест»: блок фильтров под карточкой (вертикальная карточка БД/лог) */
+  .signal-test-filters {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #2d3550;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #9aa8c4;
+  }
+  .signal-test-filters .stf-head {
+    font-weight: 700;
+    color: #7eb3ff;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .signal-test-filters .stf-row {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    background: #171c28;
+    border-radius: 6px;
+    border: 1px solid #2a3345;
+  }
+  .signal-test-filters .stf-title {
+    font-weight: 600;
+    color: #c8d4e8;
+    margin-bottom: 4px;
+  }
+  .signal-test-filters .stf-status { font-weight: 700; margin-left: 6px; }
+  .signal-test-filters .stf-status.ok { color: #4caf50; }
+  .signal-test-filters .stf-status.fail { color: #e57373; }
+  .signal-test-filters .stf-line { word-break: break-word; }
+  .signal-test-filters .stf-k { color: #6677aa; margin-right: 4px; }
+
+  /* Режим «Тест»: горизонтальная карточка (mode=test) */
+  .signal-card.signal-card--test {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 12px;
+  }
+  .signal-card-test-hscroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .signal-card-test-track {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: min-content;
+    padding: 2px 0 6px;
+  }
+  .signal-card--test .sct-col {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+  .signal-card--test .sct-col--identity {
+    min-width: 168px;
+    max-width: 220px;
+  }
+  .signal-card--test .sct-col--message {
+    min-width: 260px;
+    max-width: 400px;
+  }
+  .signal-card--test .sct-col--filter {
+    min-width: 200px;
+    max-width: 280px;
+  }
+  .signal-card--test .sct-col--meta {
+    min-width: 120px;
+    max-width: 160px;
+  }
+  .signal-card--test .sct-col--identity .signal-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .signal-card--test .sct-col--identity .signal-symbol {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .signal-card--test .signal-body {
+    margin-bottom: 0;
+    white-space: normal;
+    max-height: none;
+  }
+  .signal-card--test .signal-footer {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-top: 0;
+  }
+  .signal-card--test .sct-col--filter .stf-block {
+    font-size: 11px;
+    line-height: 1.35;
+    color: #9aa8c4;
+    padding: 6px 8px;
+    background: #171c28;
+    border-radius: 6px;
+    border: 1px solid #2a3345;
+    height: 100%;
+    box-sizing: border-box;
+  }
+  .signal-card--test .sct-col--filter .stf-head {
+    font-weight: 700;
+    color: #7eb3ff;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .signal-card--test .sct-col--filter .stf-title {
+    font-weight: 600;
+    color: #c8d4e8;
+    margin-bottom: 4px;
+  }
+  .signal-card--test .sct-col--filter .stf-status { font-weight: 700; margin-left: 6px; }
+  .signal-card--test .sct-col--filter .stf-status.ok { color: #4caf50; }
+  .signal-card--test .sct-col--filter .stf-status.fail { color: #e57373; }
+  .signal-card--test .sct-col--filter .stf-line { word-break: break-word; }
+  .signal-card--test .sct-col--filter .stf-k { color: #6677aa; margin-right: 4px; }
+  .signal-test-filters-slot {
+    display: contents;
+  }
+
+  .signal-test-score {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ec5ff;
+    margin-top: 4px;
+    width: 100%;
+  }
+
+  /* Счётчик карточек в режиме «Тест» */
+  .test-feed-count {
+    font-size: 13px;
+    color: #8899bb;
+    white-space: nowrap;
+    margin-left: 4px;
+  }
+  .test-feed-count strong { color: #a8c4ff; font-weight: 700; }
+
+  .test-max-wrap {
+    font-size: 13px;
+    color: #8899bb;
+    white-space: nowrap;
+    margin-left: 8px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .test-max-wrap label { color: #8899bb; cursor: pointer; margin: 0; }
+
+  /* ── Карточка сигнала (Telegram-стиль) ── */
+  .signal-card {
+    background: #1e2533;
+    border-radius: 14px 14px 14px 4px;
+    padding: 10px 13px 8px;
+    width: 270px;
+    min-width: 250px;
+    max-width: 290px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    font-size: 13px;
+    line-height: 1.45;
+    color: #c8d4e8;
+    position: relative;
+    word-break: break-word;
+  }
+
+  /* Статичный glow — карточка ещё не замечена пользователем */
+  .signal-card.signal-new {
+    box-shadow: 0 0 0 2px #3a8ef6, 0 2px 14px rgba(58,142,246,0.45);
+    background: #1e2a42;
+  }
+
+  /* 3-секундный fade-out — запускается после того, как пользователь увидел карточку */
+  @keyframes signal-highlight {
+    0%   { box-shadow: 0 0 0 3px #3a8ef6, 0 2px 18px rgba(58,142,246,0.55); background: #223366; }
+    60%  { box-shadow: 0 0 0 2px #3a8ef6aa, 0 2px 12px rgba(58,142,246,0.3); background: #1e2a42; }
+    100% { box-shadow: 0 2px 8px rgba(0,0,0,0.35); background: #1e2533; }
+  }
+  .signal-card.signal-seen {
+    animation: signal-highlight 3s ease-out forwards;
+  }
+
+  /* Заголовок карточки */
+  .signal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+  .signal-symbol {
+    font-weight: 700;
+    font-size: 14px;
+    color: #e8f0ff;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .signal-symbol:hover .sym-text { color: #7ab8ff; }
+  .signal-symbol .bell-icon { font-size: 13px; }
+  .signal-num {
+    color: #7ab8ff;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .signal-status-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .signal-status-icon.ok    { color: #4caf50; }
+  .signal-status-icon.fail  { color: #f44336; }
+
+  /* Тело сообщения */
+  .signal-body {
+    white-space: pre-wrap;
+    font-size: 12.5px;
+    color: #b0bedb;
+    margin-bottom: 6px;
+  }
+  .signal-body a {
+    color: #5b9cf6;
+    text-decoration: none;
+  }
+  .signal-body a:hover { text-decoration: underline; }
+  .signal-body code {
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  /* Время + биржа/рынок */
+  .signal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .signal-meta {
+    font-size: 11px;
+    color: #445577;
+    flex-shrink: 0;
+  }
+  .signal-time {
+    font-size: 11px;
+    color: #4a5a7a;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Кнопка прокрутки вверх + бейдж непрочитанных ── */
+  /* ── Кнопка прокрутки вверх ── */
+  /* bottom: 28px, right: 28px, size: 44×44 */
+  #scroll-top-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #3a5bbf;
+    color: #fff;
+    font-size: 20px;
+    border: none;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+    z-index: 9999;
+    transition: background 0.2s;
+  }
+  #scroll-top-btn:hover { background: #4a6fd0; }
+  #scroll-top-btn.visible { display: flex; }
+
+  /* Бейдж непрочитанных — фиксированный, в правом верхнем углу кнопки.
+     Кнопка: bottom 28, right 28, h 44 → верхний правый угол: bottom 72, right 28.
+     Бейдж 20×20: смещаем чтобы наполовину выступал за кнопку. */
+  #unread-badge {
+    position: fixed !important;
+    bottom: 62px !important;   /* 28 + 44 - 10 */
+    right: 18px !important;    /* 28 - 10 */
+    width: fit-content !important;
+    min-width: 20px !important;
+    max-width: 44px !important;
+    height: 20px !important;
+    padding: 0 5px !important;
+    border-radius: 10px !important;
+    background: #f5c518 !important;
+    color: #1a1a1a !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 20px !important;
+    text-align: center !important;
+    pointer-events: none !important;
+    display: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35) !important;
+    z-index: 10000 !important;
+  }
+  #unread-badge.visible { display: inline-block !important; }
+
+  /* ── Адаптив: очень узкий экран ── */
+  @media (max-width: 600px) {
+    /* Скрываем боковую панель starlette-admin */
+    .navbar, .sidebar, nav.navbar { display: none !important; }
+    .main-content, .content-wrapper, main { margin-left: 0 !important; padding-left: 0 !important; }
+
+    .signals-page { padding: 8px 4px 70px; }
+    .signals-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 8px 10px; }
+    .sse-status { margin-left: 0; }
+
+    .signal-card:not(.signal-card--test) {
+      width: 240px;
+      min-width: 220px;
+      max-width: 260px;
+    }
+    .signal-card.signal-card--test {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+  }
+</style>
+
+<div class="signals-page">
+
+  <!-- Тулбар -->
+  <div class="signals-toolbar">
+    <span class="toolbar-title">Сигналы</span>
+
+    <div class="source-switcher">
+      <button id="btn-src-db"   class="active" onclick="switchSource('db')">БД</button>
+      <button id="btn-src-file"           onclick="switchSource('file')">Лог-файл</button>
+      <button id="btn-src-test"           onclick="switchSource('test')">Тест</button>
+    </div>
+
+    <span class="new-badge" id="new-badge">+<span id="new-count">0</span> новых</span>
+
+    <select class="per-page-select" id="per-page-sel" onchange="changePerPage(this.value)">
+      <option value="100" selected>100 / стр.</option>
+      <option value="500">500 / стр.</option>
+      <option value="1000">1000 / стр.</option>
+    </select>
+
+    <div class="sound-toggle">
+      <span class="sound-label">Звук</span>
+      <label class="sound-switch">
+        <input type="checkbox" id="sound-enabled">
+        <span class="sound-slider"></span>
+      </label>
+    </div>
+
+    <span class="test-feed-count" id="test-feed-count" style="display:none" title="Карточек в ленте режима «Тест»">
+      Онлайн: <strong id="test-feed-count-num">0</strong>
+    </span>
+
+    <span class="test-max-wrap" id="test-max-wrap" title="Максимум карточек в ленте; лишние с более низким Score не показываются">
+      <label for="test-max-cards">Макс. карточек</label>
+      <select class="per-page-select" id="test-max-cards" onchange="changeTestMaxCards(this.value)">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </span>
+
+    <div class="sse-status">
+      <div class="sse-dot connecting" id="sse-dot"></div>
+      <span id="sse-label">Подключение…</span>
+    </div>
+  </div>
+
+  <!-- Пагинация (верхняя) -->
+  <div id="pagination-top" class="pagination-bar"></div>
+
+  <!-- Лента сигналов -->
+  <div class="signals-feed" id="signals-feed">
+    <div class="signals-empty" id="empty-msg">Загрузка…</div>
+  </div>
+
+  <!-- Пагинация (нижняя) -->
+  <div id="pagination-bot" class="pagination-bar"></div>
+
+</div>
+
+<!-- Кнопка «вверх» -->
+<button id="scroll-top-btn" title="Вверх" onclick="markAllAsRead()">↑</button>
+<!-- Бейдж непрочитанных сигналов -->
+<span id="unread-badge"></span>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Состояние ── */
+  let source   = 'db';   // 'db' | 'file' | 'test'
+  let page     = 1;
+  let perPage  = {{ per_page_default }};
+  let totalPages = 1;
+  let totalItems = 0;
+
+  let es = null;           // EventSource
+  let pendingNew = [];     // накопленные новые сигналы пока юзер на стр. > 1
+  let newCount = 0;
+  let unreadCount = 0;     // карточки с signal-new, ещё не замеченные пользователем
+  let soundEnabled = localStorage.getItem('signals_sound') !== 'false';
+
+  const feed       = document.getElementById('signals-feed');
+  const emptyMsg   = document.getElementById('empty-msg');
+  const sseDot     = document.getElementById('sse-dot');
+  const sseLabel   = document.getElementById('sse-label');
+  const newBadge   = document.getElementById('new-badge');
+  const newCntEl   = document.getElementById('new-count');
+  const scrollBtn   = document.getElementById('scroll-top-btn');
+  const unreadBadge = document.getElementById('unread-badge');
+  const soundChk    = document.getElementById('sound-enabled');
+  const perPageSel  = document.getElementById('per-page-sel');
+  const pagTop      = document.getElementById('pagination-top');
+  const pagBot      = document.getElementById('pagination-bot');
+  const testFeedCountEl = document.getElementById('test-feed-count');
+  const testFeedCountNum = document.getElementById('test-feed-count-num');
+  const testMaxWrap = document.getElementById('test-max-wrap');
+  const testMaxCardsSel = document.getElementById('test-max-cards');
+
+  const TEST_MAX_ALLOWED = [5, 10, 20, 30, 50, 100];
+  const LS_TEST_MAX_VISIBLE = 'signals_test_max_visible';
+
+  function normalizeTestMax(val) {
+    const n = parseInt(val, 10);
+    return TEST_MAX_ALLOWED.includes(n) ? n : 10;
+  }
+
+  function applyTestMaxToSelect() {
+    if (!testMaxCardsSel) return;
+    const saved = normalizeTestMax(localStorage.getItem(LS_TEST_MAX_VISIBLE));
+    testMaxCardsSel.value = String(saved);
+  }
+
+  function trimTestFeedToMax() {
+    if (source !== 'test') return;
+    const max = normalizeTestMax(testMaxCardsSel ? testMaxCardsSel.value : '10');
+    const cards = [...feed.querySelectorAll('.signal-card')];
+    for (let i = max; i < cards.length; i++) {
+      cards[i].remove();
+    }
+  }
+
+  function updateTestFeedCount() {
+    if (!testFeedCountNum) return;
+    const n = feed.querySelectorAll('.signal-card').length;
+    testFeedCountNum.textContent = String(n);
+  }
+
+  function reorderTestFeed() {
+    if (source !== 'test') return;
+    const cards = [...feed.querySelectorAll('.signal-card')];
+    if (!cards.length) {
+      updateTestFeedCount();
+      return;
+    }
+    cards.sort((a, b) => {
+      const parseScore = (el) => {
+        const v = parseFloat(el.dataset.testScore);
+        return Number.isFinite(v) ? v : Number.NEGATIVE_INFINITY;
+      };
+      const d0 = parseScore(b) - parseScore(a);
+      if (d0 !== 0) return d0;
+      const okA = parseInt(a.dataset.okCount, 10) || 0;
+      const okB = parseInt(b.dataset.okCount, 10) || 0;
+      const d1 = okB - okA;
+      if (d1 !== 0) return d1;
+      const fa = parseFloat(a.dataset.tieScore) || 0;
+      const fb = parseFloat(b.dataset.tieScore) || 0;
+      const d2 = fb - fa;
+      if (d2 !== 0) return d2;
+      return String(a.dataset.id || '').localeCompare(String(b.dataset.id || ''));
+    });
+    cards.forEach(c => feed.appendChild(c));
+    trimTestFeedToMax();
+    updateTestFeedCount();
+  }
+
+  function setTestModeUi(isTest) {
+    perPageSel.style.display = isTest ? 'none' : '';
+    pagTop.style.display = isTest ? 'none' : '';
+    pagBot.style.display = isTest ? 'none' : '';
+    newBadge.style.display = isTest ? 'none' : '';
+    if (testFeedCountEl) {
+      testFeedCountEl.style.display = isTest ? '' : 'none';
+      if (!isTest && testFeedCountNum) testFeedCountNum.textContent = '0';
+    }
+    if (testMaxWrap) {
+      testMaxWrap.style.display = isTest ? 'inline-flex' : 'none';
+      if (isTest) applyTestMaxToSelect();
+    }
+  }
+
+  // Инициализируем чекбокс из localStorage
+  soundChk.checked = soundEnabled;
+  soundChk.addEventListener('change', () => {
+    soundEnabled = soundChk.checked;
+    localStorage.setItem('signals_sound', soundEnabled);
+  });
+
+  /* ── Утилиты ── */
+  function setSseStatus(state) {
+    // state: 'ok' | 'connecting' | 'error'
+    sseDot.className = 'sse-dot ' + (state === 'ok' ? '' : state === 'connecting' ? 'connecting' : 'disconnected');
+    sseLabel.textContent = state === 'ok' ? 'Live' : state === 'connecting' ? 'Подключение…' : 'Нет соединения';
+  }
+
+  function updateUnreadBtn() {
+    const scrolledDown = window.scrollY > 300;
+    scrollBtn.classList.toggle('visible', scrolledDown);
+    const showBadge = unreadCount > 0 && scrolledDown;
+    unreadBadge.textContent = unreadCount;
+    unreadBadge.classList.toggle('visible', showBadge);
+  }
+
+  function playSignalBeep() {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 1);
+      osc.onended = () => ctx.close();
+    } catch {}
+  }
+
+  /* Помечает все непрочитанные карточки как прочитанные и скроллит наверх */
+  function markAllAsRead() {
+    document.querySelectorAll('.signal-card.signal-new').forEach(card => {
+      if (typeof card._forceRead === 'function') card._forceRead();
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  window.markAllAsRead = markAllAsRead;
+
+  function fmt_time(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch { return iso; }
+  }
+
+  function fmt_date(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch { return iso; }
+  }
+
+  /* Извлекаем CMC-ранг: сначала из текста сигнала, иначе live-значение из API */
+  function extractCmcRank(text, liveFallback) {
+    const m = (text || '').match(/#(\d+)/);
+    if (m) return m[1];
+    return liveFallback != null ? String(liveFallback) : null;
+  }
+
+  function isFirstDailySignal(text) {
+    const firstLine = (text || '').split('\n')[0];
+    return firstLine.includes('🔔');
+  }
+
+  function fmtThresholdsObj(o) {
+    if (!o || typeof o !== 'object') return '—';
+    const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
+    if (!parts.length) return '—';
+    return parts.map(([k, v]) => k + '=' + String(v)).join(' · ');
+  }
+
+  function renderTestFiltersHtml(rows, layoutHorizontal) {
+    if (!rows || !rows.length) return '';
+    function oneFilterBlock(r, includeHead) {
+      const st = r.ok ? 'ok' : 'fail';
+      let b = '<div class="stf-block">';
+      if (includeHead) {
+        b += '<div class="stf-head">Диагностика фильтров (тест)</div>';
+      }
+      b += `<div class="stf-title">${escHtml(r.title)} <span class="stf-status ${st}">${r.ok ? 'OK' : 'нет'}</span></div>`;
+      b += `<div class="stf-line"><span class="stf-k">Текущее:</span> ${escHtml(fmtThresholdsObj(r.current))}</div>`;
+      b += `<div class="stf-line"><span class="stf-k">Пороги:</span> ${escHtml(fmtThresholdsObj(r.thresholds))}</div>`;
+      if (r.filter_score != null && r.filter_score !== undefined) {
+        b += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</div>`;
+      }
+      b += '</div>';
+      return b;
+    }
+    if (layoutHorizontal) {
+      let h = '';
+      for (let i = 0; i < rows.length; i++) {
+        h += `<section class="sct-col sct-col--filter">${oneFilterBlock(rows[i], i === 0)}</section>`;
+      }
+      return h;
+    }
+    let h = '<div class="stf-head">Диагностика фильтров (тест)</div>';
+    for (const r of rows) {
+      const st = r.ok ? 'ok' : 'fail';
+      h += '<div class="stf-row">';
+      h += `<div class="stf-title">${escHtml(r.title)} <span class="stf-status ${st}">${r.ok ? 'OK' : 'нет'}</span></div>`;
+      h += `<div class="stf-line"><span class="stf-k">Текущее:</span> ${escHtml(fmtThresholdsObj(r.current))}</div>`;
+      h += `<div class="stf-line"><span class="stf-k">Пороги:</span> ${escHtml(fmtThresholdsObj(r.thresholds))}</div>`;
+      if (r.filter_score != null && r.filter_score !== undefined) {
+        h += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</div>`;
+      }
+      h += '</div>';
+    }
+    return h;
+  }
+
+  function applyCardData(div, item) {
+    const bodyDiv = div.querySelector('.signal-body');
+    let bodyText = item.telegram_text || '';
+    const firstNl = bodyText.indexOf('\n');
+    if (firstNl !== -1) {
+      bodyText = bodyText.substring(firstNl + 1);
+    } else {
+      bodyText = '';
+    }
+    bodyDiv.innerHTML = bodyText;
+    bodyDiv.querySelectorAll('a').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+    const timeEl = div.querySelector('.signal-time');
+    if (timeEl) timeEl.textContent = fmt_date(item.created_at);
+
+    const testSlot = div.querySelector('.signal-test-filters-slot');
+    let testEl = div.querySelector('.signal-test-filters');
+    if (item.mode === 'test' && testSlot) {
+      if (item.test_filters && item.test_filters.length) {
+        testSlot.innerHTML = renderTestFiltersHtml(item.test_filters, true);
+      } else {
+        testSlot.innerHTML = '';
+      }
+      if (testEl) testEl.remove();
+    } else {
+      if (item.test_filters && item.test_filters.length) {
+        if (!testEl) {
+          testEl = document.createElement('div');
+          testEl.className = 'signal-test-filters';
+          const footer = div.querySelector('.signal-footer');
+          if (footer) div.insertBefore(testEl, footer);
+        }
+        testEl.innerHTML = renderTestFiltersHtml(item.test_filters, false);
+      } else if (testEl) {
+        testEl.remove();
+      }
+    }
+
+    const scoreEl = div.querySelector('.signal-test-score');
+    if (item.mode === 'test' || (item.test_filters && item.test_filters.length)) {
+      let oc = item.ok_count;
+      let ts = item.tie_break_score;
+      if (oc == null && item.test_filters) {
+        oc = item.test_filters.filter(r => r.ok).length;
+      }
+      if (ts == null || ts === undefined || Number.isNaN(Number(ts))) {
+        ts = 0;
+      }
+      div.dataset.okCount = String(oc != null ? oc : 0);
+      div.dataset.tieScore = String(Number(ts));
+      const sc = item.score;
+      if (sc != null && sc !== undefined && !Number.isNaN(Number(sc))) {
+        div.dataset.testScore = String(Number(sc));
+      } else {
+        delete div.dataset.testScore;
+      }
+      if (scoreEl) {
+        if (sc != null && sc !== undefined && !Number.isNaN(Number(sc))) {
+          scoreEl.textContent = 'Score: ' + Number(sc).toFixed(3);
+          scoreEl.style.display = '';
+        } else {
+          scoreEl.textContent = '';
+          scoreEl.style.display = 'none';
+        }
+      }
+    } else {
+      delete div.dataset.okCount;
+      delete div.dataset.tieScore;
+      delete div.dataset.testScore;
+      if (scoreEl) {
+        scoreEl.textContent = '';
+        scoreEl.style.display = 'none';
+      }
+    }
+  }
+
+  function findCardById(id) {
+    return [...feed.querySelectorAll('.signal-card')].find(c => String(c.dataset.id) === String(id)) || null;
+  }
+
+  /* Строим HTML карточки */
+  function buildCard(item, isNew) {
+    const symbol  = item.symbol || '—';
+    const rank    = extractCmcRank(item.telegram_text, item.cmc_rank);
+    const hasBell = isFirstDailySignal(item.telegram_text);
+
+    const statusIcon = item.telegram_ok
+      ? '<span class="signal-status-icon ok" title="Telegram OK">✓</span>'
+      : '<span class="signal-status-icon fail" title="Ошибка Telegram">✕</span>';
+
+    const div = document.createElement('div');
+    const isTest = item.mode === 'test';
+    div.className = (isTest ? 'signal-card signal-card--test' : 'signal-card') + (isNew ? ' signal-new' : '');
+    div.dataset.id = item.id;
+
+    const headerInner = `
+        <div class="signal-symbol" title="Нажмите, чтобы скопировать">
+          <span class="sym-text">${escHtml(symbol)}</span>
+          ${rank ? `<span class="signal-num">#${escHtml(rank)}</span>` : ''}
+          ${hasBell ? '<span class="bell-icon">🔔</span>' : ''}
+          <span class="signal-test-score" style="display:none" title="Score: среднее signed-вкладов по активным фильтрам"></span>
+        </div>
+        ${statusIcon}`;
+
+    if (isTest) {
+      div.innerHTML = `
+      <div class="signal-card-test-hscroll">
+        <div class="signal-card-test-track">
+          <section class="sct-col sct-col--identity">
+            <div class="signal-header">
+              ${headerInner}
+            </div>
+          </section>
+          <section class="sct-col sct-col--message">
+            <div class="signal-body"></div>
+          </section>
+          <div class="signal-test-filters-slot"></div>
+          <section class="sct-col sct-col--meta">
+            <div class="signal-footer">
+              <span class="signal-meta">${escHtml((item.exchange||'').toUpperCase())} · ${escHtml((item.market_type||'').toUpperCase())}</span>
+              <span class="signal-time">${fmt_date(item.created_at)}</span>
+            </div>
+          </section>
+        </div>
+      </div>`;
+    } else {
+      div.innerHTML = `
+      <div class="signal-header">
+        ${headerInner}
+      </div>
+      <div class="signal-body"></div>
+      <div class="signal-footer">
+        <span class="signal-meta">${escHtml((item.exchange||'').toUpperCase())} · ${escHtml((item.market_type||'').toUpperCase())}</span>
+        <span class="signal-time">${fmt_date(item.created_at)}</span>
+      </div>`;
+    }
+
+    applyCardData(div, item);
+
+    // Клик по заголовку символа → копировать в буфер
+    div.querySelector('.signal-symbol').addEventListener('click', () => {
+      navigator.clipboard.writeText(symbol).then(() => {
+        const el = div.querySelector('.sym-text');
+        el.style.transition = 'color 0.15s';
+        el.style.color = '#4caf50';
+        setTimeout(() => { el.style.color = ''; }, 700);
+      }).catch(() => {});
+    });
+
+    if (isNew) {
+      watchCard(div);
+    }
+    return div;
+  }
+
+  /* ── Умная подсветка: ждём пока карточка видна И пользователь активен ── */
+  function watchCard(card) {
+    let isVisible = false;
+    let hasAction = false;
+    let triggered = false;
+
+    function triggerCard() {
+      if (triggered) return;
+      triggered = true;
+      observer.disconnect();
+      window.removeEventListener('mousemove', onAction);
+      window.removeEventListener('mousedown', onAction);
+      card._forceRead = null;
+      card.classList.remove('signal-new');
+      card.classList.add('signal-seen');
+      setTimeout(() => card.classList.remove('signal-seen'), 3100);
+      unreadCount = Math.max(0, unreadCount - 1);
+      updateUnreadBtn();
+    }
+
+    // Позволяет внешнему коду принудительно пометить карточку как прочитанную
+    card._forceRead = triggerCard;
+
+    function tryTrigger() {
+      if (triggered || !isVisible || !hasAction) return;
+      triggerCard();
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      tryTrigger();
+    }, { threshold: 0.2 });
+
+    function onAction() {
+      hasAction = true;
+      tryTrigger();
+    }
+
+    observer.observe(card);
+    window.addEventListener('mousemove', onAction, { passive: true });
+    window.addEventListener('mousedown', onAction, { passive: true });
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  /* ── Пагинация ── */
+  function renderPagination(containerId) {
+    const bar = document.getElementById(containerId);
+    bar.innerHTML = '';
+
+    if (totalPages <= 1 && totalItems === 0) return;
+
+    const info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = `${totalItems} сигналов`;
+    bar.appendChild(info);
+
+    const prev = document.createElement('button');
+    prev.textContent = '←';
+    prev.disabled = page <= 1;
+    prev.onclick = () => loadPage(page - 1);
+    bar.appendChild(prev);
+
+    // Показываем окно страниц вокруг текущей
+    const pages = [];
+    pages.push(1);
+    for (let p = Math.max(2, page - 2); p <= Math.min(totalPages - 1, page + 2); p++) pages.push(p);
+    if (totalPages > 1) pages.push(totalPages);
+
+    let lastP = 0;
+    for (const p of pages) {
+      if (lastP && p - lastP > 1) {
+        const gap = document.createElement('span');
+        gap.textContent = '…';
+        gap.style.cssText = 'color:#445577;padding:0 4px;font-size:13px';
+        bar.appendChild(gap);
+      }
+      const btn = document.createElement('button');
+      btn.textContent = p;
+      if (p === page) btn.classList.add('active');
+      btn.onclick = () => loadPage(p);
+      bar.appendChild(btn);
+      lastP = p;
+    }
+
+    const next = document.createElement('button');
+    next.textContent = '→';
+    next.disabled = page >= totalPages;
+    next.onclick = () => loadPage(page + 1);
+    bar.appendChild(next);
+  }
+
+  /* ── Загрузка страницы ── */
+  async function loadPage(p) {
+    page = p;
+    pendingNew = [];
+    newCount = 0;
+    newBadge.classList.remove('visible');
+    unreadCount = 0;
+    updateUnreadBtn();
+
+    emptyMsg.style.display = 'block';
+    emptyMsg.textContent = 'Загрузка…';
+    feed.innerHTML = '';
+    feed.appendChild(emptyMsg);
+
+    try {
+      const url = `/admin_api/signals?source=${source}&page=${p}&per_page=${perPage}`;
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+
+      totalPages = data.pages || 1;
+      totalItems = data.total || 0;
+
+      setTestModeUi(source === 'test');
+
+      renderPagination('pagination-top');
+      renderPagination('pagination-bot');
+
+      feed.innerHTML = '';
+      if (!data.items || data.items.length === 0) {
+        const em = document.createElement('div');
+        em.className = 'signals-empty';
+        if (source === 'test') {
+          em.textContent = 'Режим «Тест»: ждите пары, где после гейтов (USDT, свечи, списки) хотя бы один включённый фильтр даёт OK. История не хранится — только live SSE.';
+        } else {
+          em.textContent = source === 'db'
+            ? 'Сигналов в БД пока нет. Они появятся, как только скринер отправит первый сигнал.'
+            : 'Лог-файл пуст или не найден.';
+        }
+        feed.appendChild(em);
+        if (source === 'test') updateTestFeedCount();
+      } else {
+        for (const item of data.items) {
+          feed.appendChild(buildCard(item, false));
+        }
+        if (source === 'test') {
+          reorderTestFeed();
+          updateTestFeedCount();
+        }
+      }
+    } catch (e) {
+      emptyMsg.textContent = 'Ошибка загрузки: ' + e.message;
+    }
+
+    // Переключаем SSE только при первой загрузке или смене источника
+    startSSE();
+  }
+
+  /* ── SSE ── */
+  function startSSE() {
+    if (es) { es.close(); es = null; }
+    setSseStatus('connecting');
+
+    es = new EventSource(`/admin_api/signals/stream?source=${source}`);
+
+    es.onopen = () => setSseStatus('ok');
+
+    es.onmessage = (evt) => {
+      let item;
+      try { item = JSON.parse(evt.data); } catch { return; }
+
+      if (item.mode === 'test') {
+        const existing = findCardById(item.id);
+        if (existing) {
+          applyCardData(existing, item);
+          reorderTestFeed();
+          return;
+        }
+      }
+
+      playSignalBeep();
+
+      if (page !== 1) {
+        pendingNew.push(item);
+        newCount++;
+        newCntEl.textContent = newCount;
+        newBadge.classList.add('visible');
+        return;
+      }
+
+      const empty = feed.querySelector('.signals-empty');
+      if (empty) empty.remove();
+
+      const card = buildCard(item, true);
+      if (feed.firstChild && feed.firstChild.className && feed.firstChild.className.includes('signal-card')) {
+        feed.insertBefore(card, feed.firstChild);
+      } else {
+        feed.innerHTML = '';
+        feed.appendChild(card);
+      }
+      if (source !== 'test') {
+        unreadCount++;
+        updateUnreadBtn();
+        totalItems++;
+        renderPagination('pagination-top');
+        renderPagination('pagination-bot');
+      } else {
+        reorderTestFeed();
+      }
+    };
+
+    es.onerror = () => {
+      setSseStatus('error');
+      // EventSource сам переподключается; просто обновляем статус
+    };
+  }
+
+  /* ── Переключатели ── */
+  window.switchSource = function(src) {
+    if (source === src) return;
+    source = src;
+    document.getElementById('btn-src-db').classList.toggle('active', src === 'db');
+    document.getElementById('btn-src-file').classList.toggle('active', src === 'file');
+    document.getElementById('btn-src-test').classList.toggle('active', src === 'test');
+    page = 1;
+    loadPage(1);
+  };
+
+  window.changePerPage = function(val) {
+    perPage = parseInt(val, 10);
+    page = 1;
+    loadPage(1);
+  };
+
+  window.changeTestMaxCards = function(val) {
+    const n = normalizeTestMax(val);
+    localStorage.setItem(LS_TEST_MAX_VISIBLE, String(n));
+    if (testMaxCardsSel) testMaxCardsSel.value = String(n);
+    trimTestFeedToMax();
+    updateTestFeedCount();
+  };
+
+  window.loadPage = loadPage;
+
+  applyTestMaxToSelect();
+
+  /* ── Scroll-to-top ── */
+  window.addEventListener('scroll', () => {
+    updateUnreadBtn();
+  }, { passive: true });
+
+  /* ── Старт ── */
+  loadPage(1);
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,46 @@
+# norissk
+
+**Универсальная точка входа** — агент анализирует задачу и сам выбирает workflow: workflow-scaffold, workflow-implement или workflow-feature. Выполняет соответствующие шаги.
+
+**Использование:** `/norissk <описание задачи>` — например: `/norissk Добавь кнопку экспорта в PDF` или `/norissk Реализуй систему аутентификации с OAuth`
+
+## Шаги
+
+**Как вызывать субагентов:** при выполнении шагов workflow вызывай инструмент **mcp_task** с subagent_type, prompt, description. Не выполняй роли planner/worker/reviewer и др. самостоятельно — только через mcp_task. См. workflow-scaffold / workflow-implement / workflow-feature для деталей.
+
+1. **Анализ и выбор workflow**
+   Проанализируй задачу по критериям из skill workflow-selector:
+   - **scaffold** — один артефакт (функция, компонент, эндпоинт); мало зависимостей; нет auth/payments/sensitive data
+   - **implement** — несколько связанных файлов; нужен review; средняя сложность; не требует декомпозиции
+   - **feature** — auth, payments, sensitive data; много подзадач; нужна декомпозиция; архитектурные решения
+
+   Зафиксируй выбор (например: «Вы выбрал workflow: scaffold»).
+
+2. **Выполнение выбранного workflow**
+   Выполни шаги соответствующей команды (workflow-scaffold / workflow-implement / workflow-feature):
+   - **Git (опционально):** если пользователь явно не просит инициализировать репо — можно пропустить. Иначе: папка не git-репозиторий → `git init`, при наличии `gh` — `gh repo create`. В workflow-feature — полная интеграция (issues, ветки, PR).
+   - **workflow-scaffold** — worker → test-runner → documenter
+   - **workflow-implement** — worker → test-runner → reviewer-senior → documenter
+   - **workflow-feature** — planner → [worker/refactor] → test-runner → reviewer-senior → security-auditor (если нужно) → documenter
+
+3. **Эскалация**
+   Если в процессе выполнения задача оказалась сложнее выбранного workflow — переключись на следующий (scaffold → implement → feature). Триггеры: подзадачи, нужен security-auditor, >N файлов. При эскалации передай субагенту: выбранный workflow, что уже сделано, блокеры. Максимум одна эскалация за сессию.
+
+## Результат
+
+Перед возвратом результата:
+
+1. **Session report:** сохрани отчёт в `.cursor/reports/session-<YYYYMMDD-HHmm>.json` (или путь из config.metrics.sessionsPath) со структурой: command (norissk), workflow, workflowReason, escalation, subagentsCalled, debuggerCalls, testsPassed, reviewerFindings, securityAuditorCalled, documentationCreated, taskSummary.
+2. **Запусти скрипт метрик:** выполни `node .cursor/scripts/metrics-report.js`. Скрипт обновит METRICS_SUMMARY.md.
+3. Включи итоговый скор из вывода скрипта в ответ (блок «Метрики» в конце).
+
+Верни пользователю:
+- Выбранный workflow и обоснование
+- Результат выполнения (как в workflow-scaffold / workflow-implement / workflow-feature)
+- Блок «Метрики» со скором
+
+## Заметки
+
+- Используй skill workflow-selector для детальных критериев.
+- При неопределённости — склоняйся к более полному workflow (implement лучше scaffold, feature лучше implement).
+- Пользователь может явно указать workflow: `/norissk workflow-scaffold: добавь кнопку` — тогда не анализируй, выбери workflow-scaffold.
