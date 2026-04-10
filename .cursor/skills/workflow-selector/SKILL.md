@@ -17,11 +17,15 @@ description: Use when implementing features. Analyze task complexity and choose 
 
 ## Шаги каждого workflow (команды: /workflow-scaffold, /workflow-implement, /workflow-feature)
 
-**workflow-scaffold:** worker → test-runner → documenter
+**workflow-scaffold:** при необходимости **designer** (дизайн-only: designer → documenter; смешанное: designer → worker → …) → **worker** → test-runner → documenter
 
-**workflow-implement:** worker → test-runner → reviewer-senior → documenter
+**workflow-implement:** опционально **designer** перед worker; ветка только дизайн: **designer → documenter**; иначе worker → test-runner → reviewer-senior → documenter
 
-**workflow-feature:** planner → [worker/refactor по плану] → test-runner → reviewer-senior → security-auditor (если security-sensitive) → documenter
+**workflow-feature:** planner → [**designer** / worker / refactor по плану] → test-runner (если подзадача меняла код) → reviewer-senior → security-auditor (если security-sensitive) → documenter
+
+## Задачи дизайна (слайды, токены, UI-спеки)
+
+Если запрос **не про код приложения**, а про презентацию, визуальную систему или спеки — выбери scaffold или implement по объёму файлов; **первичный субагент:** [`designer`](../../agents/designer.md), не подменяй его роль сам. См. также [карту формулировок](../../docs/CREATING_ASSETS.md#agent-intent-map).
 
 ## Делегирование
 

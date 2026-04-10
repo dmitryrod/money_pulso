@@ -6,7 +6,7 @@
 
 ## Шаги
 
-**Как вызывать субагентов:** при выполнении шагов workflow вызывай инструмент **mcp_task** с subagent_type, prompt, description. Не выполняй роли planner/worker/reviewer и др. самостоятельно — только через mcp_task. См. workflow-scaffold / workflow-implement / workflow-feature для деталей.
+**Как вызывать субагентов:** при выполнении шагов workflow вызывай инструмент **mcp_task** с subagent_type, prompt, description. Не выполняй роли planner/**designer**/worker/refactor/test-runner/debugger/reviewer-senior/documenter/security-auditor и др. самостоятельно — только через mcp_task. См. workflow-scaffold / workflow-implement / workflow-feature для деталей.
 
 1. **Анализ и выбор workflow**
    Проанализируй задачу по критериям из skill workflow-selector:
@@ -14,14 +14,16 @@
    - **implement** — несколько связанных файлов; нужен review; средняя сложность; не требует декомпозиции
    - **feature** — auth, payments, sensitive data; много подзадач; нужна декомпозиция; архитектурные решения
 
-   Зафиксируй выбор (например: «Вы выбрал workflow: scaffold»).
+   **Дизайн / презентации / UI-спеки без кода** (токены, слайды, макеты в markdown): обычно **scaffold** или **implement** с веткой **designer → documenter** — см. [`workflow-scaffold`](workflow-scaffold.md) / [`workflow-implement`](workflow-implement.md). Сложный продукт «дизайн + несколько подсистем кода» — **feature**, planner назначит **designer** на соответствующие подзадачи.
+
+   Зафиксируй выбор (например: «Выбран workflow: scaffold»).
 
 2. **Выполнение выбранного workflow**
    Выполни шаги соответствующей команды (workflow-scaffold / workflow-implement / workflow-feature):
    - **Git (опционально):** если пользователь явно не просит инициализировать репо — можно пропустить. Иначе: папка не git-репозиторий → `git init`, при наличии `gh` — `gh repo create`. В workflow-feature — полная интеграция (issues, ветки, PR).
-   - **workflow-scaffold** — worker → test-runner → documenter
-   - **workflow-implement** — worker → test-runner → reviewer-senior → documenter
-   - **workflow-feature** — planner → [worker/refactor] → test-runner → reviewer-senior → security-auditor (если нужно) → documenter
+   - **workflow-scaffold** — см. команду: при необходимости **designer** (дизайн-only или перед worker), иначе **worker** → test-runner → documenter
+   - **workflow-implement** — опционально **designer**, затем **worker** → test-runner → reviewer-senior → documenter; ветка только дизайн: **designer → documenter**
+   - **workflow-feature** — planner → [**designer** / worker / refactor по плану] → test-runner (если менялся код) → reviewer-senior → security-auditor (если нужно) → documenter
 
 3. **Эскалация**
    Если в процессе выполнения задача оказалась сложнее выбранного workflow — переключись на следующий (scaffold → implement → feature). Триггеры: подзадачи, нужен security-auditor, >N файлов. При эскалации передай субагенту: выбранный workflow, что уже сделано, блокеры. Максимум одна эскалация за сессию.

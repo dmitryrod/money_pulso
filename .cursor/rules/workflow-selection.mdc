@@ -11,6 +11,6 @@ alwaysApply: true
 2. Выбери соответствующий workflow
 3. Выполни шаги выбранного workflow (вызывай субагентов по порядку)
 
-**Делегирование только через вызов инструмента mcp_task** (параметр `subagent_type`). **Никогда не выполняй роли planner, worker, test-runner, reviewer, documenter, security-auditor, senior-reviewer самостоятельно** — только через mcp_task. Нарушение ведёт к сценариям, когда один агент подменяет всю цепочку субагентов.
+**Делегирование только через вызов инструмента mcp_task** (параметр `subagent_type`). **Никогда не выполняй роли planner, worker, designer, debugger, test-runner, reviewer, documenter, security-auditor, senior-reviewer самостоятельно** — только через mcp_task. Нарушение ведёт к сценариям, когда один агент подменяет всю цепочку субагентов.
 
 Если пользователь явно указал команду (`/workflow-scaffold`, `/workflow-implement`, `/workflow-feature`, `/norissk`) — следуй ей. Иначе — примени workflow-selector и выбери сам.

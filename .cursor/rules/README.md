@@ -4,7 +4,8 @@
 
 | Файл | Суть | Связанные ассеты |
 |------|------|-----------------|
-| [`workflow-selection.mdc`](workflow-selection.mdc) | При запросе на реализацию — выбрать workflow (scaffold/implement/feature) и делегировать субагентам через mcp_task | [`skills/workflow-selector`](../skills/workflow-selector/SKILL.md), [`commands/norissk.md`](../commands/norissk.md) |
+| [`workflow-selection.mdc`](workflow-selection.mdc) | При запросе на реализацию — выбрать workflow (scaffold/implement/feature) и делегировать субагентам через mcp_task; задачи дизайна/спеков — через **designer**, не подменять вручную | [`skills/workflow-selector`](../skills/workflow-selector/SKILL.md), [`commands/norissk.md`](../commands/norissk.md), [`agents/designer.md`](../agents/designer.md), [`skills/stitch-mcp`](../skills/stitch-mcp/SKILL.md), [`skills/figma-mcp`](../skills/figma-mcp/SKILL.md), [карта глаголов → агент → workflow](../docs/CREATING_ASSETS.md#agent-intent-map) |
+| [`figma-mcp.mdc`](figma-mcp.mdc) | Ассеты из Figma MCP: не подменять плейсхолдерами, не тянуть лишние пакеты иконок, если URL уже в payload | [`skills/figma-mcp`](../skills/figma-mcp/SKILL.md), [`agents/designer.md`](../agents/designer.md) |
 | [`documentation.mdc`](documentation.mdc) | Когда и что обновлять в `app/docs/`: CHANGELOG, ARCHITECTURE, troubleshooting, .env.example. Google-style docstrings. | [`skills/docs`](../skills/docs/SKILL.md), [`agents/documenter.md`](../agents/documenter.md) |
 | [`testing.mdc`](testing.mdc) | Unit/integration/e2e тесты, стиль Arrange-Act-Assert, именование тест-функций | [`agents/test-runner.md`](../agents/test-runner.md) |
 | [`security.mdc`](security.mdc) | Базовые требования: секреты в env, валидация входов, параметризованные запросы | [`skills/security-guidelines`](../skills/security-guidelines/SKILL.md), [`agents/security-auditor.md`](../agents/security-auditor.md) |

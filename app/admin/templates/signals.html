@@ -933,12 +933,35 @@
     return firstLine.includes('🔔');
   }
 
+  /**
+   * Значения параметров в режиме «Тест»: числа — до 4 знаков после запятой (убираем float-артефакты вроде -0.000029999999999998778).
+   */
+  function fmtTestFilterScalar(v) {
+    if (v === null || v === undefined) return String(v);
+    if (typeof v === 'boolean') return String(v);
+    if (typeof v === 'object') return String(v);
+    let num = null;
+    if (typeof v === 'number') {
+      if (!Number.isFinite(v)) return String(v);
+      num = v;
+    } else if (typeof v === 'string') {
+      const t = v.trim();
+      if (t === '') return v;
+      const n = Number(t);
+      if (!Number.isFinite(n)) return v;
+      num = n;
+    } else {
+      return String(v);
+    }
+    return String(parseFloat(num.toFixed(4)));
+  }
+
   /** Плоский текст для обратной совместимости (одна строка). */
   function fmtThresholdsObj(o) {
     if (!o || typeof o !== 'object') return '—';
     const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
     if (!parts.length) return '—';
-    return parts.map(([k, v]) => k + '=' + String(v)).join(' · ');
+    return parts.map(([k, v]) => k + '=' + fmtTestFilterScalar(v)).join(' · ');
   }
 
   /** HTML: каждое key=value с новой строки. */
@@ -946,7 +969,7 @@
     if (!o || typeof o !== 'object') return '—';
     const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
     if (!parts.length) return '—';
-    return parts.map(([k, v]) => escHtml(k + '=' + String(v))).join('<br>');
+    return parts.map(([k, v]) => escHtml(k + '=' + fmtTestFilterScalar(v))).join('<br>');
   }
 
   /**
@@ -986,7 +1009,7 @@
       const statusWord = r.ok ? 'да' : 'нет';
       let contrib = '';
       if (r.filter_score != null && r.filter_score !== undefined) {
-        contrib = `<span class="stf-contrib"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</span>`;
+        contrib = `<span class="stf-contrib"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</span>`;
       }
       return `<span class="stf-title-name">${escHtml(r.title)}</span><span class="stf-status ${st}">${statusWord}</span>${contrib}`;
     }
@@ -1131,7 +1154,7 @@
       }
       if (scoreEl) {
         if (sc != null && sc !== undefined && !Number.isNaN(Number(sc))) {
-          scoreEl.textContent = 'Score: ' + Number(sc).toFixed(3);
+          scoreEl.textContent = 'Score: ' + fmtTestFilterScalar(Number(sc));
           scoreEl.style.display = '';
         } else {
           scoreEl.textContent = '';

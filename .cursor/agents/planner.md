@@ -18,7 +18,7 @@ Before performing tasks:
 1. Apply **Situation Snapshot** — what exists in `app/`, what's missing, what can't change
 2. Break the task into subtasks using **Gap-to-Goal Mapping** (ID, gap, goal, agent, verify, depends)
 3. Define execution order and priorities
-4. Specify which subagent for each subtask (worker, refactor, documenter, reviewer-senior, researcher, etc.)
+4. Specify which subagent for each subtask (**designer** — токены, слайды, UI-спеки; **worker**, **refactor**, **documenter**, **reviewer-senior**, **researcher**, etc.)
 5. Identify risks and edge cases
 6. Output plan using the mandatory format from planning skill, including **Next Prompts**
 
@@ -30,6 +30,7 @@ Before performing tasks:
 
 ## ❌ DON'T:
 - Implement code yourself — delegate to worker and other specialists
+- Produce full design specs, token tables, or slide systems yourself — delegate to **designer** when the subtask is visual/design
 - Create more than 9 subtasks without a higher-level grouping
 - Leave subtasks without a recommended subagent
 - Plan refactoring and new features in the same subtask

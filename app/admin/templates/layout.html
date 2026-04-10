@@ -1,0 +1,146 @@
+{% extends "@starlette-admin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+  @media (min-width: 992px) {
+    .admin-sidebar-toggle {
+      position: fixed;
+      z-index: 1040;
+      top: 0.35rem;
+      left: 0.35rem;
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--tblr-border-radius, 4px);
+      background: rgba(26, 31, 46, 0.92);
+      color: #e0e6f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .admin-sidebar-toggle:hover {
+      background: rgba(35, 42, 62, 0.96);
+      color: #fff;
+    }
+    .admin-sidebar-toggle .ti {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    html.admin-sidebar-collapsed aside.navbar.navbar-vertical.navbar-expand-lg {
+      transform: translateX(-100%);
+      visibility: hidden;
+      pointer-events: none;
+    }
+    html.admin-sidebar-collapsed .navbar-expand-lg.navbar-vertical ~ .navbar,
+    html.admin-sidebar-collapsed .navbar-expand-lg.navbar-vertical ~ .page-wrapper {
+      margin-left: 0 !important;
+    }
+    html.admin-sidebar-collapsed .navbar-vertical.navbar-expand-lg ~ .page {
+      padding-left: 0 !important;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .admin-sidebar-toggle {
+      display: none !important;
+    }
+  }
+</style>
+<script>
+(function () {
+  try {
+    if (localStorage.getItem("adminSidebarCollapsed") === "1") {
+      document.documentElement.classList.add("admin-sidebar-collapsed");
+    }
+  } catch (e) {}
+})();
+</script>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script>
+(function () {
+  var KEY = "adminSidebarCollapsed";
+
+  function syncAria(btn, collapsed) {
+    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    btn.setAttribute(
+      "aria-label",
+      collapsed ? "Показать меню" : "Свернуть меню"
+    );
+    btn.title = collapsed ? "Показать меню" : "Свернуть меню";
+  }
+
+  function setIcon(btn, collapsed) {
+    btn.innerHTML = collapsed
+      ? '<i class="ti ti-chevrons-right" aria-hidden="true"></i>'
+      : '<i class="ti ti-chevrons-left" aria-hidden="true"></i>';
+  }
+
+  function isCollapsed() {
+    return document.documentElement.classList.contains("admin-sidebar-collapsed");
+  }
+
+  function applyCollapsed(collapsed) {
+    document.documentElement.classList.toggle("admin-sidebar-collapsed", collapsed);
+    try {
+      localStorage.setItem(KEY, collapsed ? "1" : "0");
+    } catch (e) {}
+  }
+
+  function mount() {
+    var aside = document.querySelector("aside.navbar.navbar-vertical");
+    if (!aside) return;
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "admin-sidebar-toggle";
+    btn.setAttribute("aria-controls", "sidebar-menu");
+
+    function refresh() {
+      var collapsed = isCollapsed();
+      syncAria(btn, collapsed);
+      setIcon(btn, collapsed);
+    }
+
+    btn.addEventListener("click", function () {
+      applyCollapsed(!isCollapsed());
+      refresh();
+    });
+
+    refresh();
+    document.body.appendChild(btn);
+
+    var mq = window.matchMedia("(min-width: 992px)");
+    function onViewportChange() {
+      if (!mq.matches) {
+        document.documentElement.classList.remove("admin-sidebar-collapsed");
+      } else {
+        try {
+          if (localStorage.getItem(KEY) === "1") {
+            document.documentElement.classList.add("admin-sidebar-collapsed");
+          }
+        } catch (e) {}
+      }
+      refresh();
+    }
+    if (mq.addEventListener) {
+      mq.addEventListener("change", onViewportChange);
+    } else {
+      mq.addListener(onViewportChange);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mount);
+  } else {
+    mount();
+  }
+})();
+</script>
+{% endblock %}
