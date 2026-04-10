@@ -249,14 +249,6 @@
     padding-left: 2px;
     margin-bottom: 4px;
   }
-  .signal-test-filters .stf-title .stf-contrib {
-    flex: 0 1 auto;
-    font-weight: 600;
-    color: #8aa4c8;
-    margin-left: auto;
-  }
-  .signal-test-filters .stf-title .stf-contrib .stf-k { color: #6677aa; }
-
   /* Режим «Тест»: горизонтальная карточка (mode=test) — сетка без горизонтальной прокрутки, до 5 колонок фильтров в зоне ленты */
   .signal-card.signal-card--test {
     width: 100%;
@@ -272,7 +264,7 @@
   }
   .signal-card-test-track {
     display: grid;
-    grid-template-columns: minmax(0, 12.5rem) minmax(0, min(28vw, 22rem)) minmax(0, 1fr);
+    grid-template-columns: 170px 250px minmax(0, 1fr);
     grid-template-areas: "id msg fil";
     gap: 8px 10px;
     align-items: stretch;
@@ -285,6 +277,11 @@
   .signal-card--test .signal-test-filters-slot { grid-area: fil; }
   .signal-card--test .sct-col {
     min-width: 0;
+  }
+  .signal-card--test .sct-col--identity,
+  .signal-card--test .sct-col--message {
+    max-width: 100%;
+    overflow: hidden;
   }
   .signal-card--test .sct-identity-inner {
     display: flex;
@@ -418,15 +415,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .signal-card--test .sct-col--filter .stf-title .stf-contrib {
-    flex: 0 1 auto;
-    font-weight: 600;
-    color: #8aa4c8;
-    margin-left: auto;
-  }
-  .signal-card--test .sct-col--filter .stf-title .stf-contrib .stf-k {
-    color: #5a6a9c;
   }
   .signal-card--test .sct-col--filter .stf-kv-block {
     font-family: ui-monospace, monospace;
@@ -686,9 +674,9 @@
     <span class="toolbar-title">Сигналы</span>
 
     <div class="source-switcher">
-      <button id="btn-src-db"   class="active" onclick="switchSource('db')">БД</button>
-      <button id="btn-src-file"           onclick="switchSource('file')">Лог-файл</button>
-      <button id="btn-src-test"           onclick="switchSource('test')">Тест</button>
+      <button id="btn-src-test" class="active" onclick="switchSource('test')">Scanner</button>
+      <button id="btn-src-db" onclick="switchSource('db')">БД</button>
+      <button id="btn-src-file" onclick="switchSource('file')">Лог-файл</button>
     </div>
 
     <span class="new-badge" id="new-badge">+<span id="new-count">0</span> новых</span>
@@ -707,7 +695,7 @@
       </label>
     </div>
 
-    <span class="test-feed-count" id="test-feed-count" style="display:none" title="Карточек в ленте режима «Тест»">
+    <span class="test-feed-count" id="test-feed-count" style="display:none" title="Карточек в ленте режима Scanner">
       Онлайн: <strong id="test-feed-count-num">0</strong>
     </span>
 
@@ -752,7 +740,7 @@
   'use strict';
 
   /* ── Состояние ── */
-  let source   = 'db';   // 'db' | 'file' | 'test'
+  let source   = 'test';   // 'test' (Scanner) | 'db' | 'file'
   let page     = 1;
   let perPage  = {{ per_page_default }};
   let totalPages = 1;
@@ -1007,15 +995,14 @@
     function filterTitleHtml(r) {
       const st = r.ok ? 'ok' : 'fail';
       const statusWord = r.ok ? 'да' : 'нет';
-      let contrib = '';
-      if (r.filter_score != null && r.filter_score !== undefined) {
-        contrib = `<span class="stf-contrib"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</span>`;
-      }
-      return `<span class="stf-title-name">${escHtml(r.title)}</span><span class="stf-status ${st}">${statusWord}</span>${contrib}`;
+      return `<span class="stf-title-name">${escHtml(r.title)}</span><span class="stf-status ${st}">${statusWord}</span>`;
     }
     function oneFilterBlockHorizontal(r) {
       let b = '<div class="stf-block">';
       b += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
+      if (r.filter_score != null && r.filter_score !== undefined) {
+        b += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
+      }
       b += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
       b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
       b += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
@@ -1036,6 +1023,9 @@
     for (const r of rows) {
       h += '<div class="stf-row">';
       h += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
+      if (r.filter_score != null && r.filter_score !== undefined) {
+        h += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
+      }
       h += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
       h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
       h += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
@@ -1388,7 +1378,7 @@
         const em = document.createElement('div');
         em.className = 'signals-empty';
         if (source === 'test') {
-          em.textContent = 'Режим «Тест»: ждите пары, где после гейтов (USDT, свечи, списки) хотя бы один включённый фильтр даёт OK. История не хранится — только live SSE.';
+          em.textContent = 'Scanner: ждите пары, где после гейтов (USDT, свечи, списки) хотя бы один включённый фильтр даёт OK. История не хранится — только live SSE.';
         } else {
           em.textContent = source === 'db'
             ? 'Сигналов в БД пока нет. Они появятся, как только скринер отправит первый сигнал.'
@@ -1500,6 +1490,7 @@
   window.loadPage = loadPage;
 
   applyTestMaxToSelect();
+  setTestModeUi(source === 'test');
 
   /* ── Scroll-to-top ── */
   window.addEventListener('scroll', () => {
