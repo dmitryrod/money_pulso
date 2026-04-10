@@ -1,0 +1,14 @@
+{
+  "command": "norissk",
+  "workflow": "scaffold",
+  "workflowReason": "Один артефакт: удаление заголовка в signals.html без логики и зависимостей",
+  "escalation": false,
+  "subagentsCalled": [],
+  "debuggerCalls": 0,
+  "testsPassed": false,
+  "reviewerFindings": null,
+  "securityAuditorCalled": false,
+  "documentationCreated": false,
+  "taskSummary": "Убрать текст «Диагностика фильтров (тест)»",
+  "timestamp": "2026-04-09T15:30:00.000Z"
+}

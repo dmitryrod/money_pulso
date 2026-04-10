@@ -6,12 +6,21 @@
   .page-title { display: none; }
   .page-header { display: none !important; }
 
+  /* Tabler: белый зазор = margin-top у .page-body; серая линия под шапкой = inset box-shadow у .navbar */
+  .page > header.navbar:not(.navbar-vertical) {
+    box-shadow: none !important;
+    border-bottom: none !important;
+  }
+  .page-wrapper > .page-body {
+    margin-top: 0 !important;
+  }
+
   /* ── Основной контейнер ── */
   .signals-page {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 12px 16px 80px;
+    padding: 8px 16px 80px;
     max-width: 100%;
   }
 
@@ -210,12 +219,6 @@
     line-height: 1.35;
     color: #9aa8c4;
   }
-  .signal-test-filters .stf-head {
-    font-weight: 700;
-    color: #7eb3ff;
-    margin-bottom: 6px;
-    font-size: 12px;
-  }
   .signal-test-filters .stf-row {
     margin-bottom: 8px;
     padding: 6px 8px;
@@ -227,119 +230,253 @@
     font-weight: 600;
     color: #c8d4e8;
     margin-bottom: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
   }
+  .signal-test-filters .stf-title .stf-title-name { flex: 1 1 auto; min-width: 0; }
   .signal-test-filters .stf-status { font-weight: 700; margin-left: 6px; }
   .signal-test-filters .stf-status.ok { color: #4caf50; }
   .signal-test-filters .stf-status.fail { color: #e57373; }
   .signal-test-filters .stf-line { word-break: break-word; }
   .signal-test-filters .stf-k { color: #6677aa; margin-right: 4px; }
+  .signal-test-filters .stf-kv-block {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    line-height: 1.35;
+    color: #9aa8c4;
+    padding-left: 2px;
+    margin-bottom: 4px;
+  }
+  .signal-test-filters .stf-title .stf-contrib {
+    flex: 0 1 auto;
+    font-weight: 600;
+    color: #8aa4c8;
+    margin-left: auto;
+  }
+  .signal-test-filters .stf-title .stf-contrib .stf-k { color: #6677aa; }
 
-  /* Режим «Тест»: горизонтальная карточка (mode=test) */
+  /* Режим «Тест»: горизонтальная карточка (mode=test) — сетка без горизонтальной прокрутки, до 5 колонок фильтров в зоне ленты */
   .signal-card.signal-card--test {
     width: 100%;
     max-width: 100%;
     min-width: 0;
     border-radius: 12px;
+    padding: 8px 10px 8px;
   }
-  .signal-card-test-hscroll {
-    overflow-x: auto;
-    overflow-y: hidden;
+  .signal-card-test-frame {
     width: 100%;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    min-width: 0;
+    overflow: hidden;
   }
   .signal-card-test-track {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
-    min-width: min-content;
-    padding: 2px 0 6px;
+    display: grid;
+    grid-template-columns: minmax(0, 12.5rem) minmax(0, min(28vw, 22rem)) minmax(0, 1fr);
+    grid-template-areas: "id msg fil";
+    gap: 8px 10px;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    padding: 0 0 2px;
   }
+  .signal-card--test .sct-col--identity { grid-area: id; }
+  .signal-card--test .sct-col--message { grid-area: msg; }
+  .signal-card--test .signal-test-filters-slot { grid-area: fil; }
   .signal-card--test .sct-col {
-    flex: 0 0 auto;
     min-width: 0;
   }
-  .signal-card--test .sct-col--identity {
-    min-width: 168px;
-    max-width: 220px;
-  }
-  .signal-card--test .sct-col--message {
-    min-width: 260px;
-    max-width: 400px;
-  }
-  .signal-card--test .sct-col--filter {
-    min-width: 200px;
-    max-width: 280px;
-  }
-  .signal-card--test .sct-col--meta {
-    min-width: 120px;
-    max-width: 160px;
-  }
-  .signal-card--test .sct-col--identity .signal-header {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    width: 100%;
-    margin-bottom: 0;
-  }
-  .signal-card--test .sct-col--identity .signal-symbol {
+  .signal-card--test .sct-identity-inner {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    min-width: 0;
+    width: 100%;
+  }
+  .signal-card--test .sct-col--identity .signal-symbol {
+    display: block;
+    font-weight: 700;
+    font-size: 14px;
+    margin: 0;
+    min-width: 0;
+  }
+  .signal-card--test .sct-id-rank-score {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1.25rem;
+    font-size: 12px;
+    line-height: 1.3;
+    width: 100%;
+  }
+  .signal-card--test .sct-id-rank {
+    color: #7ab8ff;
+    font-weight: 600;
+  }
+  .signal-card--test .sct-id-screener {
+    font-size: 12px;
+    color: #b0bedb;
+    line-height: 1.35;
+    word-break: break-word;
+    width: 100%;
+  }
+  .signal-card--test .sct-id-links {
+    font-size: 12px;
+    line-height: 1.45;
+    width: 100%;
+  }
+  .signal-card--test .sct-id-links a {
+    color: #5b9cf6;
+    text-decoration: none;
+  }
+  .signal-card--test .sct-id-links a:hover { text-decoration: underline; }
+  .signal-card--test .sct-id-link-row { margin: 0; padding: 0; }
+  .signal-card--test .sct-id-exchange {
+    font-size: 11px;
+    color: #445577;
+  }
+  .signal-card--test .sct-id-time {
+    font-size: 11px;
+    color: #4a5a7a;
   }
   .signal-card--test .signal-body {
     margin-bottom: 0;
-    white-space: normal;
+    white-space: pre-line;
     max-height: none;
+    font-size: 12px;
+    line-height: 1.35;
   }
   .signal-card--test .signal-footer {
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
+    gap: 2px;
     margin-top: 0;
+    text-align: right;
+  }
+  .signal-card--test .signal-meta,
+  .signal-card--test .signal-time {
+    font-size: 11px;
+  }
+
+  .signal-test-filters-slot {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .signal-card--test .sct-filters-inner {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 4px;
+  }
+  .signal-card--test .sct-filters-strip {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: stretch;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .signal-card--test .sct-filters-strip .sct-col--filter {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
   }
   .signal-card--test .sct-col--filter .stf-block {
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 10px;
+    line-height: 1.28;
     color: #9aa8c4;
-    padding: 6px 8px;
-    background: #171c28;
+    padding: 5px 6px;
+    background: linear-gradient(180deg, #1a2030 0%, #171c28 100%);
     border-radius: 6px;
-    border: 1px solid #2a3345;
+    border: 1px solid #2f3a52;
     height: 100%;
     box-sizing: border-box;
-  }
-  .signal-card--test .sct-col--filter .stf-head {
-    font-weight: 700;
-    color: #7eb3ff;
-    margin-bottom: 6px;
-    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
   }
   .signal-card--test .sct-col--filter .stf-title {
     font-weight: 600;
     color: #c8d4e8;
-    margin-bottom: 4px;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 6px 10px;
+    font-size: 10px;
+    line-height: 1.25;
   }
-  .signal-card--test .sct-col--filter .stf-status { font-weight: 700; margin-left: 6px; }
+  .signal-card--test .sct-col--filter .stf-title > .stf-title-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .signal-card--test .sct-col--filter .stf-title .stf-contrib {
+    flex: 0 1 auto;
+    font-weight: 600;
+    color: #8aa4c8;
+    margin-left: auto;
+  }
+  .signal-card--test .sct-col--filter .stf-title .stf-contrib .stf-k {
+    color: #5a6a9c;
+  }
+  .signal-card--test .sct-col--filter .stf-kv-block {
+    font-family: ui-monospace, monospace;
+    font-size: 9.5px;
+    line-height: 1.35;
+    color: #9aa8c4;
+    padding-left: 2px;
+  }
+  .signal-card--test .sct-col--filter .stf-status {
+    font-weight: 700;
+    flex: 0 0 auto;
+    font-size: 10px;
+  }
   .signal-card--test .sct-col--filter .stf-status.ok { color: #4caf50; }
   .signal-card--test .sct-col--filter .stf-status.fail { color: #e57373; }
-  .signal-card--test .sct-col--filter .stf-line { word-break: break-word; }
-  .signal-card--test .sct-col--filter .stf-k { color: #6677aa; margin-right: 4px; }
-  .signal-test-filters-slot {
-    display: contents;
+  .signal-card--test .sct-col--filter .stf-line {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .signal-card--test .sct-col--filter .stf-k {
+    color: #5a6a9c;
+    margin-right: 3px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 1100px) {
+    .signal-card-test-track {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas:
+        "id msg"
+        "fil fil";
+    }
+    .signal-card--test .sct-filters-strip {
+      flex-wrap: wrap;
+    }
+    .signal-card--test .sct-filters-strip .sct-col--filter {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 8rem;
+    }
   }
 
   .signal-test-score {
-    display: block;
+    display: inline;
     font-size: 11px;
     font-weight: 600;
     color: #9ec5ff;
-    margin-top: 4px;
-    width: 100%;
+    margin-top: 0;
+  }
+  .signal-card--test .sct-id-rank-score .signal-test-score {
+    width: auto;
   }
 
   /* Счётчик карточек в режиме «Тест» */
@@ -796,6 +933,7 @@
     return firstLine.includes('🔔');
   }
 
+  /** Плоский текст для обратной совместимости (одна строка). */
   function fmtThresholdsObj(o) {
     if (!o || typeof o !== 'object') return '—';
     const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
@@ -803,59 +941,150 @@
     return parts.map(([k, v]) => k + '=' + String(v)).join(' · ');
   }
 
+  /** HTML: каждое key=value с новой строки. */
+  function fmtThresholdsObjHtml(o) {
+    if (!o || typeof o !== 'object') return '—';
+    const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
+    if (!parts.length) return '—';
+    return parts.map(([k, v]) => escHtml(k + '=' + String(v))).join('<br>');
+  }
+
+  /**
+   * Разбор telegram_text (DEFAULT): убрать шапку и футер со ссылками, строку «Сигналов за 24ч».
+   */
+  function parseTestModeTelegramHtml(telegramText) {
+    const raw = telegramText || '';
+    const segments = raw.split(/\n\n+/).map(s => s.trim()).filter(s => s.length);
+    if (segments.length < 2) {
+      const firstNl = raw.indexOf('\n');
+      const rest = firstNl !== -1 ? raw.substring(firstNl + 1) : '';
+      return { bodyHtml: rest, links: [] };
+    }
+    const lastSeg = segments[segments.length - 1];
+    const isFooter = /🔗/.test(lastSeg) && /<a\s/i.test(lastSeg);
+    let bodySegments = segments.slice(1);
+    const links = [];
+    if (isFooter) {
+      bodySegments = segments.slice(1, -1);
+      const linkRe = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      let m;
+      while ((m = linkRe.exec(lastSeg)) !== null) {
+        const label = m[2].replace(/<[^>]+>/g, '').trim();
+        links.push({ href: m[1], label: label || 'link' });
+      }
+    }
+    let bodyHtml = bodySegments.join('\n\n');
+    bodyHtml = bodyHtml.replace(/⦁\s*Сигналов за 24ч:\s*[^\n<]*/gi, '');
+    bodyHtml = bodyHtml.replace(/Сигналов за 24ч:\s*[\d]+/gi, '');
+    return { bodyHtml: bodyHtml.trim(), links };
+  }
+
   function renderTestFiltersHtml(rows, layoutHorizontal) {
     if (!rows || !rows.length) return '';
-    function oneFilterBlock(r, includeHead) {
+    function filterTitleHtml(r) {
       const st = r.ok ? 'ok' : 'fail';
-      let b = '<div class="stf-block">';
-      if (includeHead) {
-        b += '<div class="stf-head">Диагностика фильтров (тест)</div>';
-      }
-      b += `<div class="stf-title">${escHtml(r.title)} <span class="stf-status ${st}">${r.ok ? 'OK' : 'нет'}</span></div>`;
-      b += `<div class="stf-line"><span class="stf-k">Текущее:</span> ${escHtml(fmtThresholdsObj(r.current))}</div>`;
-      b += `<div class="stf-line"><span class="stf-k">Пороги:</span> ${escHtml(fmtThresholdsObj(r.thresholds))}</div>`;
+      const statusWord = r.ok ? 'да' : 'нет';
+      let contrib = '';
       if (r.filter_score != null && r.filter_score !== undefined) {
-        b += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</div>`;
+        contrib = `<span class="stf-contrib"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</span>`;
       }
+      return `<span class="stf-title-name">${escHtml(r.title)}</span><span class="stf-status ${st}">${statusWord}</span>${contrib}`;
+    }
+    function oneFilterBlockHorizontal(r) {
+      let b = '<div class="stf-block">';
+      b += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
+      b += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
+      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
+      b += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
+      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds)}</div>`;
       b += '</div>';
       return b;
     }
     if (layoutHorizontal) {
-      let h = '';
+      let h = '<div class="sct-filters-inner">';
+      h += '<div class="sct-filters-strip">';
       for (let i = 0; i < rows.length; i++) {
-        h += `<section class="sct-col sct-col--filter">${oneFilterBlock(rows[i], i === 0)}</section>`;
+        h += `<section class="sct-col sct-col--filter">${oneFilterBlockHorizontal(rows[i])}</section>`;
       }
+      h += '</div></div>';
       return h;
     }
-    let h = '<div class="stf-head">Диагностика фильтров (тест)</div>';
+    let h = '';
     for (const r of rows) {
-      const st = r.ok ? 'ok' : 'fail';
       h += '<div class="stf-row">';
-      h += `<div class="stf-title">${escHtml(r.title)} <span class="stf-status ${st}">${r.ok ? 'OK' : 'нет'}</span></div>`;
-      h += `<div class="stf-line"><span class="stf-k">Текущее:</span> ${escHtml(fmtThresholdsObj(r.current))}</div>`;
-      h += `<div class="stf-line"><span class="stf-k">Пороги:</span> ${escHtml(fmtThresholdsObj(r.thresholds))}</div>`;
-      if (r.filter_score != null && r.filter_score !== undefined) {
-        h += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(String(r.filter_score))}</div>`;
-      }
+      h += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
+      h += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
+      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
+      h += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
+      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds)}</div>`;
       h += '</div>';
     }
     return h;
   }
 
+  function applyTestIdentity(div, item, parsedLinks) {
+    const rank = extractCmcRank(item.telegram_text, item.cmc_rank);
+    const rankEl = div.querySelector('.sct-id-rank');
+    if (rankEl) {
+      rankEl.textContent = rank ? ('#' + rank) : '';
+      rankEl.style.display = rank ? '' : 'none';
+    }
+    const scrEl = div.querySelector('.sct-id-screener');
+    if (scrEl) {
+      const sn = item.screener_name != null ? String(item.screener_name) : '';
+      scrEl.textContent = sn;
+      scrEl.style.display = sn ? '' : 'none';
+    }
+    const linksEl = div.querySelector('.sct-id-links');
+    if (linksEl) {
+      linksEl.innerHTML = '';
+      const list = parsedLinks && parsedLinks.length ? parsedLinks : [];
+      for (const l of list) {
+        const row = document.createElement('div');
+        row.className = 'sct-id-link-row';
+        row.appendChild(document.createTextNode('🔗 '));
+        const a = document.createElement('a');
+        a.href = l.href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = l.label;
+        row.appendChild(a);
+        linksEl.appendChild(row);
+      }
+    }
+    const exEl = div.querySelector('.sct-id-exchange');
+    if (exEl) {
+      const ex = (item.exchange || '').toUpperCase();
+      const mt = (item.market_type || '').toUpperCase();
+      exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
+    }
+    const timeId = div.querySelector('.sct-id-time');
+    if (timeId) timeId.textContent = fmt_date(item.created_at);
+  }
+
   function applyCardData(div, item) {
     const bodyDiv = div.querySelector('.signal-body');
-    let bodyText = item.telegram_text || '';
-    const firstNl = bodyText.indexOf('\n');
-    if (firstNl !== -1) {
-      bodyText = bodyText.substring(firstNl + 1);
-    } else {
-      bodyText = '';
+    const isTest = item.mode === 'test';
+    if (isTest && bodyDiv) {
+      const parsed = parseTestModeTelegramHtml(item.telegram_text || '');
+      bodyDiv.innerHTML = parsed.bodyHtml;
+      applyTestIdentity(div, item, parsed.links);
+    } else if (bodyDiv) {
+      let bodyText = item.telegram_text || '';
+      const firstNl = bodyText.indexOf('\n');
+      if (firstNl !== -1) {
+        bodyText = bodyText.substring(firstNl + 1);
+      } else {
+        bodyText = '';
+      }
+      bodyDiv.innerHTML = bodyText;
     }
-    bodyDiv.innerHTML = bodyText;
-    bodyDiv.querySelectorAll('a').forEach(a => {
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener noreferrer');
-    });
+    if (bodyDiv) {
+      bodyDiv.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+    }
     const timeEl = div.querySelector('.signal-time');
     if (timeEl) timeEl.textContent = fmt_date(item.created_at);
 
@@ -930,12 +1159,14 @@
     const rank    = extractCmcRank(item.telegram_text, item.cmc_rank);
     const hasBell = isFirstDailySignal(item.telegram_text);
 
-    const statusIcon = item.telegram_ok
-      ? '<span class="signal-status-icon ok" title="Telegram OK">✓</span>'
-      : '<span class="signal-status-icon fail" title="Ошибка Telegram">✕</span>';
-
     const div = document.createElement('div');
     const isTest = item.mode === 'test';
+    const statusIcon = !isTest
+      ? (item.telegram_ok
+        ? '<span class="signal-status-icon ok" title="Telegram OK">✓</span>'
+        : '<span class="signal-status-icon fail" title="Ошибка Telegram">✕</span>')
+      : '';
+
     div.className = (isTest ? 'signal-card signal-card--test' : 'signal-card') + (isNew ? ' signal-new' : '');
     div.dataset.id = item.id;
 
@@ -950,23 +1181,27 @@
 
     if (isTest) {
       div.innerHTML = `
-      <div class="signal-card-test-hscroll">
+      <div class="signal-card-test-frame">
         <div class="signal-card-test-track">
           <section class="sct-col sct-col--identity">
-            <div class="signal-header">
-              ${headerInner}
+            <div class="sct-identity-inner">
+              <div class="signal-symbol" title="Нажмите, чтобы скопировать">
+                <span class="sym-text">${escHtml(symbol)}</span>
+              </div>
+              <div class="sct-id-rank-score">
+                <span class="sct-id-rank signal-num"></span>
+                <span class="sct-id-score signal-test-score" style="display:none" title="Score: среднее signed-вкладов по активным фильтрам"></span>
+              </div>
+              <div class="sct-id-screener"></div>
+              <div class="sct-id-links"></div>
+              <div class="sct-id-exchange"></div>
+              <div class="sct-id-time"></div>
             </div>
           </section>
           <section class="sct-col sct-col--message">
             <div class="signal-body"></div>
           </section>
           <div class="signal-test-filters-slot"></div>
-          <section class="sct-col sct-col--meta">
-            <div class="signal-footer">
-              <span class="signal-meta">${escHtml((item.exchange||'').toUpperCase())} · ${escHtml((item.market_type||'').toUpperCase())}</span>
-              <span class="signal-time">${fmt_date(item.created_at)}</span>
-            </div>
-          </section>
         </div>
       </div>`;
     } else {
