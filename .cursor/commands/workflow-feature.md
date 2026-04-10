@@ -1,18 +1,18 @@
 # workflow-feature
 
-**Полный workflow** — задействует planner, **designer** (по плану), worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter. Для сложных фич с планированием, реализацией, проверками, review и аудитом.
+**Полный workflow** — задействует planner, worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter. Для сложных фич с планированием, реализацией, проверками, review и аудитом.
 
 **Использование:** `/workflow-feature <описание фичи>` — например: `/workflow-feature Добавь систему аутентификации с email/password и OAuth`
 
 ## Шаги
 
-**Как вызывать субагентов:** для каждого шага вызывай инструмент **mcp_task** с параметрами:
+**Как вызывать субагентов:** для каждого шага вызывай инструмент **Task** с параметрами:
 - **subagent_type:** `planner` | `designer` | `worker` | `refactor` | `test-runner` | `debugger` | `reviewer-senior` | `security-auditor` | `documenter`
 - **prompt:** формулировка задачи для субагента (включая контекст, ID подзадачи, что уже сделано)
 - **description:** краткое описание вызова (3–5 слов)
 - **resume:** при необходимости продолжить прерванную сессию — передай agent ID из предыдущего вызова
 
-Не выполняй шаги planner/designer/worker/refactor/test-runner/debugger/reviewer-senior/documenter/security-auditor самостоятельно — только через mcp_task.
+Не выполняй шаги planner/worker/test-runner/reviewer-senior/documenter/security-auditor самостоятельно — только через Task.
 
 Выполни последовательно:
 
@@ -21,9 +21,9 @@
    - Иначе: если папка не git-репозиторий (или нет remote) — выполни `git init`, при наличии `gh` и прав — `gh repo create` (или выведи команду пользователю). Задай origin. Первый коммит — после создания структуры worker'ом.
 
 1. **Planner — декомпозиция**
-   - Вызови mcp_task с subagent_type="planner" и prompt с описанием фичи из запроса пользователя.
-   - Пример: `mcp_task(subagent_type="planner", prompt="Декомпозируй задачу: [описание из запроса пользователя]. Укажи подзадачи с ID, порядком, зависимостями и рекомендуемым субагентом.", description="Planner decomposition")`
-   - Planner разбивает задачу на подзадачи с ID (например AUTH-001, AUTH-002), порядком, зависимостями и **рекомендуемым субагентом на каждую** (**designer** — токены, слайды, UI-спеки без кода; **worker** / **refactor** — код; **documenter** — только документация и т.д.).
+   - Вызови Task с subagent_type="planner" и prompt с описанием фичи из запроса пользователя.
+   - Пример: `Task(subagent_type="planner", prompt="Декомпозируй задачу: [описание из запроса пользователя]. Укажи подзадачи с ID, порядком, зависимостями и рекомендуемым субагентом.", description="Planner decomposition")`
+   - Planner разбивает задачу на подзадачи с ID (например AUTH-001, AUTH-002), порядком, зависимостями и **рекомендуемым субагентом на каждую** (worker, refactor, documenter и т.д.).
    - Перед сохранением плана: если папок из `config.json` (documentation.paths) не существует — создай их с `.gitkeep` в каждой.
    - Сохрани план. Дождись завершения.
 
@@ -35,49 +35,48 @@
    Выполняй по порядку с учётом зависимостей:
 
    a. **Реализация (designer, worker или refactor)**
-      - Вызови mcp_task с subagent_type, **рекомендованным planner'ом** для этой подзадачи:
-        - **designer** — дизайн-система, презентация, токены, макеты, спецификации UI **без** изменения прикладного кода в `app/` (или с явным handoff для worker);
-        - **worker** — новая функциональность, исправления, изменения кода;
-        - **refactor** — улучшение структуры без изменения поведения (дублирование, нейминг, перестройка модулей).
+      - Вызови Task с subagent_type, **рекомендованным planner'ом** для этой подзадачи:
+        - **designer** — токены, UI-спеки, слайды, markdown-макеты (без кода приложения);
+        - **worker** — для новой функциональности, исправлений, изменений кода;
+        - **refactor** — для улучшения структуры без изменения поведения (дублирование, нейминг, перестройка модулей).
       - Дождись завершения.
 
-   b. **Test-Runner — тесты** (только если подзадача меняла код и есть что гонять)
-      - Для подзадач **только designer** (markdown/спеки без тестов) — шаг **пропусти**, зафиксируй в отчёте `testsSkipped: true` для этой подзадачи.
-      - Иначе: вызови mcp_task(subagent_type="test-runner", ...) для запуска тестов.
+   b. **Test-Runner — тесты**
+      - Вызови Task(subagent_type="test-runner", ...) для запуска тестов.
       - Если тесты падают:
-        - Вызови mcp_task(subagent_type="debugger", ...) (максимум 3 попытки на задачу).
+        - Вызови Task(subagent_type="debugger", ...) (максимум 3 попытки на задачу).
         - После каждой попытки — снова test-runner.
       - Продолжай только при успешных тестах или явном решении пользователя.
 
    c. После каждой подзадачи (или группы): коммит с `Closes #N` или `Fixes #N` при наличии issue.
 
 3. **Reviewer-Senior — code review + архитектурный обзор**
-   - После завершения всех подзадач вызови mcp_task(subagent_type="reviewer-senior", ...).
+   - После завершения всех подзадач вызови Task(subagent_type="reviewer-senior", ...).
    - Reviewer-senior выполняет двухуровневый обзор: быстрая проверка (линтеры, типичные проблемы) + архитектурный обзор (граничные случаи, производительность, maintainability).
    - Если reviewer-senior нашёл проблемы:
      - **Простые правки** (одно-два точечных изменения: rate limit, env-переменная, валидация) — родительский агент может применить их сам (StrReplace).
-     - **Сложные исправления** (stack trace, неочевидные баги, рефакторинг по замечаниям) — вызови mcp_task(subagent_type="debugger", ...).
+     - **Сложные исправления** (stack trace, неочевидные баги, рефакторинг по замечаниям) — вызови Task(subagent_type="debugger", ...).
      - Повтори reviewer-senior при необходимости.
    - Зафиксируй замечания и исправления.
 
 4. **Security-Auditor — финальный аудит (если фича security-sensitive)**
-   - Если фича касается auth, payments, sensitive data — вызови mcp_task(subagent_type="security-auditor", ...) для финальной проверки всей реализации.
+   - Если фича касается auth, payments, sensitive data — вызови Task(subagent_type="security-auditor", ...) для финальной проверки всей реализации.
    - При критичных находках — см. раздел «Исправления по ревью» ниже.
 
-**Batch review:** Шаги reviewer-senior и security-auditor можно выполнять **параллельно** — вызови два mcp_task одновременно.
+**Batch review:** Шаги reviewer-senior и security-auditor можно выполнять **параллельно** — вызови два Task одновременно.
 
 **Исправления по ревью (reviewer-senior, security-auditor):**
 - **Простые правки** (одно-два точечных изменения: rate limit, env-переменная, валидация) — родительский агент может применить их сам (StrReplace).
-- **Сложные исправления** (stack trace, неочевидные баги, рефакторинг по замечаниям) — вызови mcp_task(subagent_type="debugger", ...).
+- **Сложные исправления** (stack trace, неочевидные баги, рефакторинг по замечаниям) — вызови Task(subagent_type="debugger", ...).
 
 5. **Documenter — итоговый отчёт**
-   - Вызови mcp_task(subagent_type="documenter", ...) для создания итогового отчёта: что реализовано, структура, как использовать, что тестировать.
+   - Вызови Task(subagent_type="documenter", ...) для создания итогового отчёта: что реализовано, структура, как использовать, что тестировать.
    - Дождись завершения.
 
 6. **PR (если есть GitHub)**
    - Выполни `gh pr create` с body, привязывающим PR к issues. См. [gh-commands.md](.cursor/templates/gh-commands.md).
 
-**Параллельность:** Шаги 3 (reviewer-senior) и 5 (documenter) можно выполнять параллельно — оба работают с уже готовым кодом. Вызови **два** mcp_task **параллельно**: один с subagent_type="reviewer-senior", другой с subagent_type="documenter".
+**Параллельность:** Шаги 3 (reviewer-senior) и 5 (documenter) можно выполнять параллельно — оба работают с уже готовым кодом. Вызови **два** Task **параллельно**: один с subagent_type="reviewer-senior", другой с subagent_type="documenter".
 
 ## Результат
 
@@ -97,7 +96,7 @@
 
 ## Заметки
 
-- **Полный набор субагентов:** planner, **designer** (по плану), worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter.
+- **Полный набор субагентов:** planner, worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter.
 - Security-auditor вызывается один раз в конце (шаг 4), не на каждую подзадачу.
 - Соблюдай порядок задач из плана (учти зависимости).
 - Уважай рекомендацию planner'а по субагенту (worker vs refactor) для каждой подзадачи.

@@ -1,6 +1,6 @@
 ---
 name: documenter
-description: Writes and updates documentation. Use when adding README, docstrings, API docs, or onboarding materials. Invoked via mcp_task with subagent_type="documenter".
+description: Writes and updates documentation. Use when adding README, docstrings, API docs, or onboarding materials. Invoked via Task with subagent_type="documenter".
 skills: [docs]
 ---
 

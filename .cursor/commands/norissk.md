@@ -6,7 +6,7 @@
 
 ## Шаги
 
-**Как вызывать субагентов:** при выполнении шагов workflow вызывай инструмент **mcp_task** с subagent_type, prompt, description. Не выполняй роли planner/**designer**/worker/refactor/test-runner/debugger/reviewer-senior/documenter/security-auditor и др. самостоятельно — только через mcp_task. См. workflow-scaffold / workflow-implement / workflow-feature для деталей.
+**Как вызывать субагентов:** при выполнении шагов workflow вызывай встроенный инструмент Cursor **`Task`** (`subagent_type`, `prompt`, `description`, …). Не выполняй роли planner/**designer**/worker/refactor/test-runner/debugger/reviewer-senior/documenter/security-auditor и др. самостоятельно — только через **`Task`**. См. workflow-scaffold / workflow-implement / workflow-feature и [`workflow-selection.mdc`](../rules/workflow-selection.mdc) (там же: почему не появляются отдельные субагенты).
 
 1. **Анализ и выбор workflow**
    Проанализируй задачу по критериям из skill workflow-selector:
@@ -43,6 +43,7 @@
 
 ## Заметки
 
+- Субагенты в отдельном контексте = вызовы **`Task`**. Канон и запреты по именам — [`CREATING_ASSETS.md` — «Инструмент Task»](../docs/CREATING_ASSETS.md#task-delegation).
 - Используй skill workflow-selector для детальных критериев.
 - При неопределённости — склоняйся к более полному workflow (implement лучше scaffold, feature лучше implement).
 - Пользователь может явно указать workflow: `/norissk workflow-scaffold: добавь кнопку` — тогда не анализируй, выбери workflow-scaffold.

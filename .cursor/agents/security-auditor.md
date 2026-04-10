@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: Security specialist auditing code for vulnerabilities. Use when implementing auth, payments, handling sensitive data, or after security-sensitive changes. Invoked via mcp_task with subagent_type="security-auditor".
+description: Security specialist auditing code for vulnerabilities. Use when implementing auth, payments, handling sensitive data, or after security-sensitive changes. Invoked via Task with subagent_type="security-auditor".
 skills: [security-guidelines]
 ---
 

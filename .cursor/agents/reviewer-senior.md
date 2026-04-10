@@ -3,7 +3,7 @@ name: reviewer-senior
 description: >-
   Two-level code review: quick check (linters, common issues, style) + deep review
   (architecture, edge cases, performance, maintainability). Use after implementation
-  or before merge. Invoked via mcp_task with subagent_type="reviewer-senior".
+  or before merge. Invoked via Task with subagent_type="reviewer-senior".
 skills: [code-quality-standards, architecture-principles]
 ---
 

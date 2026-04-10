@@ -60,11 +60,11 @@ function computeScore(sessions) {
   );
   const securityCalled = sessions.filter(s => s.securityAuditorCalled === true).length;
 
-  // Делегирование: доля ожидаемых субагентов
+  // Делегирование: доля ожидаемых субагентов (имена = subagent_type в Task(...))
   const expectedByWorkflow = {
     scaffold: ['worker', 'test-runner', 'documenter'],
-    implement: ['worker', 'test-runner', 'reviewer', 'documenter'],
-    feature: ['planner', 'worker', 'test-runner', 'reviewer', 'documenter']
+    implement: ['worker', 'test-runner', 'reviewer-senior', 'documenter'],
+    feature: ['planner', 'worker', 'test-runner', 'reviewer-senior', 'documenter']
   };
   let delegationSum = 0;
   let delegationCount = 0;

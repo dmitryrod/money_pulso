@@ -11,6 +11,10 @@ alwaysApply: true
 2. Выбери соответствующий workflow
 3. Выполни шаги выбранного workflow (вызывай субагентов по порядку)
 
-**Делегирование только через вызов инструмента mcp_task** (параметр `subagent_type`). **Никогда не выполняй роли planner, worker, designer, debugger, test-runner, reviewer, documenter, security-auditor, senior-reviewer самостоятельно** — только через mcp_task. Нарушение ведёт к сценариям, когда один агент подменяет всю цепочку субагентов.
+**Делегирование только через встроенный инструмент Cursor `Task`** (параметры: `subagent_type`, `prompt`, `description`, при необходимости `model`, `readonly`, `run_in_background`). Это **не** MCP-сервер из настроек MCP и не инструмент из папки `mcps/` — отдельные субагенты и отдельный контекст появляются **только** если модель **реально вызывает `Task`**, а не пересказывает роли worker/reviewer в одном ответе.
+
+**Если в сессии нет инструмента `Task`** (например режим Ask, сборка без субагентов, отключённые агентные инструменты) — цепочки из `/norissk` и workflow-команд **не смогут** породить отдельные окна субагентов; кратко опиши пользователю это ограничение.
+
+**Никогда не выполняй роли planner, worker, designer, debugger, test-runner, reviewer, documenter, security-auditor, senior-reviewer самостоятельно** — только через `Task`. Запрещённые имена и историческая путаница с MCP — только в [`CREATING_ASSETS.md` → «Инструмент Task»](../docs/CREATING_ASSETS.md#task-delegation).
 
 Если пользователь явно указал команду (`/workflow-scaffold`, `/workflow-implement`, `/workflow-feature`, `/norissk`) — следуй ей. Иначе — примени workflow-selector и выбери сам.

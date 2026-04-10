@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Test automation expert. Use proactively to run tests and fix failures. Use when code changes need verification or tests are failing. Invoked via mcp_task with subagent_type="test-runner".
+description: Test automation expert. Use proactively to run tests and fix failures. Use when code changes need verification or tests are failing. Invoked via Task with subagent_type="test-runner".
 ---
 
 You are a test automation expert.

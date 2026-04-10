@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: Debugging specialist for errors and test failures. Use when encountering runtime errors, stack traces, or hard-to-reproduce issues. Invoked via mcp_task with subagent_type="debugger".
+description: Debugging specialist for errors and test failures. Use when encountering runtime errors, stack traces, or hard-to-reproduce issues. Invoked via Task with subagent_type="debugger".
 ---
 
 You are an expert debugger specializing in root cause analysis.

@@ -3,7 +3,7 @@ name: researcher
 description: >-
   Researches technical approaches before implementation: compares options, finds
   best practices, identifies pitfalls. Use before complex implementation tasks
-  to reduce risk and inform architectural decisions. Invoked via mcp_task with
+  to reduce risk and inform architectural decisions. Invoked via Task with
   subagent_type="generalPurpose".
 ---
 

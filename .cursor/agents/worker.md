@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Implements features and fixes by writing code. Use when implementing new functionality, fixing bugs, or making code changes according to a plan. Invoked via mcp_task with subagent_type="worker".
+description: Implements features and fixes by writing code. Use when implementing new functionality, fixing bugs, or making code changes according to a plan. Invoked via Task with subagent_type="worker".
 skills: [idempotency, performance]
 ---
 
