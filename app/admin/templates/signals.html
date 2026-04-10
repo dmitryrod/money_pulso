@@ -236,9 +236,8 @@
     gap: 6px 10px;
   }
   .signal-test-filters .stf-title .stf-title-name { flex: 1 1 auto; min-width: 0; }
-  .signal-test-filters .stf-status { font-weight: 700; margin-left: 6px; }
-  .signal-test-filters .stf-status.ok { color: #4caf50; }
-  .signal-test-filters .stf-status.fail { color: #e57373; }
+  .signal-test-filters .stf-title .stf-title-name.ok { color: #4caf50; }
+  .signal-test-filters .stf-title .stf-title-name.fail { color: #e57373; }
   .signal-test-filters .stf-line { word-break: break-word; }
   .signal-test-filters .stf-k { color: #6677aa; margin-right: 4px; }
   .signal-test-filters .stf-kv-block {
@@ -333,9 +332,60 @@
     font-size: 11px;
     color: #445577;
   }
+  .signal-card--test .sct-id-tracking {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+  }
   .signal-card--test .sct-id-time {
     font-size: 11px;
     color: #4a5a7a;
+  }
+  .signal-card--test .sct-id-duration {
+    font-size: 11px;
+    color: #8ab88a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .signal-card--test .sct-id-duration-sec {
+    font-size: 11px;
+    color: #5a6a8a;
+    font-variant-numeric: tabular-nums;
+  }
+  .signal-card--test .sct-col--message {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .signal-card--test .scanner-max-strip {
+    flex: 0 0 auto;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #2f3d5c;
+    background: linear-gradient(180deg, #1e2538 0%, #171c28 100%);
+    font-size: 11px;
+    line-height: 1.4;
+    color: #b0c0d8;
+  }
+  .signal-card--test .scanner-max-strip:empty {
+    display: none;
+  }
+  .signal-card--test .scanner-max-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+  }
+  .signal-card--test .scanner-max-k {
+    color: #7a8fb0;
+    font-weight: 600;
+  }
+  .signal-card--test .scanner-max-v {
+    font-variant-numeric: tabular-nums;
+    color: #9ecbff;
+    font-weight: 600;
   }
   .signal-card--test .signal-body {
     margin-bottom: 0;
@@ -423,13 +473,8 @@
     color: #9aa8c4;
     padding-left: 2px;
   }
-  .signal-card--test .sct-col--filter .stf-status {
-    font-weight: 700;
-    flex: 0 0 auto;
-    font-size: 10px;
-  }
-  .signal-card--test .sct-col--filter .stf-status.ok { color: #4caf50; }
-  .signal-card--test .sct-col--filter .stf-status.fail { color: #e57373; }
+  .signal-card--test .sct-col--filter .stf-title > .stf-title-name.ok { color: #4caf50; }
+  .signal-card--test .sct-col--filter .stf-title > .stf-title-name.fail { color: #e57373; }
   .signal-card--test .sct-col--filter .stf-line {
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -905,7 +950,7 @@
     try {
       const d = new Date(iso);
       const pad = n => String(n).padStart(2, '0');
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     } catch { return iso; }
   }
 
@@ -952,10 +997,21 @@
     return parts.map(([k, v]) => k + '=' + fmtTestFilterScalar(v)).join(' · ');
   }
 
-  /** HTML: каждое key=value с новой строки. */
-  function fmtThresholdsObjHtml(o) {
+  /**
+   * HTML: каждое key=value с новой строки.
+   * filterId + section: для LQ в «Текущее» `lq_pct_of_daily_volume` вверху (порядок ключей в JSON/SSE часто лексикографический).
+   */
+  function fmtThresholdsObjHtml(o, filterId, section) {
     if (!o || typeof o !== 'object') return '—';
-    const parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
+    let parts = Object.entries(o).filter(([, v]) => v !== null && v !== undefined);
+    if (filterId === 'lq' && section === 'current') {
+      const pri = 'lq_pct_of_daily_volume';
+      const idx = parts.findIndex(([k]) => k === pri);
+      if (idx > 0) {
+        const row = parts.splice(idx, 1)[0];
+        parts.unshift(row);
+      }
+    }
     if (!parts.length) return '—';
     return parts.map(([k, v]) => escHtml(k + '=' + fmtTestFilterScalar(v))).join('<br>');
   }
@@ -994,8 +1050,7 @@
     if (!rows || !rows.length) return '';
     function filterTitleHtml(r) {
       const st = r.ok ? 'ok' : 'fail';
-      const statusWord = r.ok ? 'да' : 'нет';
-      return `<span class="stf-title-name">${escHtml(r.title)}</span><span class="stf-status ${st}">${statusWord}</span>`;
+      return `<span class="stf-title-name ${st}">${escHtml(r.title)}</span>`;
     }
     function oneFilterBlockHorizontal(r) {
       let b = '<div class="stf-block">';
@@ -1004,9 +1059,9 @@
         b += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
       }
       b += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
-      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
+      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current, r.id, 'current')}</div>`;
       b += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
-      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds)}</div>`;
+      b += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds, r.id, 'thresholds')}</div>`;
       b += '</div>';
       return b;
     }
@@ -1027,9 +1082,9 @@
         h += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
       }
       h += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
-      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current)}</div>`;
+      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.current, r.id, 'current')}</div>`;
       h += '<div class="stf-line"><span class="stf-k">Пороги:</span></div>';
-      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds)}</div>`;
+      h += `<div class="stf-kv-block">${fmtThresholdsObjHtml(r.thresholds, r.id, 'thresholds')}</div>`;
       h += '</div>';
     }
     return h;
@@ -1071,8 +1126,71 @@
       const mt = (item.market_type || '').toUpperCase();
       exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
     }
+    /* Не использовать created_at как единственный fallback: он обновляется на каждом снимке и сбрасывает счётчик.
+       Берём самую раннюю метку из сервера, уже показанной на карточке и created_at. */
+    let trackedIso = '';
+    let bestMs = Infinity;
+    for (const iso of [item.scanner_tracked_since, div.dataset.scannerTrackedSince, item.created_at]) {
+      if (!iso) continue;
+      const ms = Date.parse(String(iso));
+      if (!Number.isFinite(ms)) continue;
+      if (ms < bestMs) {
+        bestMs = ms;
+        trackedIso = String(iso);
+      }
+    }
+    div.dataset.scannerTrackedSince = trackedIso;
     const timeId = div.querySelector('.sct-id-time');
-    if (timeId) timeId.textContent = fmt_date(item.created_at);
+    if (timeId) timeId.textContent = trackedIso ? fmt_date(trackedIso) : '';
+    updateScannerDurationForCard(div);
+  }
+
+  function parseIsoToMs(iso) {
+    if (!iso) return null;
+    const t = Date.parse(String(iso));
+    return Number.isFinite(t) ? t : null;
+  }
+
+  function fmtDurationHms(elapsedMs) {
+    let ms = elapsedMs;
+    if (ms < 0) ms = 0;
+    const sec = Math.floor(ms / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function updateScannerDurationForCard(card) {
+    if (!card || !card.classList || !card.classList.contains('signal-card--test')) return;
+    const iso = card.dataset.scannerTrackedSince;
+    const start = parseIsoToMs(iso);
+    const durEl = card.querySelector('.sct-id-duration');
+    const secEl = card.querySelector('.sct-id-duration-sec');
+    if (!durEl || !secEl) return;
+    if (start == null) {
+      durEl.textContent = '';
+      secEl.textContent = '';
+      return;
+    }
+    const elapsed = Date.now() - start;
+    durEl.textContent = fmtDurationHms(elapsed);
+    secEl.textContent = String(Math.floor(elapsed / 1000)) + 's';
+  }
+
+  function updateAllScannerDurationDisplays() {
+    if (source !== 'test') return;
+    feed.querySelectorAll('.signal-card--test').forEach(updateScannerDurationForCard);
+  }
+
+  /** Блок «max …» над телом сообщения Scanner (накопленные пики по фильтрам). */
+  function renderScannerMaxStripHtml(list) {
+    if (!list || !list.length) return '';
+    return list.map((row) => (
+      '<div class="scanner-max-line"><span class="scanner-max-k">max ' + escHtml(String(row.title || row.id || '')) + ':</span> '
+      + '<span class="scanner-max-v">' + escHtml(fmtTestFilterScalar(row.value)) + '</span></div>'
+    )).join('');
   }
 
   function applyCardData(div, item) {
@@ -1097,6 +1215,12 @@
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
+    }
+    const maxStrip = div.querySelector('.scanner-max-strip');
+    if (maxStrip && item.mode === 'test') {
+      const html = renderScannerMaxStripHtml(item.scanner_filter_max_list);
+      maxStrip.innerHTML = html;
+      maxStrip.style.display = html ? '' : 'none';
     }
     const timeEl = div.querySelector('.signal-time');
     if (timeEl) timeEl.textContent = fmt_date(item.created_at);
@@ -1208,10 +1332,15 @@
               <div class="sct-id-screener"></div>
               <div class="sct-id-links"></div>
               <div class="sct-id-exchange"></div>
-              <div class="sct-id-time"></div>
+              <div class="sct-id-tracking">
+                <div class="sct-id-time"></div>
+                <div class="sct-id-duration"></div>
+                <div class="sct-id-duration-sec"></div>
+              </div>
             </div>
           </section>
           <section class="sct-col sct-col--message">
+            <div class="scanner-max-strip" style="display:none"></div>
             <div class="signal-body"></div>
           </section>
           <div class="signal-test-filters-slot"></div>
@@ -1491,6 +1620,8 @@
 
   applyTestMaxToSelect();
   setTestModeUi(source === 'test');
+
+  setInterval(updateAllScannerDurationDisplays, 1000);
 
   /* ── Scroll-to-top ── */
   window.addEventListener('scroll', () => {

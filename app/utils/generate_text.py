@@ -121,7 +121,6 @@ def _generate_default_type_text(
 ) -> str:
     """Возвращает текст уведмоления в стандартном формате."""
     _HEADER = "<code>{symbol}</code>"
-    _FILTERS_HEADER = "♻️ Условия срабатывания: "
     _METRICS_HEADER = "📊 Текущие данные:"
     _FOOTER = "🔗 {ex_link} | {tv_link} | {cg_link}"
     normalized_symbol = normalize_symbol(symbol)
@@ -136,44 +135,6 @@ def _generate_default_type_text(
         header = f"<code>{symbol}</code> {rank_txt} 🔔\n{screener_name}"
     else:
         header = f"<code>{symbol}</code> {rank_txt}\n{screener_name}"
-
-    filter_lines: list[str] = []
-
-    # Пампы/дампы: показываем фактическое изменение цены в % за интервал
-    if settings.pd_status and result.pd_price_change_pct is not None:
-        filter_lines.append(
-            f"⦁ Рост цены: {_fmt_pct(result.pd_price_change_pct)} за {settings.pd_interval_sec}с"
-        )
-
-    # Открытый интерес: формат по настройке — задан % → показываем %, задан $ → показываем $
-    if settings.oi_status and (
-        result.oi_change_usdt is not None or result.oi_change_pct is not None
-    ):
-        if settings.oi_min_change_pct is not None and result.oi_change_pct is not None:
-            oi_value = _fmt_pct(result.oi_change_pct)
-        elif settings.oi_min_change_usd is not None and result.oi_change_usdt is not None:
-            oi_value = _fmt_dollars(result.oi_change_usdt)
-        else:
-            oi_value = _fmt_dollars(result.oi_change_usdt) if result.oi_change_usdt is not None else _fmt_pct(result.oi_change_pct)  # type: ignore[arg-type]
-        filter_lines.append(
-            f"⦁ Открытый интерес: {oi_value} за {settings.oi_interval_sec}с"
-        )
-    
-    # Аномальный объем: фактический множитель за интервал
-    if settings.vl_status and result.vl_multiplier is not None:
-        filter_lines.append(
-            f"⦁ Множитель объема: {_fmt_multiplier(result.vl_multiplier)} за {settings.vl_interval_sec}с"
-        )
-    
-    # Ликвидации: фактическая сумма ликвидаций в USD за интервал
-    if settings.lq_status and result.lq_amount_usdt is not None:
-        lq_pct_suffix = ""
-        if result.daily_volume > 0:
-            lq_pct = result.lq_amount_usdt / result.daily_volume * 100
-            lq_pct_suffix = f", ({lq_pct:.2f}%)"
-        filter_lines.append(
-            f"⦁ Ликвидации: {_fmt_dollars(result.lq_amount_usdt)} за {settings.lq_interval_sec}с{lq_pct_suffix}"
-        )
 
     metrics_lines = [
         f"⦁ Объем (24ч): {make_humanreadable(result.daily_volume)}$",
@@ -194,10 +155,6 @@ def _generate_default_type_text(
 
     parts: list[str] = [header]
 
-    if filter_lines:
-        # Блок фильтров добавляем только если есть активные фильтры
-        parts.append("\n".join([_FILTERS_HEADER, *filter_lines]))
-    
     parts.append("\n".join([_METRICS_HEADER, *metrics_lines]))
     parts.append(footer)
 

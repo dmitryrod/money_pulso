@@ -350,6 +350,84 @@ def _json_safe(x: Any) -> Any:
     return str(x)
 
 
+def extract_peak_metric_for_scanner_row(row: dict[str, Any]) -> tuple[str, float | None]:
+    """Скаляр «текущего» показателя фильтра для сравнения с накопленным максимумом в Scanner.
+
+    Для процентов/ставок берётся модуль (кроме LQ: приоритет доля % от суточного объёма).
+    """
+    fid = str(row.get("id") or "")
+    cur = row.get("current")
+    if not isinstance(cur, dict):
+        return fid, None
+
+    def _flt(x: Any) -> float | None:
+        if x is None:
+            return None
+        try:
+            v = float(x)
+        except (TypeError, ValueError):
+            return None
+        if math.isnan(v) or math.isinf(v):
+            return None
+        return v
+
+    if fid == "pd":
+        v = _flt(cur.get("price_change_pct"))
+        return fid, (abs(v) if v is not None else None)
+    if fid == "dp":
+        v = _flt(cur.get("daily_price_change_pct"))
+        return fid, (abs(v) if v is not None else None)
+    if fid == "dv":
+        return fid, _flt(cur.get("daily_volume_usd"))
+    if fid == "vl":
+        return fid, _flt(cur.get("multiplier"))
+    if fid == "oi":
+        p = _flt(cur.get("change_pct"))
+        u = _flt(cur.get("change_usdt"))
+        if p is not None:
+            return fid, abs(p)
+        if u is not None:
+            return fid, abs(u)
+        return fid, None
+    if fid == "fr":
+        v = _flt(cur.get("funding_rate_pct"))
+        return fid, (abs(v) if v is not None else None)
+    if fid == "lq":
+        lp = _flt(cur.get("lq_pct_of_daily_volume"))
+        if lp is not None:
+            return fid, lp
+        return fid, _flt(cur.get("amount_usdt"))
+    return fid, None
+
+
+def build_scanner_filter_max_list(
+    test_filters: list[dict[str, Any]],
+    peaks: dict[str, float],
+) -> list[dict[str, Any]]:
+    """Список для UI второй колонки: порядок строк как в test_filters."""
+    out: list[dict[str, Any]] = []
+    for row in test_filters:
+        fid = str(row.get("id") or "")
+        if fid not in peaks:
+            continue
+        raw = peaks[fid]
+        try:
+            v = float(raw)
+            if math.isnan(v) or math.isinf(v):
+                continue
+            val = round(v, 4)
+        except (TypeError, ValueError):
+            continue
+        out.append(
+            {
+                "id": fid,
+                "title": row.get("title") or fid,
+                "value": val,
+            }
+        )
+    return out
+
+
 def evaluate_test_mode_snapshot(
     symbol: str,
     ticker: str,
@@ -551,15 +629,16 @@ def evaluate_test_mode_snapshot(
             liquidations_result = r
             if r.ok:
                 any_content_ok = True
+            _lq_cur_raw = {**r.metadata, "amount_usdt": getattr(r, "amount_usdt", None)}
+            _lq_pct_first = _lq_cur_raw.pop("lq_pct_of_daily_volume", None)
+            _lq_cur_ordered = {"lq_pct_of_daily_volume": _lq_pct_first, **_lq_cur_raw}
             test_rows.append(
                 {
                     "id": "lq",
                     "title": "Ликвидации (LQ)",
                     "enabled": True,
                     "ok": r.ok,
-                    "current": _json_safe(
-                        {**r.metadata, "amount_usdt": getattr(r, "amount_usdt", None)}
-                    ),
+                    "current": _json_safe(_lq_cur_ordered),
                     "thresholds": {
                         "lq_interval_sec": settings.lq_interval_sec,
                         "lq_min_amount_usd": settings.lq_min_amount_usd,

@@ -3,6 +3,7 @@ __all__ = ["Consumer"]
 import asyncio
 import functools
 import time
+from datetime import datetime, timezone
 from dataclasses import asdict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -35,7 +36,11 @@ from app.utils import (
     generate_text,
 )
 
-from app.screener.test_mode_eval import evaluate_test_mode_snapshot
+from app.screener.test_mode_eval import (
+    build_scanner_filter_max_list,
+    evaluate_test_mode_snapshot,
+    extract_peak_metric_for_scanner_row,
+)
 
 from .filters import (
     BlacklistFilter,
@@ -56,12 +61,18 @@ def _symbol_check_pair(
     signal_counter: SignalCounter[str],
     test_enabled: bool,
     args: tuple[Any, ...],
-) -> tuple[Any, dict[str, Any] | None]:
-    """Запускает основную проверку фильтров и при необходимости снимок для режима «Тест»."""
+) -> tuple[Any, dict[str, Any] | None, str]:
+    """Запускает основную проверку фильтров и при необходимости снимок для режима «Тест».
+
+    Returns:
+        main: результат `_check_filters_for_symbol`.
+        test_payload: снимок для SSE или None.
+        symbol: тикерный символ (как в цикле Consumer).
+    """
+    symbol = args[0]
     main = Consumer._check_filters_for_symbol(*args)
     if not test_enabled:
-        return main, None
-    symbol = args[0]
+        return main, None, symbol
     ticker = args[1]
     market_type = args[2]
     settings = args[3]
@@ -86,7 +97,7 @@ def _symbol_check_pair(
         wl,
         daily_signal_count=signal_counter.get(symbol),
     )
-    return main, test_payload
+    return main, test_payload, symbol
 
 
 class Consumer:
@@ -118,6 +129,10 @@ class Consumer:
         self._run_id = uuid4().hex
         self._cycle_id = 0
         self._last_signal_ts: float = 0.0
+        # Эпоха (time.time) первого попадания символа в Scanner; сброс при выходе из режима.
+        self._scanner_track_start: dict[str, float] = {}
+        # symbol -> filter_id -> max наблюдаемого скаляра за сессию Scanner
+        self._scanner_filter_peaks: dict[str, dict[str, float]] = {}
         self._last_agg_empty_warn_ts: float = 0.0
         # Кэш фандинга: symbol -> (rate, expires_at)
         self._funding_rate_cache: dict[str, tuple[float, float]] = {}
@@ -412,16 +427,43 @@ class Consumer:
                         exc=e,
                     )
                 continue
-            if isinstance(result, tuple) and len(result) == 2:
+            if isinstance(result, tuple) and len(result) == 3:
+                main, test_payload, task_symbol = result
+            elif isinstance(result, tuple) and len(result) == 2:
                 main, test_payload = result
+                task_symbol = ""
             else:
                 main, test_payload = result, None
+                task_symbol = ""
 
-            if test_payload is not None:
-                try:
-                    await broadcast_test_payload(test_payload)
-                except Exception:
-                    pass
+            if test_enabled:
+                if test_payload is not None:
+                    start_ts = self._scanner_track_start.get(task_symbol)
+                    if start_ts is None:
+                        start_ts = time.time()
+                        self._scanner_track_start[task_symbol] = start_ts
+                    test_payload["scanner_tracked_since"] = datetime.fromtimestamp(
+                        start_ts, tz=timezone.utc
+                    ).isoformat()
+                    peaks = self._scanner_filter_peaks.setdefault(task_symbol, {})
+                    for row in test_payload.get("test_filters") or []:
+                        fid, val = extract_peak_metric_for_scanner_row(row)
+                        if val is None:
+                            continue
+                        old = peaks.get(fid)
+                        if old is None or val > old:
+                            peaks[fid] = val
+                    test_payload["scanner_filter_max_list"] = build_scanner_filter_max_list(
+                        test_payload.get("test_filters") or [],
+                        peaks,
+                    )
+                    try:
+                        await broadcast_test_payload(test_payload)
+                    except Exception:
+                        pass
+                elif task_symbol:
+                    self._scanner_track_start.pop(task_symbol, None)
+                    self._scanner_filter_peaks.pop(task_symbol, None)
 
             if isinstance(main, tuple) and isinstance(main[0], SignalDTO):
                 signal, calc_debug = main
