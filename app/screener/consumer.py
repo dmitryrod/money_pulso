@@ -100,6 +100,39 @@ def _symbol_check_pair(
     return main, test_payload, symbol
 
 
+def apply_scanner_filter_fire_edges(
+    prev_ok_by_fid: dict[str, bool],
+    fire_by_fid: dict[str, dict[str, Any]],
+    test_filters: list[dict[str, Any]],
+    start_ts: float,
+    now_sec: float,
+) -> None:
+    """При переходе ok false→true фиксирует fire_at (UTC ISO) и fire_elapsed_ms от start_ts."""
+    for row in test_filters:
+        fid = str(row.get("id") or "")
+        if not fid:
+            continue
+        curr = bool(row.get("ok"))
+        prev = prev_ok_by_fid.get(fid, False)
+        if prev is not True and curr:
+            fire_by_fid[fid] = {
+                "fire_at": datetime.now(timezone.utc).isoformat(),
+                "fire_elapsed_ms": max(0, int((now_sec - start_ts) * 1000)),
+            }
+        prev_ok_by_fid[fid] = curr
+
+
+def attach_fire_meta_to_test_filter_rows(
+    test_filters: list[dict[str, Any]],
+    fire_by_fid: dict[str, dict[str, Any]],
+) -> None:
+    """Добавляет в каждую строку test_filters поле fire_meta, если было срабатывание."""
+    for row in test_filters:
+        fid = str(row.get("id") or "")
+        if fid and fid in fire_by_fid:
+            row["fire_meta"] = dict(fire_by_fid[fid])
+
+
 class Consumer:
     """Прослушивает данные с парсеров и с определенной переодичностью
     проверяет данные на совпадение условий, чтобы отправить сигнал в телеграм."""
@@ -133,6 +166,10 @@ class Consumer:
         self._scanner_track_start: dict[str, float] = {}
         # symbol -> filter_id -> max наблюдаемого скаляра за сессию Scanner
         self._scanner_filter_peaks: dict[str, dict[str, float]] = {}
+        # symbol -> filter_id -> последний известный ok (для фронта false→true)
+        self._scanner_filter_prev_ok: dict[str, dict[str, bool]] = {}
+        # symbol -> filter_id -> { fire_at, fire_elapsed_ms } последнего срабатывания
+        self._scanner_filter_fire: dict[str, dict[str, dict[str, Any]]] = {}
         self._last_agg_empty_warn_ts: float = 0.0
         # Кэш фандинга: symbol -> (rate, expires_at)
         self._funding_rate_cache: dict[str, tuple[float, float]] = {}
@@ -457,6 +494,14 @@ class Consumer:
                         test_payload.get("test_filters") or [],
                         peaks,
                     )
+                    now_sec = time.time()
+                    prev_ok_map = self._scanner_filter_prev_ok.setdefault(task_symbol, {})
+                    fire_map = self._scanner_filter_fire.setdefault(task_symbol, {})
+                    tf = test_payload.get("test_filters") or []
+                    apply_scanner_filter_fire_edges(
+                        prev_ok_map, fire_map, tf, start_ts, now_sec
+                    )
+                    attach_fire_meta_to_test_filter_rows(tf, fire_map)
                     try:
                         await broadcast_test_payload(test_payload)
                     except Exception:
@@ -464,6 +509,8 @@ class Consumer:
                 elif task_symbol:
                     self._scanner_track_start.pop(task_symbol, None)
                     self._scanner_filter_peaks.pop(task_symbol, None)
+                    self._scanner_filter_prev_ok.pop(task_symbol, None)
+                    self._scanner_filter_fire.pop(task_symbol, None)
 
             if isinstance(main, tuple) and isinstance(main[0], SignalDTO):
                 signal, calc_debug = main
