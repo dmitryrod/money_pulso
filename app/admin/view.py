@@ -4,6 +4,7 @@ __all__ = [
     "SettingsModelView",
     "MetrCustomView",
     "LogsViewerView",
+    "AnalyticsCatalogView",
 ]
 
 import os
@@ -441,3 +442,17 @@ class SignalsView(CustomView):
             "per_page_default": 100,
         }
         return templates.TemplateResponse(request, "signals.html", context)
+
+
+class AnalyticsCatalogView(CustomView):
+    """Каталог сессий Аналитика."""
+
+    identity = "analytics"
+    name = "Аналитика"
+
+    async def render(self, request: Request, templates: Jinja2Templates) -> Response:
+        return templates.TemplateResponse(
+            request,
+            "analytics.html",
+            {"request": request},
+        )

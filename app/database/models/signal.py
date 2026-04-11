@@ -2,7 +2,7 @@ __all__ = ["SignalORM"]
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Index, Text
+from sqlalchemy import DateTime, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -30,4 +30,13 @@ class SignalORM(Base):
     telegram_ok: Mapped[bool] = mapped_column(nullable=False)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (Index("ix_signals_created_at", "created_at"),)
+    tracking_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    """Идентификатор сессии Scanner/аналитики; NULL для старых записей."""
+
+    card_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    """Frozen JSON снимка карточки Scanner на момент срабатывания (режим test)."""
+
+    __table_args__ = (
+        Index("ix_signals_created_at", "created_at"),
+        Index("ix_signals_tracking_id", "tracking_id"),
+    )

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}<title>Сигналы</title>{% endblock %}
 {% block content %}{{ super() }}
 
 <style>
@@ -559,6 +560,61 @@
   }
   .test-max-wrap label { color: #8899bb; cursor: pointer; margin: 0; }
 
+  .scanner-runtime-wrap {
+    font-size: 12px;
+    color: #8899bb;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-left: 4px;
+    max-width: 100%;
+  }
+  .scanner-runtime-wrap input[type="number"] {
+    width: 52px;
+    background: #232a3e;
+    color: #c0ccdd;
+    border: 1px solid #2d3550;
+    border-radius: 5px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+  .scanner-runtime-wrap button.btn-scanner-save {
+    background: #2d3a5e;
+    color: #c8d4e8;
+    border: 1px solid #3a4a70;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .scanner-runtime-wrap button.btn-scanner-save:hover { background: #35456a; }
+
+  .signal-card--test.signal-card--locked {
+    outline: 1px solid #6a7a9a;
+    box-shadow: 0 0 0 1px rgba(106,122,154,0.5);
+  }
+  .signal-card--test .sct-id-stat { font-size: 12px; }
+  .signal-card--test .sct-id-stat a { color: #7ab8ff; }
+  .signal-card--test .sct-id-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .signal-card--test .sct-id-actions button {
+    background: #2a3145;
+    border: 1px solid #3a4558;
+    border-radius: 5px;
+    color: #aab8d0;
+    font-size: 12px;
+    line-height: 1;
+    padding: 3px 7px;
+    cursor: pointer;
+  }
+  .signal-card--test .sct-id-actions button:hover { background: #343d52; }
+  .signal-card--test .sct-btn-close { color: #e57373 !important; border-color: #5a3a3a !important; }
+
   /* ── Карточка сигнала (Telegram-стиль) ── */
   .signal-card {
     background: #1e2533;
@@ -783,6 +839,17 @@
       </select>
     </span>
 
+    <div class="scanner-runtime-wrap" id="scanner-runtime-wrap" title="Глобальные настройки Scanner (БД); применяются без перезапуска Consumer">
+      <span>Posttrack мин</span>
+      <input type="number" id="scanner-posttrack" min="0" step="1" title="posttracking_minutes" />
+      <span>Cooldown ч</span>
+      <input type="number" id="scanner-cooldown" min="0" step="1" title="cooldown_hours" />
+      <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;margin:0;">
+        <input type="checkbox" id="scanner-stats-enabled" /> JSONL
+      </label>
+      <button type="button" class="btn-scanner-save" id="scanner-runtime-save">Сохранить</button>
+    </div>
+
     <div class="sse-status">
       <div class="sse-dot connecting" id="sse-dot"></div>
       <span id="sse-label">Подключение…</span>
@@ -840,6 +907,8 @@
   const testFeedCountNum = document.getElementById('test-feed-count-num');
   const testMaxWrap = document.getElementById('test-max-wrap');
   const testMaxCardsSel = document.getElementById('test-max-cards');
+  const scannerRuntimeWrap = document.getElementById('scanner-runtime-wrap');
+  const scannerRuntimeSave = document.getElementById('scanner-runtime-save');
 
   const TEST_MAX_ALLOWED = [5, 10, 20, 30, 50, 100];
   const LS_TEST_MAX_VISIBLE = 'signals_test_max_visible';
@@ -847,6 +916,107 @@
   function normalizeTestMax(val) {
     const n = parseInt(val, 10);
     return TEST_MAX_ALLOWED.includes(n) ? n : 10;
+  }
+
+  /** Режим БД: разворачиваем frozen snapshot в ту же горизонтальную карточку, что и Scanner. */
+  function normalizeItemForCard(item) {
+    if (!item || item.mode === 'test') return item;
+    if (item.card_snapshot && typeof item.card_snapshot === 'object' && Object.keys(item.card_snapshot).length) {
+      const snap = item.card_snapshot;
+      return {
+        ...snap,
+        id: item.id,
+        created_at: item.created_at,
+        screener_name: item.screener_name != null ? item.screener_name : snap.screener_name,
+        screener_id: item.screener_id,
+        exchange: item.exchange != null ? item.exchange : snap.exchange,
+        market_type: item.market_type != null ? item.market_type : snap.market_type,
+        symbol: item.symbol != null ? item.symbol : snap.symbol,
+        telegram_ok: item.telegram_ok,
+        tracking_id: item.tracking_id,
+        stat_href: item.stat_href,
+        mode: 'test',
+      };
+    }
+    return item;
+  }
+
+  async function refreshScannerRuntimeUi() {
+    try {
+      const r = await fetch('/admin_api/scanner/runtime-settings', { credentials: 'same-origin' });
+      if (!r.ok) return;
+      const d = await r.json();
+      const pt = document.getElementById('scanner-posttrack');
+      const cd = document.getElementById('scanner-cooldown');
+      const se = document.getElementById('scanner-stats-enabled');
+      if (pt) pt.value = String(d.posttracking_minutes ?? 0);
+      if (cd) cd.value = String(d.cooldown_hours ?? 0);
+      if (se) se.checked = !!d.statistics_enabled;
+      const mc = d.max_cards;
+      if (testMaxCardsSel && mc != null) {
+        const m = parseInt(mc, 10);
+        if (Number.isFinite(m) && !TEST_MAX_ALLOWED.includes(m)) {
+          const opt = document.createElement('option');
+          opt.value = String(m);
+          opt.textContent = String(m);
+          testMaxCardsSel.appendChild(opt);
+        }
+        if (Number.isFinite(m)) testMaxCardsSel.value = String(m);
+      }
+    } catch (_) {}
+  }
+
+  async function saveScannerRuntime() {
+    const params = new URLSearchParams();
+    if (testMaxCardsSel) params.set('max_cards', testMaxCardsSel.value);
+    const pt = document.getElementById('scanner-posttrack');
+    const cd = document.getElementById('scanner-cooldown');
+    const se = document.getElementById('scanner-stats-enabled');
+    if (pt) params.set('posttracking_minutes', pt.value);
+    if (cd) params.set('cooldown_hours', cd.value);
+    if (se) params.set('statistics_enabled', se.checked ? 'true' : 'false');
+    try {
+      const r = await fetch('/admin_api/scanner/runtime-settings?' + params.toString(), { method: 'POST', credentials: 'same-origin' });
+      if (r.ok) await refreshScannerRuntimeUi();
+    } catch (_) {}
+  }
+
+  function setupTestCardActions(div) {
+    const lockBtn = div.querySelector('.sct-btn-lock');
+    const closeBtn = div.querySelector('.sct-btn-close');
+    if (lockBtn && !lockBtn._wired) {
+      lockBtn._wired = true;
+      lockBtn.textContent = '🔓';
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const locked = div.dataset.scannerLocked === '1';
+        if (locked) {
+          div.dataset.scannerLocked = '';
+          div.classList.remove('signal-card--locked');
+          lockBtn.textContent = '🔓';
+        } else {
+          div.dataset.scannerLocked = '1';
+          div.classList.add('signal-card--locked');
+          lockBtn.textContent = '🔒';
+        }
+        reorderTestFeed();
+      });
+    }
+    if (closeBtn && !closeBtn._wired) {
+      closeBtn._wired = true;
+      closeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const tid = closeBtn.dataset.trackingId || div.dataset.trackingId;
+        if (!tid) return;
+        try {
+          const r = await fetch('/admin_api/scanner/close?tracking_id=' + encodeURIComponent(tid), { method: 'POST', credentials: 'same-origin' });
+          if (r.ok) {
+            div.remove();
+            updateTestFeedCount();
+          }
+        } catch (_) {}
+      });
+    }
   }
 
   function applyTestMaxToSelect() {
@@ -877,11 +1047,11 @@
       updateTestFeedCount();
       return;
     }
-    cards.sort((a, b) => {
-      const parseScore = (el) => {
-        const v = parseFloat(el.dataset.testScore);
-        return Number.isFinite(v) ? v : Number.NEGATIVE_INFINITY;
-      };
+    const parseScore = (el) => {
+      const v = parseFloat(el.dataset.testScore);
+      return Number.isFinite(v) ? v : Number.NEGATIVE_INFINITY;
+    };
+    const cmp = (a, b) => {
       const d0 = parseScore(b) - parseScore(a);
       if (d0 !== 0) return d0;
       const okA = parseInt(a.dataset.okCount, 10) || 0;
@@ -893,8 +1063,12 @@
       const d2 = fb - fa;
       if (d2 !== 0) return d2;
       return String(a.dataset.id || '').localeCompare(String(b.dataset.id || ''));
-    });
-    cards.forEach(c => feed.appendChild(c));
+    };
+    const locked = cards.filter((c) => c.dataset.scannerLocked === '1');
+    const unlocked = cards.filter((c) => c.dataset.scannerLocked !== '1');
+    unlocked.sort(cmp);
+    const ordered = [...locked, ...unlocked];
+    ordered.forEach((c) => feed.appendChild(c));
     trimTestFeedToMax();
     updateTestFeedCount();
   }
@@ -911,6 +1085,10 @@
     if (testMaxWrap) {
       testMaxWrap.style.display = isTest ? 'inline-flex' : 'none';
       if (isTest) applyTestMaxToSelect();
+    }
+    if (scannerRuntimeWrap) {
+      scannerRuntimeWrap.style.display = isTest ? 'inline-flex' : 'none';
+      if (isTest) refreshScannerRuntimeUi();
     }
   }
 
@@ -1167,6 +1345,19 @@
       const mt = (item.market_type || '').toUpperCase();
       exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
     }
+    const statWrap = div.querySelector('.sct-id-stat');
+    if (statWrap) {
+      statWrap.textContent = '';
+      if (item.stat_href) {
+        const a = document.createElement('a');
+        a.href = item.stat_href;
+        a.textContent = 'Stat';
+        statWrap.appendChild(a);
+        statWrap.style.display = '';
+      } else {
+        statWrap.style.display = 'none';
+      }
+    }
     /* Не использовать created_at как единственный fallback: он обновляется на каждом снимке и сбрасывает счётчик.
        Берём самую раннюю метку из сервера, уже показанной на карточке и created_at. */
     let trackedIso = '';
@@ -1330,6 +1521,18 @@
         scoreEl.style.display = 'none';
       }
     }
+
+    if (item.mode === 'test') {
+      const tid = item.tracking_id;
+      if (tid) div.dataset.trackingId = tid;
+      else delete div.dataset.trackingId;
+      const closeBtn = div.querySelector('.sct-btn-close');
+      if (closeBtn) {
+        const show = !!(item.scanner_show_close && tid);
+        closeBtn.style.display = show ? '' : 'none';
+        closeBtn.dataset.trackingId = tid || '';
+      }
+    }
   }
 
   function findCardById(id) {
@@ -1377,6 +1580,11 @@
               </div>
               <div class="sct-id-screener"></div>
               <div class="sct-id-links"></div>
+              <div class="sct-id-stat" style="display:none"></div>
+              <div class="sct-id-actions">
+                <button type="button" class="sct-btn-lock" title="Закрепить — не участвует в сортировке">🔓</button>
+                <button type="button" class="sct-btn-close" style="display:none" title="Закрыть посттрекинг">✕</button>
+              </div>
               <div class="sct-id-exchange"></div>
               <div class="sct-id-tracking">
                 <div class="sct-id-time"></div>
@@ -1404,6 +1612,8 @@
     }
 
     applyCardData(div, item);
+
+    if (isTest) setupTestCardActions(div);
 
     // Клик по заголовку символа → копировать в буфер
     div.querySelector('.signal-symbol').addEventListener('click', () => {
@@ -1561,8 +1771,8 @@
         feed.appendChild(em);
         if (source === 'test') updateTestFeedCount();
       } else {
-        for (const item of data.items) {
-          feed.appendChild(buildCard(item, false));
+        for (const raw of data.items) {
+          feed.appendChild(buildCard(normalizeItemForCard(raw), false));
         }
         if (source === 'test') {
           reorderTestFeed();
@@ -1589,6 +1799,7 @@
     es.onmessage = (evt) => {
       let item;
       try { item = JSON.parse(evt.data); } catch { return; }
+      item = normalizeItemForCard(item);
 
       if (item.mode === 'test') {
         const existing = findCardById(item.id);
@@ -1659,12 +1870,17 @@
     if (testMaxCardsSel) testMaxCardsSel.value = String(n);
     trimTestFeedToMax();
     updateTestFeedCount();
+    fetch('/admin_api/scanner/runtime-settings?max_cards=' + encodeURIComponent(String(n)), { method: 'POST', credentials: 'same-origin' }).catch(() => {});
   };
 
   window.loadPage = loadPage;
 
   applyTestMaxToSelect();
   setTestModeUi(source === 'test');
+
+  if (scannerRuntimeSave) {
+    scannerRuntimeSave.addEventListener('click', () => { saveScannerRuntime(); });
+  }
 
   setInterval(updateAllScannerDurationDisplays, 1000);
 

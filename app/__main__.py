@@ -22,6 +22,21 @@ def _add_lq_min_amount_pct_if_missing(sync_conn):
     sync_conn.execute(text("ALTER TABLE settings ADD COLUMN IF NOT EXISTS lq_min_amount_pct DOUBLE PRECISION"))
 
 
+def _ensure_scanner_analytics_schema(sync_conn):
+    """Колонки signals и индексы для Scanner snapshot / tracking_id."""
+    sync_conn.execute(
+        text("ALTER TABLE signals ADD COLUMN IF NOT EXISTS tracking_id VARCHAR(64)")
+    )
+    sync_conn.execute(
+        text("ALTER TABLE signals ADD COLUMN IF NOT EXISTS card_snapshot_json TEXT")
+    )
+    sync_conn.execute(
+        text(
+            "CREATE INDEX IF NOT EXISTS ix_signals_tracking_id ON signals (tracking_id)"
+        )
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения."""
@@ -34,6 +49,7 @@ async def lifespan(app: FastAPI):
             async with Database.engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
                 await conn.run_sync(_add_lq_min_amount_pct_if_missing)
+                await conn.run_sync(_ensure_scanner_analytics_schema)
             break
         except Exception as exc:
             logger.exception("Database init failed: {}", exc)

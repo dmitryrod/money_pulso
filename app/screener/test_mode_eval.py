@@ -428,6 +428,13 @@ def build_scanner_filter_max_list(
     return out
 
 
+def all_filters_ok(test_filters: list[dict[str, Any]] | None) -> bool:
+    """True если по всем строкам диагностики фильтры в состоянии ok."""
+    if not test_filters:
+        return False
+    return all(bool(r.get("ok")) for r in test_filters)
+
+
 def evaluate_test_mode_snapshot(
     symbol: str,
     ticker: str,
@@ -690,6 +697,7 @@ def evaluate_test_mode_snapshot(
         "exchange": str(settings.exchange.value),
         "market_type": str(settings.market_type.value),
         "symbol": symbol,
+        "last_price": last_price,
         "telegram_text": telegram_text,
         "telegram_ok": True,
         "error": None,

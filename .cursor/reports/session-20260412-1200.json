@@ -1,0 +1,14 @@
+{
+  "command": "norissk",
+  "workflow": "scaffold",
+  "workflowReason": "Точечный CSS/HTML фикс в одном шаблоне: причина лейаута найдена в Tabler row-deck.",
+  "escalation": null,
+  "subagentsCalled": [],
+  "debuggerCalls": 0,
+  "testsPassed": true,
+  "reviewerFindings": null,
+  "securityAuditorCalled": false,
+  "documentationCreated": false,
+  "taskSummary": "Исправлена двухколоночная вёрстка stat: Tabler .row-deck>[class*=col-] задаёт display:flex row — добавлен flex-direction:column для .stat-page. Стили и скрипты вынесены из block content в head_css/script чтобы в .row был один ребёнок.",
+  "timestamp": "2026-04-12T12:00:00Z"
+}

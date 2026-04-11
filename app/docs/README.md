@@ -45,7 +45,7 @@
 
 ## Админка и API
 
-- UI: `http://localhost:<APP_PORT>/admin/` (список скринеров: `/admin/screeners/list`).
+- UI: `http://localhost:<APP_PORT>/admin/` (список скринеров: `/admin/screeners/list`; **Аналитика** Scanner: `/admin/analytics`).
 - В текущей конфигурации вход в админку **не требует пароля** (см. `app/admin/auth.py`); сессии подписываются `CYPHER_KEY`.
 - Доп. endpoints: `GET/POST /admin_api/screeners/global-debug` — массовое включение/выключение отладки по скринерам; JS подключается на странице списка скринеров.
 

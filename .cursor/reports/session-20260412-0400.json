@@ -1,0 +1,14 @@
+{
+  "command": "norissk",
+  "workflow": "implement",
+  "workflowReason": "Несколько файлов (admin mount, parser, шаблон), правка маршрутизации и вёрстки без auth/payments.",
+  "escalation": null,
+  "subagentsCalled": [],
+  "debuggerCalls": 0,
+  "testsPassed": true,
+  "reviewerFindings": null,
+  "securityAuditorCalled": false,
+  "documentationCreated": false,
+  "taskSummary": "Исправлен 500 на stat-страницах: маршрут перенесён в смонтированное admin-приложение; parse_stat_page_path с split по первому дефису для UUID. Вёрстка: компактная строка заголовка, график на всю ширину viewport (full-bleed).",
+  "timestamp": "2026-04-12T04:00:00Z"
+}
