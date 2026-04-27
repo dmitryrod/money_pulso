@@ -145,10 +145,11 @@
                                         <p class="text-secondary small mb-3">
                                             {{ section.description }}
                                         </p>
-                                        {% for field in all_fields %} {% if
-                                        field.name in section.fields and
-                                        field.name not in rendered.values %} {%
-                                        set rendered.values = rendered.values +
+                                        {% for fname in section.fields %} {%
+                                        for field in all_fields %} {% if
+                                        field.name == fname and field.name not
+                                        in rendered.values %} {% set
+                                        rendered.values = rendered.values +
                                         [field.name] %}
                                         <div class="mb-3">
                                             {% with action=('EDIT'|ra),
@@ -173,7 +174,7 @@
                                             </div>
                                             {% endwith %}
                                         </div>
-                                        {% endif %} {% endfor %}
+                                        {% endif %} {% endfor %} {% endfor %}
                                     </div>
                                 </div>
                             </div>

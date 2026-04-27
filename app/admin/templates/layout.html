@@ -19,30 +19,47 @@
 {{ super() }}
 <style>
   @media (min-width: 992px) {
-    .admin-sidebar-toggle {
+    .admin-sidebar-edge-toggle {
       position: fixed;
       z-index: 1040;
-      top: 0.35rem;
-      left: 0.35rem;
-      width: 2.25rem;
-      height: 2.25rem;
+      top: 50%;
+      left: var(--mp-admin-aside-w, 15rem);
+      box-sizing: border-box;
+      width: 17px;
+      height: 17px;
+      min-width: 17px;
+      min-height: 17px;
+      margin: 0;
       padding: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--tblr-border-radius, 4px);
-      background: rgba(26, 31, 46, 0.92);
-      color: #e0e6f0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      border-radius: 50%;
+      background: rgba(30, 41, 59, 0.95);
+      color: #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
     }
-    .admin-sidebar-toggle:hover {
-      background: rgba(35, 42, 62, 0.96);
-      color: #fff;
+    .admin-sidebar-edge-toggle:hover {
+      background: rgba(51, 65, 85, 0.98);
+      color: #f8fafc;
     }
-    .admin-sidebar-toggle .ti {
-      width: 1.25rem;
-      height: 1.25rem;
+    .admin-sidebar-edge-toggle:focus-visible {
+      outline: 2px solid rgba(96, 165, 250, 0.55);
+      outline-offset: 2px;
+    }
+    .admin-sidebar-edge-toggle__icon {
+      display: block;
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+    }
+    html.admin-sidebar-collapsed .admin-sidebar-edge-toggle {
+      left: 0.5rem;
+      border-radius: 50%;
+      transform: translate(0, -50%);
     }
 
     html.admin-sidebar-collapsed aside.navbar.navbar-vertical.navbar-expand-lg {
@@ -67,16 +84,447 @@
       padding-right: 1rem;
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: space-between;
       align-items: center;
+      align-content: center;
       box-sizing: border-box;
+      gap: 0.5rem 1rem;
+    }
+  }
+
+  /* Два сегмента шапки: вордмарк слева, кластер строго вправо (без «третьей колонки») */
+  .page > header.navbar:not(.navbar-vertical) .admin-topbar-end {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .admin-topbar-wordmark {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    color: #e2e8f0;
+  }
+  @media (min-width: 992px) {
+    .page > header.navbar:not(.navbar-vertical) .navbar-toggler {
+      display: none;
     }
   }
 
   @media (max-width: 991.98px) {
-    .admin-sidebar-toggle {
+    .admin-sidebar-edge-toggle {
       display: none !important;
     }
+  }
+
+  /* Апстрим starlette-admin в моб. сайдбаре дублирует меню пользователя — скрываем, канон — верхняя панель. */
+  aside.navbar.navbar-vertical .navbar-nav.flex-row .nav-item:has(.icon-tabler-user) {
+    display: none !important;
+  }
+
+  /*
+   * MP admin: hover / active / focus-visible для кликабельных зон (Tabler dark, starlette-admin).
+   * Без голого a:hover по всему документу — только .page и узкие контексты.
+   */
+  .page {
+    --mp-focus-ring: var(--tblr-primary, #4299e1);
+    --mp-hover-surface: rgba(255, 255, 255, 0.075);
+    --mp-active-surface: rgba(255, 255, 255, 0.12);
+    /* fallback без color-mix (старые движки) */
+    --mp-active-route-bg: rgba(66, 153, 225, 0.18);
+    --mp-active-route-bg: color-mix(in srgb, var(--tblr-primary, #4299e1) 20%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    aside.navbar.navbar-vertical .nav-link,
+    .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger,
+    .page > header.navbar:not(.navbar-vertical) .btn,
+    .admin-topbar-wordmark,
+    .page-header .breadcrumb-item a,
+    .page .btn:not(:disabled),
+    .page .dropdown-item:not(.disabled),
+    .row-actions-container a[data-is-row-action="true"],
+    .dataTables_wrapper .dataTables_paginate .paginate_button:not(.disabled),
+    table.dataTable thead > tr > th.sorting,
+    table.dataTable thead > tr > th.sorting_asc,
+    table.dataTable thead > tr > th.sorting_desc,
+    table.dataTable thead > tr > th.sorting_asc_disabled,
+    table.dataTable thead > tr > th.sorting_desc_disabled {
+      transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease,
+        opacity 0.12s ease, border-color 0.12s ease;
+    }
+  }
+
+  /* ---- Sidebar: пункты меню ---- */
+  aside.navbar.navbar-vertical .nav-link {
+    border-radius: var(--tblr-border-radius, 4px);
+    margin-inline: 0.2rem;
+  }
+
+  aside.navbar.navbar-vertical .nav-link:hover:not(.disabled) {
+    background-color: var(--mp-hover-surface);
+    color: var(--bs-body-color, #e2e8f0);
+  }
+
+  aside.navbar.navbar-vertical .nav-link:active:not(.disabled) {
+    background-color: var(--mp-active-surface);
+  }
+
+  aside.navbar.navbar-vertical .nav-link:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+    z-index: 1;
+  }
+
+  aside.navbar.navbar-vertical .nav-link.active {
+    background-color: var(--mp-active-route-bg);
+    box-shadow: inset 3px 0 0 var(--mp-focus-ring);
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  aside.navbar.navbar-vertical .nav-link.active:hover:not(.disabled) {
+    background-color: rgba(66, 153, 225, 0.24);
+    background-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 28%, transparent);
+  }
+
+  aside.navbar.navbar-vertical .nav-link.active:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  aside.navbar.navbar-vertical .navbar-toggler:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  /* ---- Верхняя панель: вордмарк и пользователь ---- */
+  .admin-topbar-wordmark {
+    border-radius: var(--tblr-border-radius, 4px);
+    padding: 0.3rem 0.45rem;
+    margin: -0.15rem 0;
+  }
+
+  .admin-topbar-wordmark:hover {
+    background-color: var(--mp-hover-surface);
+    color: #f8fafc;
+  }
+
+  .admin-topbar-wordmark:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+    background-color: var(--mp-hover-surface);
+    color: #f8fafc;
+  }
+
+  .admin-topbar-wordmark:active {
+    background-color: var(--mp-active-surface);
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger {
+    gap: 0.35rem;
+    align-items: center;
+    border-radius: var(--tblr-border-radius, 4px);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger:hover {
+    background-color: var(--mp-hover-surface);
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger:active {
+    background-color: var(--mp-active-surface);
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .navbar-toggler:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:hover:not(:disabled) {
+    background-color: var(--mp-hover-surface);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:active:not(:disabled) {
+    background-color: var(--mp-active-surface);
+  }
+
+  .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- Хлебные крошки ---- */
+  .page-header .breadcrumb-item a {
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.2rem;
+    margin: -0.1rem -0.2rem;
+    text-decoration: none;
+  }
+
+  .page-header .breadcrumb-item a:hover {
+    background-color: var(--mp-hover-surface);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .page-header .breadcrumb-item a:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- Кнопки карточки: вторичные (экспорт и т.д.) — заметный hover/active ---- */
+  .page .card .btn-secondary:not(:disabled):hover {
+    background-color: var(--mp-hover-surface);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .page .card .btn-secondary:not(:disabled):active {
+    background-color: var(--mp-active-surface);
+  }
+
+  .page .btn:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .dt-buttons .btn:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- Поля ввода / переключатели ---- */
+  .page .form-control:focus,
+  .page .form-select:focus {
+    border-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 55%, white);
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--tblr-primary, #4299e1) 28%, transparent);
+  }
+
+  .page .form-control:focus-visible,
+  .page .form-select:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 0;
+  }
+
+  .page .form-check-input:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  /* ---- Выпадающие пункты ---- */
+  .page .dropdown-item:not(.disabled):hover {
+    background-color: var(--mp-hover-surface);
+  }
+
+  .page .dropdown-item:not(.disabled):active {
+    background-color: var(--mp-active-surface);
+  }
+
+  .page .dropdown-item:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: -2px;
+  }
+
+  /*
+   * DataTables (dt.min.css грузится в list.html ПОСЛЕ этого блока): коллекции Buttons,
+   * SearchBuilder, colvis. Якорь html[data-bs-theme="dark"] — выше специфичность, чем у vendor.
+   * Только div.dt-button-collection / .dataTables_wrapper — не трогает navbar dropdown в шапке.
+   */
+  html[data-bs-theme="dark"] div.dt-button-collection.dropdown-menu,
+  html[data-bs-theme="dark"] div.dt-button-collection {
+    --bs-dropdown-bg: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 88%, white);
+    --bs-dropdown-color: var(--bs-body-color, #e2e8f0);
+    background-color: #1e293b !important;
+    background-color: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 88%, white) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.45) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection.fixed {
+    background-color: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 88%, white) !important;
+  }
+
+  /* Заголовок/разделители colvis — убрать тёмный «кирпич» и жёсткие чёрные линии из vendor */
+  html[data-bs-theme="dark"] div.dt-button-collection .dt-button-collection-title,
+  html[data-bs-theme="dark"] div.dt-button-collection div.dt-button-collection-title {
+    background: transparent !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection span.dt-button-spacer.bar,
+  html[data-bs-theme="dark"] div.dt-button-collection span.dt-button-spacer:empty {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* split dropdown в многостолбцовой colvis — vendor задаёт background white + #212529 */
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-btn-split-drop-button,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-btn-split-drop-button:focus {
+    background-color: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 72%, #334155) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+    border: none !important;
+  }
+
+  /* vendor: :active с #007bff !important */
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-btn-split-drop-button:active {
+    background-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 35%, #0f172a) !important;
+    color: #f8fafc !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item {
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:hover,
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:focus,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:hover,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.075) !important;
+    color: var(--bs-body-color, #f8fafc) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item.active,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.active {
+    background-color: rgba(66, 153, 225, 0.28) !important;
+    background-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 32%, transparent) !important;
+    color: #f8fafc !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:active,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:active {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:focus-visible,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus-visible {
+    outline: 2px solid var(--tblr-primary, #4299e1);
+    outline-offset: -2px;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item.disabled,
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.disabled {
+    opacity: 0.45 !important;
+    color: #94a3b8 !important;
+  }
+
+  /* SearchBuilder внутри той же коллекции: фон/текст, кнопки outline/add */
+  html[data-bs-theme="dark"] div.dt-button-collection div.dtsb-searchBuilder,
+  html[data-bs-theme="dark"] .dataTables_wrapper div.dtsb-searchBuilder {
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dtsb-searchBuilder .dtsb-title,
+  html[data-bs-theme="dark"] div.dtsb-searchBuilder label {
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] .dataTables_wrapper div.dtsb-searchBuilder .btn-outline-primary,
+  html[data-bs-theme="dark"] div.dt-button-collection .btn-outline-primary {
+    --bs-btn-color: var(--tblr-primary, #4299e1);
+    --bs-btn-border-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 55%, transparent);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--tblr-primary, #4299e1) 22%, transparent);
+    --bs-btn-hover-color: #f8fafc;
+    --bs-btn-hover-border-color: var(--tblr-primary, #4299e1);
+    --bs-btn-active-bg: color-mix(in srgb, var(--tblr-primary, #4299e1) 32%, transparent);
+    --bs-btn-active-color: #f8fafc;
+  }
+
+  html[data-bs-theme="dark"] .dataTables_wrapper div.dtsb-searchBuilder .btn-primary.dtsb-clearAll {
+    /* остаётся primary; при необходимости чуть мягче на тёмном фоне */
+    box-shadow: none;
+  }
+
+  /* Модалка «копирование / обработка» у Buttons — vendor: белый фон */
+  html[data-bs-theme="dark"] div.dt-button-info {
+    background-color: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 90%, #334155) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-info h2 {
+    background-color: color-mix(in srgb, var(--mp-shell-bg, #0f172a) 80%, #1e293b) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  html[data-bs-theme="dark"] div.dt-button-info > div {
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  /* ---- Таблица списка: сортировка, действия строки ---- */
+  table.dataTable thead > tr > th.sorting:hover,
+  table.dataTable thead > tr > th.sorting_asc:hover,
+  table.dataTable thead > tr > th.sorting_desc:hover,
+  table.dataTable thead > tr > th.sorting_asc_disabled:hover,
+  table.dataTable thead > tr > th.sorting_desc_disabled:hover {
+    background-color: var(--mp-hover-surface) !important;
+  }
+
+  .row-actions-container a[data-is-row-action="true"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    border-radius: var(--tblr-border-radius, 4px);
+    color: var(--tblr-primary, #4299e1);
+    text-decoration: none;
+  }
+
+  .row-actions-container a[data-is-row-action="true"]:hover {
+    background-color: var(--mp-hover-surface);
+    color: #8ec5ff;
+    color: color-mix(in srgb, var(--tblr-primary, #4299e1) 88%, white);
+  }
+
+  .row-actions-container a[data-is-row-action="true"]:active {
+    background-color: var(--mp-active-surface);
+  }
+
+  .row-actions-container a[data-is-row-action="true"]:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- Пагинация DataTables ---- */
+  .dataTables_wrapper .dataTables_paginate .paginate_button:not(.disabled):not(.current):hover {
+    background: var(--mp-hover-surface) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: color-mix(in srgb, var(--tblr-primary, #4299e1) 35%, transparent) !important;
+    border-color: var(--mp-focus-ring) !important;
+    color: var(--bs-body-color, #e2e8f0) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button:focus-visible {
+    outline: 2px solid var(--mp-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+  .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
   }
 </style>
 <script>
@@ -104,93 +552,44 @@
                             aria-label="Открыть или закрыть боковое меню">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-                    <h1 class="navbar-brand navbar-brand-autodark">
-                        <a class="brand-link" href="{{ url_for(__name__ ~ ':index') }}">
-                            {% if logo_url %}
-                                <img src="{{ logo_url }}"
-                                     class="navbar-logo"
-                                     alt="{{ app_title }}"/>
-                            {% else %}
-                                <span class="h3 mb-0">{{ app_title }}</span>
-                            {% endif %}
-                        </a>
-                    </h1>
-                    {% if current_user or i18n_config.language_switcher %}
+                    {% if i18n_config.language_switcher %}
                         <div class="navbar-nav flex-row d-lg-none">
-                            {% if i18n_config.language_switcher %}
-                                <div class="nav-item dropdown">
-                                    <a href="#"
-                                       class="nav-link"
-                                       data-bs-toggle="dropdown"
-                                       role="button"
-                                       aria-expanded="false"
-                                       aria-haspopup="true"
-                                       aria-label="Выбор языка интерфейса">
-                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                             class="icon icon-tabler icon-tabler-language"
-                                             width="24"
-                                             height="24"
-                                             viewBox="0 0 24 24"
-                                             stroke-width="2"
-                                             stroke="currentColor"
-                                             fill="none"
-                                             stroke-linecap="round"
-                                             stroke-linejoin="round"
-                                             aria-hidden="true">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                            <path d="M4 5h7"></path>
-                                            <path d="M9 3v2c0 4.418 -2.239 8 -5 8"></path>
-                                            <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"></path>
-                                            <path d="M12 20l4 -9l4 9"></path>
-                                            <path d="M19.1 18h-6.2"></path>
-                                        </svg>
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                        {% for lang in i18n_config.language_switcher %}
-                                            <a href="#"
-                                               class="dropdown-item language-switcher-item"
-                                               data-lang="{{ lang }}"
-                                               data-cookie-name="{{ i18n_config.language_cookie_name }}">{{ get_locale_display_name(lang) }}</a>
-                                        {% endfor %}
-                                    </div>
+                            <div class="nav-item dropdown">
+                                <a href="#"
+                                   class="nav-link"
+                                   data-bs-toggle="dropdown"
+                                   role="button"
+                                   aria-expanded="false"
+                                   aria-haspopup="true"
+                                   aria-label="Выбор языка интерфейса">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="icon icon-tabler icon-tabler-language"
+                                         width="24"
+                                         height="24"
+                                         viewBox="0 0 24 24"
+                                         stroke-width="2"
+                                         stroke="currentColor"
+                                         fill="none"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round"
+                                         aria-hidden="true">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M4 5h7"></path>
+                                        <path d="M9 3v2c0 4.418 -2.239 8 -5 8"></path>
+                                        <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4"></path>
+                                        <path d="M12 20l4 -9l4 9"></path>
+                                        <path d="M19.1 18h-6.2"></path>
+                                    </svg>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                                    {% for lang in i18n_config.language_switcher %}
+                                        <a href="#"
+                                           class="dropdown-item language-switcher-item"
+                                           data-lang="{{ lang }}"
+                                           data-cookie-name="{{ i18n_config.language_cookie_name }}">{{ get_locale_display_name(lang) }}</a>
+                                    {% endfor %}
                                 </div>
-                            {% endif %}
-                            {% if current_user %}
-                                <div class="nav-item dropdown ms-3">
-                                    <a href="#"
-                                       class="nav-link d-flex lh-1 text-reset p-0"
-                                       data-bs-toggle="dropdown"
-                                       aria-label="Меню пользователя {{ current_user.username }}">
-                                        <span class="avatar avatar-sm"
-                                              {% if current_user.photo_url %}style="background-image: url({{ current_user.photo_url }})"{% endif %}>
-                                            {% if not current_user.photo_url %}
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                     class="icon icon-tabler icon-tabler-user"
-                                                     width="24"
-                                                     height="24"
-                                                     viewBox="0 0 24 24"
-                                                     stroke-width="2"
-                                                     stroke="currentColor"
-                                                     fill="none"
-                                                     stroke-linecap="round"
-                                                     stroke-linejoin="round"
-                                                     aria-hidden="true">
-                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                                    <circle cx="12" cy="7" r="4"></circle>
-                                                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path>
-                                                </svg>
-                                            {% endif %}
-                                        </span>
-                                        <div class="d-none d-xl-block ps-2">
-                                            <div>{{ current_user.username }}</div>
-                                        </div>
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                        <a href="{{ request.url_for(__name__ ~ ':logout') }}"
-                                           class="dropdown-item">{{ _("Logout") }}</a>
-                                    </div>
-                                </div>
-                            {% endif %}
+                            </div>
                         </div>
                     {% endif %}
                     <div class="collapse navbar-collapse" id="sidebar-menu">
@@ -220,9 +619,15 @@
         {% endblock %}
         {% block navbar %}
             {% if current_user or i18n_config.language_switcher or (timezone_config and timezone_config.timezone_switcher) %}
-                <header class="navbar navbar-expand-md navbar-light d-none d-lg-flex d-print-none">
-                    <div class="container-xl">
-                        <button class="navbar-toggler"
+                <header class="navbar navbar-expand-md navbar-dark d-flex d-print-none" data-bs-theme="dark">
+                    <div class="container-xl w-100 d-flex flex-wrap align-items-center justify-content-between">
+                        <a class="admin-topbar-wordmark text-decoration-none me-2 me-md-3 flex-shrink-0"
+                           href="{{ url_for(__name__ ~ ':index') }}"
+                           aria-label="{{ app_title|e }} — на главную админки">
+                            <span class="text-nowrap">money pulso</span>
+                        </a>
+                        <div class="admin-topbar-end">
+                        <button class="navbar-toggler d-lg-none"
                                 type="button"
                                 data-bs-toggle="collapse"
                                 data-bs-target="#navbar-menu"
@@ -231,7 +636,7 @@
                                 aria-label="Открыть верхнее меню">
                             <span class="navbar-toggler-icon"></span>
                         </button>
-                        <div class="navbar-nav flex-row order-md-last gap-2">
+                        <div class="navbar-nav flex-row gap-2">
                             {% if i18n_config.language_switcher %}
                                 <div class="nav-item dropdown">
                                     <button type="button"
@@ -309,10 +714,13 @@
                                 </div>
                             {% endif %}
                             {% if current_user %}
-                                <div class="nav-item dropdown ms-3">
+                                <div class="nav-item dropdown">
                                     <a href="#"
-                                       class="nav-link d-flex lh-1 text-reset p-0"
+                                       class="nav-link admin-topbar-user-trigger d-flex lh-1 text-reset py-1 px-2"
                                        data-bs-toggle="dropdown"
+                                       role="button"
+                                       aria-expanded="false"
+                                       aria-haspopup="true"
                                        aria-label="Меню пользователя {{ current_user.username }}">
                                         <span class="avatar avatar-sm"
                                                 {% if current_user.photo_url %}
@@ -346,7 +754,8 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="collapse navbar-collapse" id="navbar-menu">
+                        <div class="collapse navbar-collapse w-100 order-5" id="navbar-menu">
+                        </div>
                         </div>
                     </div>
                 </header>
@@ -385,9 +794,12 @@
   }
 
   function setIcon(btn, collapsed) {
-    btn.innerHTML = collapsed
-      ? '<i class="ti ti-chevrons-right" aria-hidden="true"></i>'
-      : '<i class="ti ti-chevrons-left" aria-hidden="true"></i>';
+    // Одинарный шеврон (inline SVG, без шрифта иконок)
+    var svgL =
+      '<svg class="admin-sidebar-edge-toggle__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4L8 12l8 8"/></svg>';
+    var svgR =
+      '<svg class="admin-sidebar-edge-toggle__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4l8 8-8 8"/></svg>';
+    btn.innerHTML = collapsed ? svgR : svgL;
   }
 
   function isCollapsed() {
@@ -401,19 +813,30 @@
     } catch (e) {}
   }
 
+  function setAsideWidthVar(aside) {
+    if (!window.matchMedia("(min-width: 992px)").matches) return;
+    var w = aside.offsetWidth;
+    if (w && w > 0) {
+      document.documentElement.style.setProperty("--mp-admin-aside-w", w + "px");
+    }
+  }
+
   function mount() {
     var aside = document.querySelector("aside.navbar.navbar-vertical");
     if (!aside) return;
 
     var btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "admin-sidebar-toggle";
+    btn.className = "admin-sidebar-edge-toggle";
     btn.setAttribute("aria-controls", "sidebar-menu");
 
     function refresh() {
       var collapsed = isCollapsed();
       syncAria(btn, collapsed);
       setIcon(btn, collapsed);
+      requestAnimationFrame(function () {
+        setAsideWidthVar(aside);
+      });
     }
 
     btn.addEventListener("click", function () {
@@ -425,6 +848,9 @@
     document.body.appendChild(btn);
 
     var mq = window.matchMedia("(min-width: 992px)");
+    function onResize() {
+      if (mq.matches) setAsideWidthVar(aside);
+    }
     function onViewportChange() {
       if (!mq.matches) {
         document.documentElement.classList.remove("admin-sidebar-collapsed");
@@ -436,6 +862,9 @@
         } catch (e) {}
       }
       refresh();
+    }
+    if (window.addEventListener) {
+      window.addEventListener("resize", onResize);
     }
     if (mq.addEventListener) {
       mq.addEventListener("change", onViewportChange);

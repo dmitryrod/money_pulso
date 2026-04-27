@@ -49,12 +49,13 @@
     flex: 1 1 200px;
     min-width: 0;
   }
+  /* Ширина относительно main/column, не 100vw — иначе при раскрытом сайдбаре съезжает влево и даёт пустоту справа. */
   .stat-charts-fullbleed {
     flex: 1 1 auto;
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     box-sizing: border-box;
   }
   .stat-charts { display: flex; flex-direction: column; gap: 0; width: 100%; min-width: 0; }

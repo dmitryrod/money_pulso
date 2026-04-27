@@ -14,7 +14,8 @@
 {% macro custom_link(view) -%}
     <li class="nav-item">
         <a class="nav-link {% if view.is_active(request) %}active fw-bold{% endif %}"
-           href="{{ url_for(__name__,path=view.path) }}">
+           href="{{ url_for(__name__,path=view.path) }}"
+           {% if view.is_active(request) %}aria-current="page"{% endif %}>
             {% if view.icon %}
                 <span class="nav-link-icon d-md-none d-lg-inline-block" aria-hidden="true">
                     <i class="{{ view.icon }}"></i>
@@ -27,7 +28,8 @@
 {% macro model_link(view) -%}
     <li class="nav-item">
         <a class="nav-link {% if view.is_active(request) %}active fw-bold{% endif %}"
-           href="{{ url_for(__name__ ~ ':list', identity=view.identity) }}">
+           href="{{ url_for(__name__ ~ ':list', identity=view.identity) }}"
+           {% if view.is_active(request) %}aria-current="page"{% endif %}>
             {% if view.icon %}
                 <span class="nav-link-icon d-md-none d-lg-inline-block" aria-hidden="true">
                     <i class="{{ view.icon }}"></i>

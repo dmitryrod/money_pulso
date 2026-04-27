@@ -12,11 +12,21 @@
     background: #232a3e; color: #c0ccdd; border: 1px solid #2d3550; border-radius: 6px; padding: 6px 10px; font-size: 13px;
     min-width: 200px;
   }
+  .analytics-toolbar input:focus-visible {
+    outline: 2px solid #5b9cf6;
+    outline-offset: 2px;
+    border-color: #5b9cf6;
+  }
   .btn-analytics-purge {
     background: #3d2a2a; color: #e8b4b4; border: 1px solid #6a4040; border-radius: 6px;
     padding: 6px 12px; font-size: 13px; cursor: pointer;
   }
   .btn-analytics-purge:hover:not(:disabled) { background: #4a3030; }
+  .btn-analytics-purge:active:not(:disabled) { background: #3a2525; }
+  .btn-analytics-purge:focus-visible {
+    outline: 2px solid #e8b4b4;
+    outline-offset: 2px;
+  }
   .btn-analytics-purge:disabled { opacity: 0.5; cursor: not-allowed; }
   .analytics-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2d3550; }
   table.analytics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -27,6 +37,11 @@
   table.analytics-table tr:hover td { background: #1e2538; }
   table.analytics-table a { color: #5b9cf6; text-decoration: none; }
   table.analytics-table a:hover { text-decoration: underline; }
+  table.analytics-table a:focus-visible {
+    outline: 2px solid #5b9cf6;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
   .cat-pill {
     display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
   }

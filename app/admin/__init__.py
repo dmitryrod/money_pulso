@@ -38,6 +38,7 @@ from app.test_signal_broadcast import (
 from app.utils.coinmarketcap_rank import get_cmc_rank_for_symbol
 
 from .auth import AdminAuthProvider
+from .monitoring_metrics import get_payload, record_snapshot
 from .view import (
     AnalyticsCatalogView,
     LogsViewerView,
@@ -247,6 +248,12 @@ def register_admin_routes(app: FastAPI) -> None:
 })();
 """
         return Response(content=js, media_type="application/javascript; charset=utf-8")
+
+    @app.get("/admin_api/monitoring/metrics")
+    async def _get_monitoring_metrics() -> JSONResponse:
+        """JSON для страницы «Система»: psutil + in-memory ряды; размер `app/` не чаще 1/мин."""
+        await asyncio.to_thread(record_snapshot)
+        return JSONResponse(get_payload())
 
     admin = Admin(
         engine=Database.engine,

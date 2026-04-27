@@ -23,7 +23,7 @@
 - Shell: тот же sidebar/topbar, что и у остальной админки (`layout.html`).
 - Локально скрыты дефолтные `.page-title` и `.page-header` админки (`display: none`), чтобы не дублировать заголовок.
 - Контент: колонка на всю ширину (`.stat-page.col-12`), вертикальный flex внутри `row-deck` (override `flex-direction: column` для совместимости с Tabler).
-- График: **full-bleed** по viewport (`.stat-charts-fullbleed`: `width: 100vw`, отрицательные margin `calc(50% - 50vw)`).
+- График: блок на **ширину колонки main** (`.stat-charts-fullbleed`: `width: 100%`, без `100vw` — совместимость с раскрываемым сайдбаром).
 - Viewport assumption для скриншота: desktop `approx. 1440x900` (оценка по кадру).
 
 ## 4. Иерархия блоков сверху вниз

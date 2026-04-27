@@ -9,10 +9,7 @@ __all__ = [
 
 import asyncio
 import os
-from datetime import datetime
 from typing import Any
-
-import psutil
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.templating import Jinja2Templates
@@ -30,6 +27,7 @@ from unicex import Exchange, MarketType
 
 from app.schemas import TextTemplateType
 from app.config import logger, config
+from app.admin.monitoring_metrics import get_template_context, record_snapshot
 
 # Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.
 _LOG_TAIL_MAX_BYTES = 512 * 1024
@@ -60,15 +58,6 @@ def _read_app_log_tail(log_path: str, max_bytes: int = _LOG_TAIL_MAX_BYTES) -> t
     if first_nl != -1:
         text = text[first_nl + 1 :]
     return text, True
-
-
-def _metr_psutil_snapshot() -> tuple[Any, Any, float, str]:
-    """Снимок метрик в одном sync-вызове (удобно грузить в thread pool)."""
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
-    cpu_percent = psutil.cpu_percent(0.1)
-    boot_time = datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
-    return memory, disk, cpu_percent, boot_time
 
 
 class SettingsModelView(ModelView):
@@ -107,6 +96,12 @@ class SettingsModelView(ModelView):
             "enabled",
             label="Включить скринер",
             # help_text="Снимите галочку, если нужно полностью остановить проверки и отправку сигналов."
+        ),
+        BooleanField(
+            "debug",
+            label="Отладка",
+            help_text="Если включено, в текст сообщения будет добавлен отладочный блок.",
+            required=False,
         ),
         EnumField(
             "exchange",
@@ -278,12 +273,6 @@ class SettingsModelView(ModelView):
             required=True,
             help_text="Формат отображения данных в сообщении.",
         ),
-        BooleanField(
-            "debug",
-            label="Отладка",
-            help_text="Если включено, в текст сообщения будет добавлен отладочный блок.",
-            required=False,
-        ),
     ]
 
     async def validate(self, request: Request, data: dict[str, Any]) -> None:
@@ -431,20 +420,11 @@ class MetrCustomView(CustomView):
 
     async def render(self, request: Request, templates: Jinja2Templates) -> Response:  # noqa: D401
         """Возвращает шаблон с загрузкой CPU, RAM, диска и времени аптайма."""
-        memory, disk, cpu_percent, boot_time = await asyncio.to_thread(_metr_psutil_snapshot)
-
+        await asyncio.to_thread(record_snapshot)
         context: dict[str, Any] = {
             "request": request,
-            "memory_total": f"{memory.total / (1024**3):.2f} GB",
-            "memory_used": f"{memory.used / (1024**3):.2f} GB",
-            "memory_percent": f"{memory.percent}%",
-            "disk_total": f"{disk.total / (1024**3):.2f} GB",
-            "disk_used": f"{disk.used / (1024**3):.2f} GB",
-            "disk_percent": f"{disk.percent}%",
-            "cpu_percent": f"{cpu_percent}%",
-            "boot_time": boot_time,
+            **get_template_context(),
         }
-
         return templates.TemplateResponse(request, "metr.html", context)
 
 

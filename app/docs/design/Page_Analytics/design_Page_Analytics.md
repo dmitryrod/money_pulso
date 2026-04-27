@@ -24,7 +24,7 @@ Viewport assumption: desktop `approx. 1440x900`. List page использует 
 - `.analytics-page` внутри content area, vertical flow;
 - toolbar row с filters/actions, gap `8px`;
 - table wrapper full width до `1200px`;
-- stat detail page: full-bleed chart page с chart box и canvas height `500px`.
+- stat detail page: график на ширину колонки main (без `100vw` к viewport), chart box, canvas height `500px`.
 
 Responsive: table получает horizontal scroll; toolbar wraps; chart canvas keeps min-width or responsive aspect ratio.
 
