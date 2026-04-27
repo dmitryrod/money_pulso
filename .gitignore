@@ -61,3 +61,9 @@ app/logs/app.log
 app/logs/app.log
 app/logs/app.log
 app/logs/signals_log.txt
+
+# Локальная RAG-память Cursor (Chroma + сгенерированная выжимка)
+.cursor/memory/chroma_db/
+.cursor/memory/rag_fts.sqlite
+.cursor/memory/.ingest_state.json
+.cursor/active_memory.md

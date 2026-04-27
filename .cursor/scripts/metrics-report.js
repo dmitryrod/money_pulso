@@ -10,7 +10,7 @@ const path = require('path');
 
 const SCRIPT_DIR = __dirname;
 const CONFIG_PATH = path.join(SCRIPT_DIR, '..', 'config.json');
-const DEFAULT_SESSIONS_PATH = 'ai_docs/develop/reports';
+const DEFAULT_SESSIONS_PATH = '.cursor/reports';
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..', '..');
 
 function loadConfig() {
@@ -52,7 +52,10 @@ function computeScore(sessions) {
     return { score: null, components: {}, interpretation: 'Нет данных' };
   }
 
-  const testsPassed = sessions.filter(s => s.testsPassed === true).length;
+  const testRelevantSessions = sessions.filter(s =>
+    s.testsApplicable === true || (s.testsApplicable === undefined && s.testsPassed !== undefined)
+  );
+  const testsPassed = testRelevantSessions.filter(s => s.testsPassed === true).length;
   const docsCreated = sessions.filter(s => s.documentationCreated === true).length;
   const totalDebugger = sessions.reduce((sum, s) => sum + (s.debuggerCalls || 0), 0);
   const securitySensitive = sessions.filter(s =>
@@ -66,10 +69,26 @@ function computeScore(sessions) {
     implement: ['worker', 'test-runner', 'reviewer-senior', 'documenter'],
     feature: ['planner', 'worker', 'test-runner', 'reviewer-senior', 'documenter']
   };
+  const expectedByTaskType = {
+    marketing_tactical: ['marketing'],
+    marketing_research: ['marketing-researcher']
+  };
+  const expectedByPrimaryAgent = {
+    marketing: ['marketing'],
+    'marketing-researcher': ['marketing-researcher'],
+    researcher: ['researcher'],
+    worker: ['worker'],
+    planner: ['planner'],
+    documenter: ['documenter']
+  };
   let delegationSum = 0;
   let delegationCount = 0;
   for (const s of sessions) {
-    const expected = expectedByWorkflow[s.workflow] || expectedByWorkflow.implement;
+    const expected =
+      expectedByTaskType[s.taskType] ||
+      expectedByPrimaryAgent[s.primaryAgent] ||
+      expectedByWorkflow[s.workflow] ||
+      expectedByWorkflow.implement;
     const called = s.subagentsCalled || [];
     const matched = expected.filter(e => called.includes(e)).length;
     delegationSum += expected.length > 0 ? matched / expected.length : 1;
@@ -77,7 +96,7 @@ function computeScore(sessions) {
   }
   const delegationRate = delegationCount > 0 ? delegationSum / delegationCount : 1;
 
-  const testsRate = sessions.length > 0 ? testsPassed / sessions.length : 0;
+  const testsRate = testRelevantSessions.length > 0 ? testsPassed / testRelevantSessions.length : 1;
   const docsRate = sessions.length > 0 ? docsCreated / sessions.length : 0;
   const securityRate = securitySensitive.length > 0
     ? securityCalled / securitySensitive.length
@@ -124,9 +143,14 @@ function formatScoreBlock(score, components, sessions, interpretation) {
 }
 
 function buildMarkdownReport(score, components, sessions, interpretation, sessionsPath) {
-  const workflowCounts = { scaffold: 0, implement: 0, feature: 0 };
+  const workflowCounts = { scaffold: 0, implement: 0, feature: 0, 'integrate-skill': 0, custom: 0, other: 0 };
+  const taskTypeCounts = { engineering: 0, marketing_tactical: 0, marketing_research: 0, other: 0 };
   for (const s of sessions) {
     if (workflowCounts[s.workflow] !== undefined) workflowCounts[s.workflow]++;
+    else workflowCounts.other++;
+    if (taskTypeCounts[s.taskType] !== undefined) taskTypeCounts[s.taskType]++;
+    else if (s.taskType) taskTypeCounts.other++;
+    else taskTypeCounts.engineering++;
   }
 
   let md = `# Метрики NoRissk\n\n`;
@@ -149,16 +173,27 @@ function buildMarkdownReport(score, components, sessions, interpretation, sessio
   md += `| scaffold   | ${workflowCounts.scaffold} |\n`;
   md += `| implement  | ${workflowCounts.implement} |\n`;
   md += `| feature    | ${workflowCounts.feature} |\n\n`;
+  md += `| integrate-skill | ${workflowCounts['integrate-skill']} |\n`;
+  md += `| custom         | ${workflowCounts.custom} |\n`;
+  md += `| other          | ${workflowCounts.other} |\n\n`;
+  md += `| Task type            | Сессий |\n`;
+  md += `| -------------------- | ------ |\n`;
+  md += `| engineering / none   | ${taskTypeCounts.engineering} |\n`;
+  md += `| marketing_tactical   | ${taskTypeCounts.marketing_tactical} |\n`;
+  md += `| marketing_research   | ${taskTypeCounts.marketing_research} |\n`;
+  md += `| other                | ${taskTypeCounts.other} |\n\n`;
   md += `## Последние сессии\n\n`;
-  md += `| Дата       | Workflow | Задача                    | Тесты | Debugger |\n`;
-  md += `| ---------- | -------- | ------------------------- | ----- | -------- |\n`;
+  md += `| Дата       | Workflow | Task type | Primary agent | Задача                    | Тесты | Debugger |\n`;
+  md += `| ---------- | -------- | --------- | ------------- | ------------------------- | ----- | -------- |\n`;
   for (const s of sessions.slice(0, 10)) {
-    const date = s.timestamp?.slice(0, 10) || '—';
+    const date = s.timestamp?.slice(0, 10) || s.reportDate || '—';
     const wf = s.workflow || '—';
+    const taskType = s.taskType || 'engineering';
+    const primaryAgent = s.primaryAgent || '—';
     const task = (s.taskSummary || '—').slice(0, 24);
-    const tests = s.testsPassed ? '✓' : '—';
+    const tests = s.testsApplicable === false ? 'N/A' : (s.testsPassed ? '✓' : '—');
     const dbg = s.debuggerCalls || 0;
-    md += `| ${date} | ${wf.padEnd(8)} | ${task.padEnd(24)} | ${tests.padEnd(5)} | ${dbg} |\n`;
+    md += `| ${date} | ${wf.padEnd(8)} | ${taskType.padEnd(9)} | ${primaryAgent.padEnd(13)} | ${task.padEnd(24)} | ${tests.padEnd(5)} | ${dbg} |\n`;
   }
   return md;
 }

@@ -7,7 +7,10 @@ from unicex import Exchange, MarketType
 
 from app.schemas.dtos import SettingsDTO
 from app.schemas.enums import TextTemplateType
-from app.screener.test_mode_eval import evaluate_test_mode_snapshot
+from app.screener.test_mode_eval import (
+    evaluate_test_mode_snapshot,
+    no_enabled_filters_ok,
+)
 
 
 def _settings(**kwargs: object) -> SettingsDTO:
@@ -88,3 +91,44 @@ def test_all_content_filters_fail_returns_none() -> None:
         daily_signal_count=1,
     )
     assert out is None
+
+
+def test_no_enabled_filters_ok_empty_or_none_is_false() -> None:
+    assert no_enabled_filters_ok([]) is False
+    assert no_enabled_filters_ok(None) is False
+
+
+def test_no_enabled_filters_ok_true_when_all_enabled_off() -> None:
+    assert (
+        no_enabled_filters_ok(
+            [
+                {"id": "pd", "enabled": True, "ok": False},
+                {"id": "oi", "enabled": True, "ok": False},
+            ]
+        )
+        is True
+    )
+
+
+def test_no_enabled_filters_ok_false_when_any_enabled_ok() -> None:
+    assert (
+        no_enabled_filters_ok(
+            [
+                {"id": "pd", "enabled": True, "ok": True},
+                {"id": "oi", "enabled": True, "ok": False},
+            ]
+        )
+        is False
+    )
+
+
+def test_no_enabled_filters_ok_ignores_disabled_for_all_off_check() -> None:
+    assert (
+        no_enabled_filters_ok(
+            [
+                {"id": "pd", "enabled": False, "ok": True},
+                {"id": "oi", "enabled": True, "ok": False},
+            ]
+        )
+        is True
+    )

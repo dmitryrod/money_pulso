@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}<title>Сигналы</title>{% endblock %}
 {% block content %}{{ super() }}
 
 <style>
@@ -67,6 +68,18 @@
     background: #2d3a5e;
     color: #c0ccdd;
   }
+
+  .btn-purge-signals {
+    background: #3a2626;
+    color: #f0d0d0;
+    border: 1px solid #664040;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-purge-signals:hover:not(:disabled) { background: #4a3030; }
+  .btn-purge-signals:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Индикатор соединения */
   .sse-status {
@@ -559,6 +572,61 @@
   }
   .test-max-wrap label { color: #8899bb; cursor: pointer; margin: 0; }
 
+  .scanner-runtime-wrap {
+    font-size: 12px;
+    color: #8899bb;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-left: 4px;
+    max-width: 100%;
+  }
+  .scanner-runtime-wrap input[type="number"] {
+    width: 52px;
+    background: #232a3e;
+    color: #c0ccdd;
+    border: 1px solid #2d3550;
+    border-radius: 5px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+  .scanner-runtime-wrap button.btn-scanner-save {
+    background: #2d3a5e;
+    color: #c8d4e8;
+    border: 1px solid #3a4a70;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .scanner-runtime-wrap button.btn-scanner-save:hover { background: #35456a; }
+
+  .signal-card--test.signal-card--locked {
+    outline: 1px solid #6a7a9a;
+    box-shadow: 0 0 0 1px rgba(106,122,154,0.5);
+  }
+  .signal-card--test .sct-id-stat { font-size: 12px; }
+  .signal-card--test .sct-id-stat a { color: #7ab8ff; }
+  .signal-card--test .sct-id-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .signal-card--test .sct-id-actions button {
+    background: #2a3145;
+    border: 1px solid #3a4558;
+    border-radius: 5px;
+    color: #aab8d0;
+    font-size: 12px;
+    line-height: 1;
+    padding: 3px 7px;
+    cursor: pointer;
+  }
+  .signal-card--test .sct-id-actions button:hover { background: #343d52; }
+  .signal-card--test .sct-btn-close { color: #e57373 !important; border-color: #5a3a3a !important; }
+
   /* ── Карточка сигнала (Telegram-стиль) ── */
   .signal-card {
     background: #1e2533;
@@ -751,6 +819,13 @@
       <button id="btn-src-file" onclick="switchSource('file')">Лог-файл</button>
     </div>
 
+    <button type="button" id="btn-purge-db" class="btn-purge-signals" style="display:none" title="Удалить все записи из таблицы signals">
+      Очистить БД
+    </button>
+    <button type="button" id="btn-purge-log" class="btn-purge-signals" style="display:none" title="Очистить файл signals_log.txt">
+      Очистить лог-файл
+    </button>
+
     <span class="new-badge" id="new-badge">+<span id="new-count">0</span> новых</span>
 
     <select class="per-page-select" id="per-page-sel" onchange="changePerPage(this.value)">
@@ -782,6 +857,17 @@
         <option value="100">100</option>
       </select>
     </span>
+
+    <div class="scanner-runtime-wrap" id="scanner-runtime-wrap" title="Глобальные настройки Scanner (БД); применяются без перезапуска Consumer">
+      <span>Posttrack мин</span>
+      <input type="number" id="scanner-posttrack" min="0" step="1" title="posttracking_minutes" />
+      <span>Cooldown ч</span>
+      <input type="number" id="scanner-cooldown" min="0" step="1" title="cooldown_hours" />
+      <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;margin:0;">
+        <input type="checkbox" id="scanner-stats-enabled" /> JSONL
+      </label>
+      <button type="button" class="btn-scanner-save" id="scanner-runtime-save">Сохранить</button>
+    </div>
 
     <div class="sse-status">
       <div class="sse-dot connecting" id="sse-dot"></div>
@@ -840,6 +926,8 @@
   const testFeedCountNum = document.getElementById('test-feed-count-num');
   const testMaxWrap = document.getElementById('test-max-wrap');
   const testMaxCardsSel = document.getElementById('test-max-cards');
+  const scannerRuntimeWrap = document.getElementById('scanner-runtime-wrap');
+  const scannerRuntimeSave = document.getElementById('scanner-runtime-save');
 
   const TEST_MAX_ALLOWED = [5, 10, 20, 30, 50, 100];
   const LS_TEST_MAX_VISIBLE = 'signals_test_max_visible';
@@ -847,6 +935,148 @@
   function normalizeTestMax(val) {
     const n = parseInt(val, 10);
     return TEST_MAX_ALLOWED.includes(n) ? n : 10;
+  }
+
+  /**
+   * Строка БД без card_snapshot: та же горизонтальная вёрстка Scanner; блок фильтров — пояснение.
+   */
+  function dbRowToScannerLayoutItem(row) {
+    return {
+      ...row,
+      mode: 'test',
+      scanner_snapshot_frozen: true,
+      db_legacy_no_snapshot: true,
+      test_filters: [
+        {
+          id: 'legacy',
+          title: 'Снимок Scanner',
+          enabled: true,
+          ok: true,
+          current: {
+            info: 'Нет card_snapshot_json — запись до внедрения Scanner Analytics или без trigger. После очистки истории новые сигналы получат полный снимок.',
+          },
+          thresholds: {},
+        },
+      ],
+      scanner_filter_max_list: [],
+      score: null,
+      ok_count: null,
+      tie_break_score: null,
+    };
+  }
+
+  /**
+   * Режим БД: snapshot → та же карточка, что Scanner; без snapshot → горизонтальная карточка с текстом из БД.
+   * @param {string} src — 'test' | 'db' | 'file'
+   */
+  function normalizeItemForCard(item, src) {
+    if (!item || item.mode === 'test') return item;
+    if (item.card_snapshot && typeof item.card_snapshot === 'object' && Object.keys(item.card_snapshot).length) {
+      const snap = item.card_snapshot;
+      return {
+        ...snap,
+        id: item.id,
+        created_at: item.created_at,
+        screener_name: item.screener_name != null ? item.screener_name : snap.screener_name,
+        screener_id: item.screener_id,
+        exchange: item.exchange != null ? item.exchange : snap.exchange,
+        market_type: item.market_type != null ? item.market_type : snap.market_type,
+        symbol: item.symbol != null ? item.symbol : snap.symbol,
+        telegram_ok: item.telegram_ok,
+        tracking_id: item.tracking_id,
+        stat_href: item.stat_href,
+        mode: 'test',
+        scanner_snapshot_frozen: true,
+      };
+    }
+    if (src === 'db') {
+      return dbRowToScannerLayoutItem(item);
+    }
+    return item;
+  }
+
+  async function refreshScannerRuntimeUi() {
+    try {
+      const r = await fetch('/admin_api/scanner/runtime-settings', { credentials: 'same-origin' });
+      if (!r.ok) return;
+      const d = await r.json();
+      const pt = document.getElementById('scanner-posttrack');
+      const cd = document.getElementById('scanner-cooldown');
+      const se = document.getElementById('scanner-stats-enabled');
+      if (pt) pt.value = String(d.posttracking_minutes ?? 0);
+      if (cd) cd.value = String(d.cooldown_hours ?? 0);
+      if (se) se.checked = !!d.statistics_enabled;
+      const mc = d.max_cards;
+      if (testMaxCardsSel && mc != null) {
+        const m = parseInt(mc, 10);
+        if (Number.isFinite(m) && !TEST_MAX_ALLOWED.includes(m)) {
+          const opt = document.createElement('option');
+          opt.value = String(m);
+          opt.textContent = String(m);
+          testMaxCardsSel.appendChild(opt);
+        }
+        if (Number.isFinite(m)) testMaxCardsSel.value = String(m);
+      }
+    } catch (_) {}
+  }
+
+  async function saveScannerRuntime() {
+    const params = new URLSearchParams();
+    if (testMaxCardsSel) params.set('max_cards', testMaxCardsSel.value);
+    const pt = document.getElementById('scanner-posttrack');
+    const cd = document.getElementById('scanner-cooldown');
+    const se = document.getElementById('scanner-stats-enabled');
+    if (pt) params.set('posttracking_minutes', pt.value);
+    if (cd) params.set('cooldown_hours', cd.value);
+    if (se) params.set('statistics_enabled', se.checked ? 'true' : 'false');
+    try {
+      const r = await fetch('/admin_api/scanner/runtime-settings?' + params.toString(), { method: 'POST', credentials: 'same-origin' });
+      if (r.ok) await refreshScannerRuntimeUi();
+    } catch (_) {}
+  }
+
+  function setupTestCardActions(div) {
+    const frozen = div.dataset.scannerSnapshotFrozen === '1';
+    const lockBtn = div.querySelector('.sct-btn-lock');
+    const closeBtn = div.querySelector('.sct-btn-close');
+    if (frozen) {
+      if (lockBtn) lockBtn.style.display = 'none';
+      if (closeBtn) closeBtn.style.display = 'none';
+      return;
+    }
+    if (lockBtn && !lockBtn._wired) {
+      lockBtn._wired = true;
+      lockBtn.textContent = '🔓';
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const locked = div.dataset.scannerLocked === '1';
+        if (locked) {
+          div.dataset.scannerLocked = '';
+          div.classList.remove('signal-card--locked');
+          lockBtn.textContent = '🔓';
+        } else {
+          div.dataset.scannerLocked = '1';
+          div.classList.add('signal-card--locked');
+          lockBtn.textContent = '🔒';
+        }
+        reorderTestFeed();
+      });
+    }
+    if (closeBtn && !closeBtn._wired) {
+      closeBtn._wired = true;
+      closeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const tid = closeBtn.dataset.trackingId || div.dataset.trackingId;
+        if (!tid) return;
+        try {
+          const r = await fetch('/admin_api/scanner/close?tracking_id=' + encodeURIComponent(tid), { method: 'POST', credentials: 'same-origin' });
+          if (r.ok) {
+            div.remove();
+            updateTestFeedCount();
+          }
+        } catch (_) {}
+      });
+    }
   }
 
   function applyTestMaxToSelect() {
@@ -877,11 +1107,11 @@
       updateTestFeedCount();
       return;
     }
-    cards.sort((a, b) => {
-      const parseScore = (el) => {
-        const v = parseFloat(el.dataset.testScore);
-        return Number.isFinite(v) ? v : Number.NEGATIVE_INFINITY;
-      };
+    const parseScore = (el) => {
+      const v = parseFloat(el.dataset.testScore);
+      return Number.isFinite(v) ? v : Number.NEGATIVE_INFINITY;
+    };
+    const cmp = (a, b) => {
       const d0 = parseScore(b) - parseScore(a);
       if (d0 !== 0) return d0;
       const okA = parseInt(a.dataset.okCount, 10) || 0;
@@ -893,8 +1123,12 @@
       const d2 = fb - fa;
       if (d2 !== 0) return d2;
       return String(a.dataset.id || '').localeCompare(String(b.dataset.id || ''));
-    });
-    cards.forEach(c => feed.appendChild(c));
+    };
+    const locked = cards.filter((c) => c.dataset.scannerLocked === '1');
+    const unlocked = cards.filter((c) => c.dataset.scannerLocked !== '1');
+    unlocked.sort(cmp);
+    const ordered = [...locked, ...unlocked];
+    ordered.forEach((c) => feed.appendChild(c));
     trimTestFeedToMax();
     updateTestFeedCount();
   }
@@ -911,6 +1145,52 @@
     if (testMaxWrap) {
       testMaxWrap.style.display = isTest ? 'inline-flex' : 'none';
       if (isTest) applyTestMaxToSelect();
+    }
+    if (scannerRuntimeWrap) {
+      scannerRuntimeWrap.style.display = isTest ? 'inline-flex' : 'none';
+      if (isTest) refreshScannerRuntimeUi();
+    }
+  }
+
+  function updatePurgeButtons() {
+    const bDb = document.getElementById('btn-purge-db');
+    const bLog = document.getElementById('btn-purge-log');
+    if (bDb) bDb.style.display = source === 'db' ? 'inline-block' : 'none';
+    if (bLog) bLog.style.display = source === 'file' ? 'inline-block' : 'none';
+  }
+
+  function wirePurgeButtons() {
+    const bDb = document.getElementById('btn-purge-db');
+    const bLog = document.getElementById('btn-purge-log');
+    async function postPurge(target) {
+      const label = target === 'db' ? 'все записи в таблице signals' : 'файл signals_log.txt';
+      if (!window.confirm('Очистить ' + label + '?')) return;
+      const btn = target === 'db' ? bDb : bLog;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch('/admin_api/signals/purge?target=' + encodeURIComponent(target), { method: 'POST', credentials: 'same-origin' });
+        if (!r.ok) {
+          let msg = 'HTTP ' + r.status;
+          try {
+            const j = await r.json();
+            if (j.detail) msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+          } catch { /* use msg */ }
+          throw new Error(msg);
+        }
+        await loadPage(page);
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    if (bDb && !bDb._purgeWired) {
+      bDb._purgeWired = true;
+      bDb.addEventListener('click', () => postPurge('db'));
+    }
+    if (bLog && !bLog._purgeWired) {
+      bLog._purgeWired = true;
+      bLog.addEventListener('click', () => postPurge('log'));
     }
   }
 
@@ -1167,6 +1447,19 @@
       const mt = (item.market_type || '').toUpperCase();
       exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
     }
+    const statWrap = div.querySelector('.sct-id-stat');
+    if (statWrap) {
+      statWrap.textContent = '';
+      if (item.stat_href) {
+        const a = document.createElement('a');
+        a.href = item.stat_href;
+        a.textContent = 'Stat';
+        statWrap.appendChild(a);
+        statWrap.style.display = '';
+      } else {
+        statWrap.style.display = 'none';
+      }
+    }
     /* Не использовать created_at как единственный fallback: он обновляется на каждом снимке и сбрасывает счётчик.
        Берём самую раннюю метку из сервера, уже показанной на карточке и created_at. */
     let trackedIso = '';
@@ -1213,10 +1506,20 @@
 
   function updateScannerDurationForCard(card) {
     if (!card || !card.classList || !card.classList.contains('signal-card--test')) return;
-    const iso = card.dataset.scannerTrackedSince;
-    const start = parseIsoToMs(iso);
     const durEl = card.querySelector('.sct-id-duration');
     if (!durEl) return;
+    if (card.dataset.scannerSnapshotFrozen === '1') {
+      const raw = card.dataset.scannerDurationAtTriggerMs;
+      const ms = raw !== undefined && raw !== '' ? Number(raw) : NaN;
+      if (Number.isFinite(ms) && ms >= 0) {
+        durEl.textContent = fmtElapsedHmsAndSec(ms);
+      } else {
+        durEl.textContent = '';
+      }
+      return;
+    }
+    const iso = card.dataset.scannerTrackedSince;
+    const start = parseIsoToMs(iso);
     if (start == null) {
       durEl.textContent = '';
       return;
@@ -1240,6 +1543,18 @@
   }
 
   function applyCardData(div, item) {
+    if (item.scanner_snapshot_frozen) {
+      div.dataset.scannerSnapshotFrozen = '1';
+      const dm = item.scanner_duration_at_trigger_ms;
+      if (dm != null && dm !== undefined && Number.isFinite(Number(dm))) {
+        div.dataset.scannerDurationAtTriggerMs = String(Math.max(0, Number(dm)));
+      } else {
+        delete div.dataset.scannerDurationAtTriggerMs;
+      }
+    } else {
+      delete div.dataset.scannerSnapshotFrozen;
+      delete div.dataset.scannerDurationAtTriggerMs;
+    }
     const bodyDiv = div.querySelector('.signal-body');
     const isTest = item.mode === 'test';
     if (isTest && bodyDiv) {
@@ -1330,6 +1645,18 @@
         scoreEl.style.display = 'none';
       }
     }
+
+    if (item.mode === 'test') {
+      const tid = item.tracking_id;
+      if (tid) div.dataset.trackingId = tid;
+      else delete div.dataset.trackingId;
+      const closeBtn = div.querySelector('.sct-btn-close');
+      if (closeBtn) {
+        const show = !!(item.scanner_show_close && tid);
+        closeBtn.style.display = show ? '' : 'none';
+        closeBtn.dataset.trackingId = tid || '';
+      }
+    }
   }
 
   function findCardById(id) {
@@ -1377,6 +1704,11 @@
               </div>
               <div class="sct-id-screener"></div>
               <div class="sct-id-links"></div>
+              <div class="sct-id-stat" style="display:none"></div>
+              <div class="sct-id-actions">
+                <button type="button" class="sct-btn-lock" title="Закрепить — не участвует в сортировке">🔓</button>
+                <button type="button" class="sct-btn-close" style="display:none" title="Закрыть посттрекинг">✕</button>
+              </div>
               <div class="sct-id-exchange"></div>
               <div class="sct-id-tracking">
                 <div class="sct-id-time"></div>
@@ -1404,6 +1736,8 @@
     }
 
     applyCardData(div, item);
+
+    if (isTest) setupTestCardActions(div);
 
     // Клик по заголовку символа → копировать в буфер
     div.querySelector('.signal-symbol').addEventListener('click', () => {
@@ -1561,8 +1895,8 @@
         feed.appendChild(em);
         if (source === 'test') updateTestFeedCount();
       } else {
-        for (const item of data.items) {
-          feed.appendChild(buildCard(item, false));
+        for (const raw of data.items) {
+          feed.appendChild(buildCard(normalizeItemForCard(raw, source), false));
         }
         if (source === 'test') {
           reorderTestFeed();
@@ -1575,6 +1909,7 @@
 
     // Переключаем SSE только при первой загрузке или смене источника
     startSSE();
+    updatePurgeButtons();
   }
 
   /* ── SSE ── */
@@ -1589,8 +1924,9 @@
     es.onmessage = (evt) => {
       let item;
       try { item = JSON.parse(evt.data); } catch { return; }
+      item = normalizeItemForCard(item, source);
 
-      if (item.mode === 'test') {
+      if (item.mode === 'test' && source === 'test') {
         const existing = findCardById(item.id);
         if (existing) {
           applyCardData(existing, item);
@@ -1659,12 +1995,19 @@
     if (testMaxCardsSel) testMaxCardsSel.value = String(n);
     trimTestFeedToMax();
     updateTestFeedCount();
+    fetch('/admin_api/scanner/runtime-settings?max_cards=' + encodeURIComponent(String(n)), { method: 'POST', credentials: 'same-origin' }).catch(() => {});
   };
 
   window.loadPage = loadPage;
 
   applyTestMaxToSelect();
   setTestModeUi(source === 'test');
+
+  if (scannerRuntimeSave) {
+    scannerRuntimeSave.addEventListener('click', () => { saveScannerRuntime(); });
+  }
+
+  wirePurgeButtons();
 
   setInterval(updateAllScannerDurationDisplays, 1000);
 

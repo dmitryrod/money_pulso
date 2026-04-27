@@ -36,13 +36,26 @@
     "comment": "Disabled sections не существуют в этом проекте. При добавлении новой документации — включить enabled и задать путь."
   },
   "testing": {
-    "command": "uv run pytest app/tests/",
+    "command": "python -m pytest app/tests/",
     "path": "app/tests/",
-    "comment": "Python проект: uv + pytest. Запускать из корня проекта (d:/WorkProjects/trade-paid-screener)."
+    "comment": "Команда тестов из корня workspace. Для чисто marketing/design/docs-сценариев testsApplicable может быть false. Базовый Python toolchain задаётся корневым pyproject.toml; при замене тестового стека обнови эту команду и app/tests/."
   },
   "metrics": {
     "sessionsPath": ".cursor/reports",
     "enabled": true,
     "comment": "Session reports сохраняются в .cursor/reports/session-*.json. Скрипт: node .cursor/scripts/metrics-report.js"
+  },
+  "presentations": {
+    "source": ".cursor/presentations",
+    "output": ".cursor/presentations/dist",
+    "comment": "Marp: .md и ассеты в source; pptx/pdf/html из marp CLI — в output (каталог в .gitignore через **/dist/). Канонический презентационный pipeline хранится внутри .cursor/presentations."
+  },
+  "polza": {
+    "apiKeyEnv": "POLZA_API_KEY",
+    "apiKeyEnvAlternate": "POLZA_AI_API_KEY",
+    "baseUrlEnv": "POLZA_BASE_URL",
+    "baseUrlDefault": "https://polza.ai/api/v1",
+    "modelEnv": "POLZA_MODEL",
+    "comment": "Ключ и модель Polza — только через переменные окружения / .env (имена выше), не коммитить секреты."
   }
 }
