@@ -10,7 +10,7 @@
 
 - **Конфиг / Docker (2026-04-27):** снова дефолт **8000**: проброс `${APP_PORT}:8000`, uvicorn в контейнере на `8000`; шаблон `APP_PORT` в `.env.example` — **8000**.
 
-- **Документация / бренд (2026-04-27):** ребрендинг материалов `app/docs/**`, `app/docs/marketing/**`, `app/README.MD`: имя продукта **Money Pulso** (ранее в текстах: *Paid Screener*). Репозиторий по-прежнему `trade-paid-screener`. Заголовок админки / OpenAPI: `Money Pulso` (`app/config/config.py`).
+- **Документация / бренд (2026-04-27):** ребрендинг материалов `app/docs/**`, `app/docs/marketing/**`, `app/README.MD`: имя продукта **Money Pulso** (ранее в текстах: *money_pulso*). Репозиторий по-прежнему `money_pulso`. Заголовок админки / OpenAPI: `Money Pulso` (`app/config/config.py`).
 
 - **Презентации / Marp (2026-04-14):** восстановлен каталог `presentations/`; дек `russia-economy-2022-2026.md` — **9** графиков (линия/столбцы/круговая) + **2** AI-фона; стиль **Metric Navy** из Stitch MCP (проект `1969498366242669871`); `DESIGN_TOKENS.md` и `stitch-russia-economy-deck-raw.tokens.json` обновлены; pptx: `presentations/dist/russia-economy-2022-2026.pptx`.
 

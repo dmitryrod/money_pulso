@@ -1,5 +1,5 @@
 {
-  "name": "trade-paid-screener",
+  "name": "money_pulso",
   "private": true,
   "description": "Root tooling (Marp CLI for presentations). App code lives in app/.",
   "scripts": {

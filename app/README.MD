@@ -1,6 +1,6 @@
 # Money Pulso
 
-Крипто-скринер (репозиторий: `trade-paid-screener`): админка (FastAPI + PostgreSQL), фоновый сбор данных через **unicex**, фильтры и уведомления в **Telegram**.
+Крипто-скринер (репозиторий: `money_pulso`): админка (FastAPI + PostgreSQL), фоновый сбор данных через **unicex**, фильтры и уведомления в **Telegram**.
 
 ## Быстрый старт (Docker)
 

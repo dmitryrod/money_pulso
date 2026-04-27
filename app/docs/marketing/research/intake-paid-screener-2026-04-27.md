@@ -5,7 +5,7 @@
 
 ## Продукт / MVP
 
-- **Название в доках:** Money Pulso (репозиторий: `trade-paid-screener`).
+- **Название в доках:** Money Pulso (репозиторий: `money_pulso`).
 - **Категория:** крипто-скринер, алерты в Telegram, админка FastAPI.
 - **Стадия:** зрелый OSS/self-hosted продукт с Scanner, аналитикой, PostgreSQL.
 
