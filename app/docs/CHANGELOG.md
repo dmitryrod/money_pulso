@@ -6,6 +6,14 @@
 
 ### Изменено
 
+- **Админка / доступность и SEO (2026-04-28):** полный шаблон **`app/admin/templates/layout.html`** (на базе `base.html`): регион **`main`** с `role="main"`, **`meta name="description"`**, **`meta robots` только при `ENVIRONMENT=production`** (на dev удобнее Lighthouse; глобаль `admin_robots_noindex` в `register_admin_routes`), `referrer`; подписи **`aria-label`** у переключателей меню, языка, часового пояса и меню пользователя; **alt** у логотипа; иконки с **`aria-hidden="true"`**; без вложенного `<h3>` в бренде (текст без логотипа — `span`). Локальные **`app/admin/templates/macros/views.html`**: `rel="noopener noreferrer"` для внешних ссылок, **aria** у dropdown в навигации. **`create_screener.html`**: заголовок страницы — **`h1.visually-hidden`** вместо пустого `<h1>`.
+
+- **Docker (2026-04-27):** в корне репозитория добавлен **`compose.yaml`** с `include: app/docker-compose.yaml`, чтобы `docker compose up --build` работал из каталога `money_pulso/`, а не только из `app/`.
+
+- **Админка / производительность (2026-04-28):** переопределён **`app/admin/templates/base.html`**: убран блокирующий **`@import` Inter с `rsms.me`** (при недоступности хоста — десятки секунд до первой отрисовки, NO_FCP). Шрифт — системный стек. См. [troubleshooting.md](troubleshooting.md).
+
+- **Админка / производительность (2026-04-28):** **«Логи»** — чтение только **хвоста** `app.log` (~512 KiB) в thread pool вместо целого файла + гигантского HTML. **«Система»** — все вызовы `psutil` в одном `asyncio.to_thread`. **API `/admin_api/signals`** — для `total`/`pages` при PostgreSQL сначала **`pg_stat_user_tables.n_live_tup`** (без полного `COUNT(*)` на больших таблицах), иначе точный COUNT.
+
 - **Админка / производительность (2026-04-27):** страница **«Система»** (`MetrCustomView`): вместо синхронного `psutil.cpu_percent(interval=1)` в async-рендере — `asyncio.to_thread(psutil.cpu_percent, 0.1)`, чтобы не блокировать event loop uvicorn на ~1 с и не тормозить остальные запросы при одном воркере. Подробнее: [troubleshooting.md](troubleshooting.md).
 
 - **Конфиг / Docker (2026-04-27):** снова дефолт **8000**: проброс `${APP_PORT}:8000`, uvicorn в контейнере на `8000`; шаблон `APP_PORT` в `.env.example` — **8000**.

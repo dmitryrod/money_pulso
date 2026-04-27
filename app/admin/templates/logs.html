@@ -97,6 +97,11 @@
 
 <div class="logs-toolbar">
     <h2>Логи приложения</h2>
+    {% if log_truncated %}
+    <span id="log-truncated-note" style="font-size:12px;color:#e17055;max-width:420px;">
+      Показан хвост файла (~последние 512&nbsp;КБ). Начало обрезано для скорости — см. ротацию логов или полный файл на диске.
+    </span>
+    {% endif %}
     <input id="log-search" type="text" placeholder="Фильтр по тексту…" oninput="filterLogs()" />
     <span id="match-count"></span>
     <button id="log-btn-bottom" onclick="scrollToBottom()">↓ В конец</button>

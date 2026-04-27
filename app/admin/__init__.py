@@ -15,7 +15,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import delete, desc, func, select, update
+from sqlalchemy import delete, desc, func, select, text, update
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -27,6 +27,7 @@ from starlette_admin.contrib.sqla import Admin
 
 from app.config import config
 from app.database import Database, SettingsORM, SignalORM
+from app.schemas import EnvironmentType
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener import scanner_runtime
 from app.screener.statistics_store import purge_statistics_data_files
@@ -81,6 +82,26 @@ def signal_orm_row_to_dict(row: SignalORM) -> dict:
         "card_snapshot": card_snapshot,
         "render_as_scanner": has_snap,
     }
+
+
+async def _signals_total_for_pagination(db: Database) -> int:
+    """Число строк signals для UI пагинации: сначала быстрая оценка из pg_stat (PostgreSQL)."""
+    try:
+        res = await db.session.execute(
+            text(
+                "SELECT n_live_tup FROM pg_stat_user_tables "
+                "WHERE relname = 'signals' AND schemaname = current_schema()"
+            )
+        )
+        row = res.first()
+        if row and row[0] is not None and int(row[0]) > 0:
+            return int(row[0])
+    except Exception:
+        pass
+    total_scalar = await db.session.scalar(
+        select(func.count()).select_from(SignalORM)
+    )
+    return int(total_scalar or 0)
 
 
 def register_admin_routes(app: FastAPI) -> None:
@@ -236,6 +257,10 @@ def register_admin_routes(app: FastAPI) -> None:
         i18n_config=I18nConfig(default_locale="ru"),
         middlewares=[Middleware(SessionMiddleware, secret_key=config.cypher_key)],
     )
+    # В production — noindex в шаблоне; в development Lighthouse не штрафует за «blocked from indexing».
+    admin.templates.env.globals["admin_robots_noindex"] = (
+        config.environment == EnvironmentType.PRODUCTION
+    )
 
     # ──────────────────────────────────────────────────────────────────────────
     # Signals API
@@ -322,10 +347,7 @@ def register_admin_routes(app: FastAPI) -> None:
 
         # source == "db"
         async with Database.session_context() as db:
-            total_scalar = await db.session.scalar(
-                select(func.count()).select_from(SignalORM)
-            )
-            total = int(total_scalar or 0)
+            total = await _signals_total_for_pagination(db)
             rows = (
                 await db.session.execute(
                     select(SignalORM)

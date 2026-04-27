@@ -4,7 +4,7 @@
 
 ## Текущее состояние
 
-Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, Tabler и Jinja-шаблонах. Общий shell задаётся в `app/admin/templates/layout.html`, который расширяет `@starlette-admin/layout.html` и добавляет collapsible sidebar toggle для ширины `>=992px`.
+Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, Tabler и Jinja-шаблонах. Общий shell задаётся в **`app/admin/templates/layout.html`** (полная копия структуры starlette-admin с `extends base.html`): collapsible sidebar toggle для ширины `>=992px`, регион **`main`**, мета-теги description/robots, подписи **aria** для кнопок/меню, **alt** у логотипа. Навигационные макросы — **`app/admin/templates/macros/views.html`** (переопределяют пакет через `ChoiceLoader`).
 
 Основные маршруты:
 

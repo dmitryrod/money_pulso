@@ -12,7 +12,6 @@ import os
 from datetime import datetime
 from typing import Any
 
-import aiofiles
 import psutil
 from starlette.requests import Request
 from starlette.responses import Response
@@ -31,6 +30,45 @@ from unicex import Exchange, MarketType
 
 from app.schemas import TextTemplateType
 from app.config import logger, config
+
+# Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.
+_LOG_TAIL_MAX_BYTES = 512 * 1024
+
+
+def _read_app_log_tail(log_path: str, max_bytes: int = _LOG_TAIL_MAX_BYTES) -> tuple[str, bool]:
+    """Читает конец лог-файла. Возвращает (текст, обрезан ли начало файла)."""
+    if not os.path.isfile(log_path):
+        return "", False
+    try:
+        size = os.path.getsize(log_path)
+    except OSError:
+        return "", False
+    if size <= max_bytes:
+        try:
+            with open(log_path, encoding="utf-8", errors="replace") as fh:
+                return fh.read(), False
+        except OSError:
+            return "", False
+    try:
+        with open(log_path, "rb") as fh:
+            fh.seek(max(0, size - max_bytes))
+            chunk = fh.read()
+    except OSError:
+        return "", False
+    text = chunk.decode("utf-8", errors="replace")
+    first_nl = text.find("\n")
+    if first_nl != -1:
+        text = text[first_nl + 1 :]
+    return text, True
+
+
+def _metr_psutil_snapshot() -> tuple[Any, Any, float, str]:
+    """Снимок метрик в одном sync-вызове (удобно грузить в thread pool)."""
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+    cpu_percent = psutil.cpu_percent(0.1)
+    boot_time = datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
+    return memory, disk, cpu_percent, boot_time
 
 
 class SettingsModelView(ModelView):
@@ -393,12 +431,7 @@ class MetrCustomView(CustomView):
 
     async def render(self, request: Request, templates: Jinja2Templates) -> Response:  # noqa: D401
         """Возвращает шаблон с загрузкой CPU, RAM, диска и времени аптайма."""
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
-        # interval=1 в async-хендлере блокировал весь event loop uvicorn (~1 с на запрос).
-        # Короткий опрос в thread pool: не стопорит остальные запросы, типичная задержка ~0.1 с.
-        cpu_percent = await asyncio.to_thread(psutil.cpu_percent, 0.1)
-        boot_time = datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
+        memory, disk, cpu_percent, boot_time = await asyncio.to_thread(_metr_psutil_snapshot)
 
         context: dict[str, Any] = {
             "request": request,
@@ -423,14 +456,14 @@ class LogsViewerView(CustomView):
         logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
         log_file = os.path.join(logs_dir, "app.log")
 
-        content = ""
-        if os.path.exists(log_file):
-            async with aiofiles.open(log_file, "r", encoding="utf-8") as f:
-                content = await f.read()
+        content, log_truncated = "", False
+        if os.path.isfile(log_file):
+            content, log_truncated = await asyncio.to_thread(_read_app_log_tail, log_file)
 
         context: dict[str, Any] = {
             "request": request,
             "log_content": content,
+            "log_truncated": log_truncated,
         }
 
         return templates.TemplateResponse(request, "logs.html", context)
