@@ -1,16 +1,19 @@
 # Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+.cursor/
 *backups/*
+backups/
 *.pyc
 *.key
 *.pem
 __pycache__/
+app/.pytest_cache/
 *.pytest_cache/*
 *cache/
 *.code-workspace*
-*app/logs*
+app/logs/
 *.log
-app/logs/signals_log.txt
-
+app/logs/signals_log.
+app/statistics-data/
 
 # Node
 **/node_modules/
