@@ -45,12 +45,14 @@ from .view import (
     MetrCustomView,
     SettingsModelView,
     SignalsView,
+    UiSettingsView,
 )
 
 _SIGNALS_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "signals_log.txt"
 _APP_DIR = Path(__file__).resolve().parents[1]
 # Абсолютный путь: относительный "app/admin/templates" ломается при cwd внутри app/ (TemplateNotFound).
 _ADMIN_TEMPLATES_DIR = str(Path(__file__).resolve().parent / "templates")
+_TIMEZONE_UI_JS_PATH = Path(__file__).resolve().parent / "timezone_ui.js"
 
 
 def signal_orm_row_to_dict(row: SignalORM) -> dict:
@@ -248,6 +250,12 @@ def register_admin_routes(app: FastAPI) -> None:
 })();
 """
         return Response(content=js, media_type="application/javascript; charset=utf-8")
+
+    @app.get("/admin_api/ui/timezone.js")
+    async def _timezone_ui_js() -> Response:
+        """Общий модуль: форматирование времени в выбранной IANA-зоне (localStorage)."""
+        body = _TIMEZONE_UI_JS_PATH.read_text(encoding="utf-8")
+        return Response(content=body, media_type="application/javascript; charset=utf-8")
 
     @app.get("/admin_api/monitoring/metrics")
     async def _get_monitoring_metrics() -> JSONResponse:
@@ -728,5 +736,8 @@ def register_admin_routes(app: FastAPI) -> None:
     )
     admin.add_view(MetrCustomView(label="Система", path="/monitoring", icon="fa fa-heartbeat"))
     admin.add_view(LogsViewerView(label="Логи", path="/logs", icon="fa fa-book"))
+    admin.add_view(
+        UiSettingsView(label="Настройки", path="/settings", icon="fa fa-sliders-h")
+    )
 
     admin.mount_to(app)

@@ -1253,6 +1253,9 @@
 
   function fmt_time(iso) {
     if (!iso) return '';
+    if (window.MpAdminTime && typeof window.MpAdminTime.formatTime === 'function') {
+      return window.MpAdminTime.formatTime(iso);
+    }
     try {
       const d = new Date(iso);
       const pad = n => String(n).padStart(2, '0');
@@ -1262,6 +1265,9 @@
 
   function fmt_date(iso) {
     if (!iso) return '';
+    if (window.MpAdminTime && typeof window.MpAdminTime.formatDateTime === 'function') {
+      return window.MpAdminTime.formatDateTime(iso);
+    }
     try {
       const d = new Date(iso);
       const pad = n => String(n).padStart(2, '0');
@@ -2023,6 +2029,13 @@
   window.addEventListener('scroll', () => {
     updateUnreadBtn();
   }, { passive: true });
+
+  window.addEventListener(
+    window.MpAdminTime && window.MpAdminTime.EVENT_NAME ? window.MpAdminTime.EVENT_NAME : 'mp-admin-timezone-change',
+    function () {
+      if (typeof loadPage === 'function') loadPage(page);
+    }
+  );
 
   /* ── Старт ── */
   loadPage(1);

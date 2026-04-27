@@ -113,8 +113,9 @@
       <div class="stat-toolbar">
         <label title="Все тики (без агрегации)"><input type="checkbox" id="stat-all-ticks" /> Все тики</label>
         <label title="Нормализовать score (0–1 по окну)"><input type="checkbox" id="stat-normalize" /> Score 0–1</label>
+        <label title="Перцентили 1%…99% по min/max за минуту, чтобы редкие всплески не сжимали столбцы по вертикали"><input type="checkbox" id="stat-price-clip" checked /> Срез выбросов (цена)</label>
       </div>
-      <span class="stat-hint">Линии: 1 точка/мин (последний sample). Столбцы цены: min/max по всем sample за эту UTC‑минуту.</span>
+      <span class="stat-hint">Линии: 1 точка/мин (последний sample). Столбцы цены: min/max по всем sample за минуту бакета в UTC; метки оси и события — в часовом поясе из «Настройки».</span>
     </div>
   </div>
   <div class="stat-charts stat-charts-fullbleed">
@@ -147,10 +148,16 @@
   const eventsUl = document.getElementById('stat-events');
   const normChk = document.getElementById('stat-normalize');
   const allTicksChk = document.getElementById('stat-all-ticks');
+  const priceClipChk = document.getElementById('stat-price-clip');
+
+  function isPriceClipOn() {
+    return !!(priceClipChk && priceClipChk.checked);
+  }
 
   let chart;
   let chartResizeObserver = null;
   let lastSamples = [];
+  let lastEvents = [];
 
   /** Одна точка на минуту UTC: в каждой минуте берём последний sample (как «закрытие» интервала). */
   function aggregateSamplesByMinute(samples) {
@@ -188,6 +195,9 @@
   }
 
   function formatAxisLabel(ts, withSeconds) {
+    if (window.MpAdminTime && typeof window.MpAdminTime.formatAxisLabel === 'function') {
+      return window.MpAdminTime.formatAxisLabel(ts, withSeconds);
+    }
     if (!ts) return '';
     const t = Date.parse(ts);
     if (!Number.isFinite(t)) return String(ts);
@@ -241,6 +251,64 @@
     const r = rangeByMinute.get(mk);
     if (!r) return null;
     return [r.low, r.high];
+  }
+
+  /** Линейная квантиль в отсортированном массиве, q ∈ [0, 1]. */
+  function quantileLinear(sorted, q) {
+    const n = sorted.length;
+    if (n === 0) return NaN;
+    if (n === 1) return sorted[0];
+    const pos = (n - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    if (lo === hi) return sorted[lo];
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+
+  /**
+   * Границы оси цены для floating bars [low, high]. Иначе авто-диапазон Chart.js
+   * по глобальным min/max тянет ось, и минутные столбцы выглядят плоскими.
+   * «Срез»: p1 по всем low и p99 по всем high (устойчиво к барам-выбросам).
+   * Лог-ось для абсолютного USDT здесь не используем — портит плоский ряд; отдельный мини-чарт цены — отдельная фича.
+   */
+  function computeYPriceAxisFromBars(priceFloatingBars, clipOutliers) {
+    const lows = [];
+    const highs = [];
+    for (let i = 0; i < priceFloatingBars.length; i++) {
+      const b = priceFloatingBars[i];
+      if (!Array.isArray(b) || b.length < 2) continue;
+      let lo = Number(b[0]);
+      let hi = Number(b[1]);
+      if (!Number.isFinite(lo) || !Number.isFinite(hi)) continue;
+      if (lo > hi) {
+        const t = lo;
+        lo = hi;
+        hi = t;
+      }
+      lows.push(lo);
+      highs.push(hi);
+    }
+    if (lows.length === 0) return null;
+    const sortedL = [...lows].sort((a, b) => a - b);
+    const sortedH = [...highs].sort((a, b) => a - b);
+    let minV;
+    let maxV;
+    if (clipOutliers && sortedL.length >= 3) {
+      minV = quantileLinear(sortedL, 0.01);
+      maxV = quantileLinear(sortedH, 0.99);
+    } else {
+      minV = sortedL[0];
+      maxV = sortedH[sortedH.length - 1];
+    }
+    if (minV > maxV) {
+      minV = Math.min(...lows);
+      maxV = Math.max(...highs);
+    }
+    const span = maxV - minV;
+    const mid = (minV + maxV) * 0.5;
+    const relPad = Math.abs(mid) * 1e-4;
+    const pad = span > 0 ? Math.max(span * 0.05, relPad) : Math.max(relPad, 1e-12);
+    return { min: minV - pad, max: maxV + pad };
   }
 
   function buildDatasets(series, normalize, withSeconds, allSamples) {
@@ -338,6 +406,7 @@
           order: 10,
         },
       ],
+      priceBars: priceFloatingBars,
     };
   }
 
@@ -346,6 +415,7 @@
     const ctx = document.getElementById('chart-main');
     const wrap = document.querySelector('.stat-chart-canvas-wrap');
     const ds = buildDatasets(series, normalize, useAllTicks, samples);
+    const yPriceBounds = computeYPriceAxisFromBars(ds.priceBars, isPriceClipOn());
     if (chartResizeObserver) {
       chartResizeObserver.disconnect();
       chartResizeObserver = null;
@@ -386,31 +456,39 @@
             },
           },
         },
-        scales: {
-          x: {
-            ticks: {
-              maxRotation: 45,
-              minRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: useAllTicks ? 12 : 24,
-            },
-          },
-          y: {
-            position: 'left',
-            title: { display: true, text: 'score' },
-            grid: { drawOnChartArea: true },
-          },
-          y1: {
-            position: 'right',
-            title: { display: true, text: 'фильтры (текущие %)' },
-            grid: { drawOnChartArea: false },
-          },
-          yPrice: {
+        scales: (function () {
+          const yPriceScale = {
             position: 'right',
             title: { display: true, text: 'цена (USDT)' },
             grid: { drawOnChartArea: false },
-          },
-        },
+            ticks: { maxTicksLimit: 10 },
+          };
+          if (yPriceBounds) {
+            yPriceScale.min = yPriceBounds.min;
+            yPriceScale.max = yPriceBounds.max;
+          }
+          return {
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: useAllTicks ? 12 : 24,
+              },
+            },
+            y: {
+              position: 'left',
+              title: { display: true, text: 'score' },
+              grid: { drawOnChartArea: true },
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: 'фильтры (текущие %)' },
+              grid: { drawOnChartArea: false },
+            },
+            yPrice: yPriceScale,
+          };
+        })(),
       },
     });
     if (wrap && typeof ResizeObserver !== 'undefined') {
@@ -430,14 +508,27 @@
   }
 
   function renderEvents(events) {
+    lastEvents = events;
     eventsUl.innerHTML = '';
     for (const e of events) {
       const li = document.createElement('li');
       const ev = e.event || e.kind || '—';
-      li.textContent = (e.ts || '') + ' — ' + ev;
+      const tsDisp = window.MpAdminTime && typeof window.MpAdminTime.formatDateTime === 'function'
+        ? window.MpAdminTime.formatDateTime(e.ts || '')
+        : (e.ts || '');
+      li.textContent = tsDisp + ' — ' + ev;
       eventsUl.appendChild(li);
     }
   }
+
+  window.addEventListener(
+    window.MpAdminTime && window.MpAdminTime.EVENT_NAME ? window.MpAdminTime.EVENT_NAME : 'mp-admin-timezone-change',
+    function () {
+      if (!lastSamples.length) return;
+      redrawChart();
+      renderEvents(lastEvents);
+    }
+  );
 
   fetch('/admin_api/analytics/samples?tracking_id=' + encodeURIComponent(trackingId), { credentials: 'same-origin' })
     .then((r) => {
@@ -455,6 +546,7 @@
       renderChart(samples, normChk.checked, !!(allTicksChk && allTicksChk.checked));
       normChk.onchange = () => redrawChart();
       if (allTicksChk) allTicksChk.onchange = () => redrawChart();
+      if (priceClipChk) priceClipChk.onchange = () => redrawChart();
     })
     .catch((e) => {
       errEl.style.display = '';

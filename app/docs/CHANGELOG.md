@@ -6,6 +6,10 @@
 
 ### Изменено
 
+- **Админка / Настройки (2026-04-28):** страница **`/admin/settings`** — выбор **IANA** часового пояса (список из `Intl.supportedValuesOf('timeZone')` при поддержке браузером, иначе короткий fallback); подписи зон с UTC±; применение в **`localStorage`** только по кнопке **«Сохранить»** (активна при отличии от сохранённого; до сохранения глобальная зона не меняется). Общий скрипт **`/admin_api/ui/timezone.js`** (`MpAdminTime`) в **`layout.html`** `<head>`; время на **Аналитика**, **Сигналы**, stat — в выбранной зоне; API/БД — UTC.
+
+- **Админка / Analytics Stat (2026-04-28):** **`app/admin/templates/analytics_stat.html`** — ось **«цена (USDT)»** (`yPrice`): явные **min/max** от массива min/max за минуту (low–high столбцы), **padding** ~5% полосы и мин. относительный зазор ~0.01% к середине диапазона; опциональный чекбокс **«Срез выбросов (цена)»** — перцентили **p1** / **p99** по low/high, чтобы единичные всплески не сжимали столбцы. Design: `app/docs/design/Page_Stst/design_Page_Stat.md`.
+
 - **Админка / Analytics Stat (2026-04-27):** страница **`/admin/analytics/stat-…`** (`app/admin/templates/analytics_stat.html`): контейнер графика и «События» (`.stat-charts-fullbleed`) — **ширина 100% от колонки main**, без `100vw` и отрицательных margin к viewport. Иначе при **раскрытом** левом сайдбаре блок съезжал влево, перекрывался сайдбаром и оставлял пустоту справа. Design-spec: `app/docs/design/Page_Stst/design_Page_Stat.md`.
 
 - **Админка / «Система» (2026-04-27):** `/admin/monitoring` (`app/admin/view.py`, `metr.html`) — тёмные карточки в сетке **2 колонки** (мобильно — 1), мини-графики (canvas) CPU, RAM, диск и **размер каталога `app/`**; опрос `GET /admin_api/monitoring/metrics` раз в 1 с с той же политикой доступа, что и прочие `admin_api`. История в `app/admin/monitoring_metrics.py`: кольцо **~5 мин** для процентов, **1440** поминутных точек для размера каталога (полный `walk` — не чаще **60 с**; опционально `MONITORING_APP_DIR` для другого пути). Эфемерно до рестарта воркера.

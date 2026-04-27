@@ -158,7 +158,11 @@
     for (const r of rows) {
       const tr = document.createElement('tr');
       const href = statPath(r.symbol, r.tracking_id);
-      const trig = r.triggered_at ? r.triggered_at.replace('T', ' ').replace('Z', '') : '—';
+      const trig = r.triggered_at
+        ? (window.MpAdminTime && typeof window.MpAdminTime.formatTriggerCompact === 'function'
+          ? window.MpAdminTime.formatTriggerCompact(r.triggered_at)
+          : r.triggered_at.replace('T', ' ').replace('Z', ''))
+        : '—';
       tr.innerHTML = `
         <td><strong>${esc(r.symbol)}</strong></td>
         <td>${esc(r.screener_name || '')}</td>
@@ -195,6 +199,13 @@
   }
 
   filterEl.addEventListener('input', applyFilter);
+
+  window.addEventListener(
+    window.MpAdminTime && window.MpAdminTime.EVENT_NAME ? window.MpAdminTime.EVENT_NAME : 'mp-admin-timezone-change',
+    function () {
+      render(items);
+    }
+  );
 
   loadSessions();
 })();

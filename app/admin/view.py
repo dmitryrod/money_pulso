@@ -5,6 +5,7 @@ __all__ = [
     "MetrCustomView",
     "LogsViewerView",
     "AnalyticsCatalogView",
+    "UiSettingsView",
 ]
 
 import asyncio
@@ -470,5 +471,16 @@ class AnalyticsCatalogView(CustomView):
         return templates.TemplateResponse(
             request,
             "analytics.html",
+            {"request": request},
+        )
+
+
+class UiSettingsView(CustomView):
+    """Настройки отображения времени в админке (IANA, только клиент)."""
+
+    async def render(self, request: Request, templates: Jinja2Templates) -> Response:
+        return templates.TemplateResponse(
+            request,
+            "ui_settings.html",
             {"request": request},
         )

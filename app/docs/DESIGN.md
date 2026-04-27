@@ -17,6 +17,9 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 | Analytics Stat | `/admin/analytics/stat-<symbol>-<tracking_id>` |
 | System | `/admin/monitoring` |
 | Logs | `/admin/logs` |
+| Настройки UI | `/admin/settings` |
+
+Отображение времени на графиках, в сигналах и в таблице аналитики — в выбранной пользователем **IANA-зоне** (`localStorage` ключ `mp_admin_timezone`, модуль **`/admin_api/ui/timezone.js`**, глобальный `window.MpAdminTime`). Сервер и БД остаются в UTC.
 
 Основные API:
 
@@ -24,6 +27,7 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 |-----|------------|
 | `/admin_api/screeners/global-debug` | массовое чтение/переключение debug mode |
 | `/admin_api/screeners/global-debug.js` | JS для global debug switch |
+| `/admin_api/ui/timezone.js` | общий JS: часовой пояс интерфейса (IANA), форматирование меток времени |
 | `/admin_api/signals` | список/снимок сигналов |
 | `/admin_api/signals/stream` | stream обновлений сигналов |
 | `/admin_api/analytics/sessions` | analytics sessions |
