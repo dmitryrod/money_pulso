@@ -37,13 +37,13 @@
   .stat-page h1.stat-page-title {
     font-size: 1rem;
     margin: 0;
-    color: #e0e6f0;
+    color: var(--mp-c-text, #e0e6f0);
     flex: 0 1 auto;
     min-width: 0;
   }
   .stat-meta {
     font-size: 12px;
-    color: #6677aa;
+    color: var(--mp-c-hint, #6677aa);
     margin: 0;
     word-break: break-all;
     flex: 1 1 200px;
@@ -60,7 +60,8 @@
   }
   .stat-charts { display: flex; flex-direction: column; gap: 0; width: 100%; min-width: 0; }
   .stat-chart-box {
-    background: #1a1f2e; border: 1px solid #2d3550; border-radius: 10px; padding: 12px;
+    background: var(--mp-c-surface, #1a1f2e); border: 1px solid var(--mp-c-border, #2d3550);
+    border-radius: 10px; padding: 12px;
     min-height: 0;
     min-width: 0;
   }
@@ -87,8 +88,8 @@
   .stat-chart-canvas-wrap canvas {
     max-height: 500px !important;
   }
-  .stat-chart-box h2 { font-size: 13px; margin: 0 0 8px; color: #8899bb; font-weight: 600; }
-  .stat-events { font-size: 12px; color: #9aa8c4; max-height: 200px; overflow: auto; }
+  .stat-chart-box h2 { font-size: 13px; margin: 0 0 8px; color: var(--mp-c-text-muted, #8899bb); font-weight: 600; }
+  .stat-events { font-size: 12px; color: var(--mp-events-text, #9aa8c4); max-height: 200px; overflow: auto; }
   .stat-events li { margin-bottom: 6px; }
   .stat-toolbar {
     margin: 0;
@@ -98,9 +99,9 @@
     flex-wrap: nowrap;
     flex: 0 1 auto;
   }
-  .stat-toolbar label { font-size: 12px; color: #8899bb; display: flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
-  .stat-hint { font-size: 11px; color: #6677aa; white-space: nowrap; flex: 0 1 auto; min-width: 0; }
-  .stat-err { color: #e57373; margin-top: 8px; }
+  .stat-toolbar label { font-size: 12px; color: var(--mp-c-text-muted, #8899bb); display: flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
+  .stat-hint { font-size: 11px; color: var(--mp-c-hint, #6677aa); white-space: nowrap; flex: 0 1 auto; min-width: 0; }
+  .stat-err { color: var(--mp-err, #e57373); margin-top: 8px; }
 </style>
 {% endblock %}
 
@@ -158,6 +159,15 @@
   let chartResizeObserver = null;
   let lastSamples = [];
   let lastEvents = [];
+
+  function chartTheme() {
+    const st = getComputedStyle(document.documentElement);
+    return {
+      tick: (st.getPropertyValue('--mp-chart-tick').trim() || '#94a3b8'),
+      grid: (st.getPropertyValue('--mp-chart-grid').trim() || 'rgba(148, 163, 184, 0.22)'),
+      body: (st.getPropertyValue('--bs-body-color').trim() || '#e2e8f0'),
+    };
+  }
 
   /** Одна точка на минуту UTC: в каждой минуте берём последний sample (как «закрытие» интервала). */
   function aggregateSamplesByMinute(samples) {
@@ -424,6 +434,7 @@
       chart.destroy();
       chart = null;
     }
+    const th = chartTheme();
     chart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -439,7 +450,7 @@
           legend: {
             display: true,
             position: 'bottom',
-            labels: { boxWidth: 12, font: { size: 11 }, padding: 8 },
+            labels: { boxWidth: 12, font: { size: 11 }, padding: 8, color: th.body },
           },
           tooltip: {
             callbacks: {
@@ -474,19 +485,26 @@
                 minRotation: 0,
                 autoSkip: true,
                 maxTicksLimit: useAllTicks ? 12 : 24,
+                color: th.tick,
               },
+              grid: { color: th.grid },
             },
             y: {
               position: 'left',
-              title: { display: true, text: 'score' },
-              grid: { drawOnChartArea: true },
+              title: { display: true, text: 'score', color: th.tick },
+              ticks: { color: th.tick },
+              grid: { drawOnChartArea: true, color: th.grid },
             },
             y1: {
               position: 'right',
-              title: { display: true, text: 'фильтры (текущие %)' },
+              title: { display: true, text: 'фильтры (текущие %)', color: th.tick },
+              ticks: { color: th.tick },
               grid: { drawOnChartArea: false },
             },
-            yPrice: yPriceScale,
+            yPrice: Object.assign({}, yPriceScale, {
+              ticks: Object.assign({ color: th.tick }, yPriceScale.ticks || {}),
+              title: Object.assign({ display: true, color: th.tick }, yPriceScale.title || {}),
+            }),
           };
         })(),
       },
@@ -529,6 +547,11 @@
       renderEvents(lastEvents);
     }
   );
+
+  window.addEventListener('mp-admin-theme-change', function () {
+    if (!lastSamples.length) return;
+    redrawChart();
+  });
 
   fetch('/admin_api/analytics/samples?tracking_id=' + encodeURIComponent(trackingId), { credentials: 'same-origin' })
     .then((r) => {

@@ -47,6 +47,16 @@
       background: rgba(51, 65, 85, 0.98);
       color: #f8fafc;
     }
+    html[data-bs-theme="light"] .admin-sidebar-edge-toggle {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.96);
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    }
+    html[data-bs-theme="light"] .admin-sidebar-edge-toggle:hover {
+      background: #f1f5f9;
+      color: #020617;
+    }
     .admin-sidebar-edge-toggle:focus-visible {
       outline: 2px solid rgba(96, 165, 250, 0.55);
       outline-offset: 2px;
@@ -109,7 +119,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     line-height: 1.2;
-    color: #e2e8f0;
+    color: var(--bs-body-color, #e2e8f0);
   }
   @media (min-width: 992px) {
     .page > header.navbar:not(.navbar-vertical) .navbar-toggler {
@@ -139,6 +149,12 @@
     /* fallback без color-mix (старые движки) */
     --mp-active-route-bg: rgba(66, 153, 225, 0.18);
     --mp-active-route-bg: color-mix(in srgb, var(--tblr-primary, #4299e1) 20%, transparent);
+  }
+  html[data-bs-theme="light"] .page {
+    --mp-focus-ring: var(--tblr-primary, #2563eb);
+    --mp-hover-surface: rgba(15, 23, 42, 0.06);
+    --mp-active-surface: rgba(15, 23, 42, 0.1);
+    --mp-active-route-bg: color-mix(in srgb, var(--tblr-primary, #2563eb) 18%, transparent);
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -213,14 +229,14 @@
 
   .admin-topbar-wordmark:hover {
     background-color: var(--mp-hover-surface);
-    color: #f8fafc;
+    color: var(--mp-c-text-bright, #f8fafc);
   }
 
   .admin-topbar-wordmark:focus-visible {
     outline: 2px solid var(--mp-focus-ring);
     outline-offset: 2px;
     background-color: var(--mp-hover-surface);
-    color: #f8fafc;
+    color: var(--mp-c-text-bright, #f8fafc);
   }
 
   .admin-topbar-wordmark:active {
@@ -258,6 +274,9 @@
     background-color: var(--mp-hover-surface);
     border-color: rgba(255, 255, 255, 0.14);
   }
+  html[data-bs-theme="light"] .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:hover:not(:disabled) {
+    border-color: rgba(15, 23, 42, 0.14);
+  }
 
   .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:active:not(:disabled) {
     background-color: var(--mp-active-surface);
@@ -293,6 +312,29 @@
     border-color: rgba(255, 255, 255, 0.14);
   }
 
+  /*
+   * Light: вторичная кнопка в карточке (DataTables «Экспорт» и т.д.) — на hover фон светлеет,
+   * а глифы остаются светлыми от BS → низкий контраст. Явный тёмный текст + чуть плотнее фон.
+   */
+  html[data-bs-theme="light"] .page .card .btn-secondary:not(:disabled):hover,
+  html[data-bs-theme="light"] .page .card .dt-buttons .btn-secondary:not(:disabled):hover {
+    background-color: rgba(15, 23, 42, 0.09);
+    border-color: rgba(15, 23, 42, 0.2);
+    color: var(--bs-body-color, #0f172a);
+  }
+
+  html[data-bs-theme="light"] .page .card .btn-secondary:not(:disabled):focus,
+  html[data-bs-theme="light"] .page .card .dt-buttons .btn-secondary:not(:disabled):focus {
+    color: var(--bs-body-color, #0f172a);
+  }
+
+  html[data-bs-theme="light"] .page .card .btn-secondary:not(:disabled):active,
+  html[data-bs-theme="light"] .page .card .dt-buttons .btn-secondary:not(:disabled):active {
+    background-color: rgba(15, 23, 42, 0.14);
+    border-color: rgba(15, 23, 42, 0.22);
+    color: var(--bs-body-color, #0f172a);
+  }
+
   .page .card .btn-secondary:not(:disabled):active {
     background-color: var(--mp-active-surface);
   }
@@ -324,6 +366,78 @@
     outline: 2px solid var(--mp-focus-ring);
     outline-offset: 2px;
     box-shadow: none;
+  }
+
+  /*
+   * Переключатель темы в шапке: BS .form-switch резервирует padding-left + float/margin у input под текст
+   * справа от иконки — без текста остаётся пустая зона; hover-фон на label давал серый «хвост».
+   * Сужаем label до габаритов трека, hover только на input (:focus-visible на input не трогаем).
+   */
+  .page > header.navbar:not(.navbar-vertical) label.form-check.form-switch:has(#mp-admin-theme-switch) {
+    cursor: pointer;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    min-height: 0 !important;
+    width: fit-content;
+    max-width: fit-content;
+    align-items: center;
+    display: inline-flex;
+    vertical-align: middle;
+  }
+
+  /* Трек/knob — через BS-переменные и обводку; без своего background-color (ломает SVG form-switch). */
+  .page > header.navbar.navbar-dark:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input {
+    float: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    --bs-form-switch-bg: rgba(148, 163, 184, 0.5);
+    width: 2.35em;
+    height: 1.2em;
+    margin-top: 0;
+    cursor: pointer;
+    border: 1px solid rgba(248, 250, 252, 0.42);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  .page > header.navbar.navbar-dark:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:hover {
+    --bs-form-switch-bg: rgba(203, 213, 225, 0.55);
+    border-color: rgba(248, 250, 252, 0.58);
+  }
+
+  .page > header.navbar.navbar-dark:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:checked {
+    --bs-form-switch-bg: var(--tblr-primary, #4299e1);
+    border-color: rgba(186, 230, 253, 0.65);
+  }
+
+  .page > header.navbar.navbar-dark:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:checked:hover {
+    border-color: rgba(224, 242, 254, 0.75);
+  }
+
+  .page > header.navbar.navbar-light:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input {
+    float: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    --bs-form-switch-bg: rgba(100, 116, 139, 0.38);
+    width: 2.35em;
+    height: 1.2em;
+    margin-top: 0;
+    cursor: pointer;
+    border: 1px solid rgba(15, 23, 42, 0.28);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .page > header.navbar.navbar-light:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:hover {
+    --bs-form-switch-bg: rgba(71, 85, 105, 0.42);
+    border-color: rgba(15, 23, 42, 0.42);
+  }
+
+  .page > header.navbar.navbar-light:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:checked {
+    --bs-form-switch-bg: var(--tblr-primary, #2563eb);
+    border-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 55%, #0f172a);
+  }
+
+  .page > header.navbar.navbar-light:not(.navbar-vertical) #mp-admin-theme-switch.form-check-input:checked:hover {
+    border-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 70%, #0f172a);
   }
 
   /* ---- Выпадающие пункты ---- */
@@ -389,38 +503,49 @@
   }
 
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item {
-    color: var(--bs-body-color, #e2e8f0) !important;
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button) {
+    color: #e2e8f0 !important;
+    background-color: transparent !important;
+    border: none !important;
   }
 
+  /* Hover: без «вспышки» vendor (белый фон + светлый текст) — спокойный сланцевый подсвет */
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:hover,
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:focus,
   html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:hover,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus {
-    background-color: rgba(255, 255, 255, 0.075) !important;
-    color: var(--bs-body-color, #f8fafc) !important;
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):hover,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):focus {
+    background-color: color-mix(in srgb, #334155 55%, #1e293b) !important;
+    color: #f8fafc !important;
   }
 
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item.active,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.active {
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.active,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button).active {
     background-color: rgba(66, 153, 225, 0.28) !important;
     background-color: color-mix(in srgb, var(--tblr-primary, #4299e1) 32%, transparent) !important;
     color: #f8fafc !important;
   }
 
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:active,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:active {
-    background-color: rgba(255, 255, 255, 0.12) !important;
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:active,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):active {
+    background-color: color-mix(in srgb, #475569 40%, #1e293b) !important;
+    color: #f8fafc !important;
   }
 
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item:focus-visible,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus-visible {
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item:focus-visible,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):focus-visible {
     outline: 2px solid var(--tblr-primary, #4299e1);
     outline-offset: -2px;
   }
 
   html[data-bs-theme="dark"] div.dt-button-collection .dropdown-item.disabled,
-  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.disabled {
+  html[data-bs-theme="dark"] div.dt-button-collection a.dt-button.dropdown-item.disabled,
+  html[data-bs-theme="dark"] div.dt-button-collection button.dt-button.disabled {
     opacity: 0.45 !important;
     color: #94a3b8 !important;
   }
@@ -469,6 +594,112 @@
     color: var(--bs-body-color, #e2e8f0) !important;
   }
 
+  /* Light: те же коллекции DataTables, что и dark (см. блок выше) */
+  html[data-bs-theme="light"] div.dt-button-collection.dropdown-menu,
+  html[data-bs-theme="light"] div.dt-button-collection {
+    --bs-dropdown-bg: #ffffff;
+    --bs-dropdown-color: var(--bs-body-color, #0f172a);
+    background-color: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 0.5rem 1.25rem rgba(15, 23, 42, 0.12) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection.fixed {
+    background-color: #ffffff !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dt-button-collection-title,
+  html[data-bs-theme="light"] div.dt-button-collection div.dt-button-collection-title {
+    background: transparent !important;
+    color: var(--bs-body-color, #0f172a) !important;
+    border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection span.dt-button-spacer.bar,
+  html[data-bs-theme="light"] div.dt-button-collection span.dt-button-spacer:empty {
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-btn-split-drop-button,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-btn-split-drop-button:focus {
+    background-color: #f1f5f9 !important;
+    color: var(--bs-body-color, #0f172a) !important;
+    border: none !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-btn-split-drop-button:active {
+    background-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 22%, #f1f5f9) !important;
+    color: #0f172a !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button) {
+    color: #0f172a !important;
+    background-color: transparent !important;
+    border: none !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item:hover,
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item:focus,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item:hover,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item:focus,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):hover,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):focus {
+    background-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 14%, #e2e8f0) !important;
+    color: #020617 !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item.active,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item.active,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button).active {
+    background-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 22%, transparent) !important;
+    color: #0f172a !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item:active,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item:active,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):active {
+    background-color: color-mix(in srgb, #64748b 18%, #e2e8f0) !important;
+    color: #020617 !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item:focus-visible,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item:focus-visible,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button:not(.dt-btn-split-drop-button):focus-visible {
+    outline: 2px solid var(--tblr-primary, #2563eb);
+    outline-offset: -2px;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection .dropdown-item.disabled,
+  html[data-bs-theme="light"] div.dt-button-collection a.dt-button.dropdown-item.disabled,
+  html[data-bs-theme="light"] div.dt-button-collection button.dt-button.disabled {
+    opacity: 0.45 !important;
+    color: #64748b !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-collection div.dtsb-searchBuilder,
+  html[data-bs-theme="light"] .dataTables_wrapper div.dtsb-searchBuilder {
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+  html[data-bs-theme="light"] div.dtsb-searchBuilder .dtsb-title,
+  html[data-bs-theme="light"] div.dtsb-searchBuilder label {
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+  html[data-bs-theme="light"] .dataTables_wrapper div.dtsb-searchBuilder .btn-outline-primary,
+  html[data-bs-theme="light"] div.dt-button-collection .btn-outline-primary {
+    --bs-btn-color: var(--tblr-primary, #2563eb);
+    --bs-btn-border-color: color-mix(in srgb, var(--tblr-primary, #2563eb) 45%, transparent);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--tblr-primary, #2563eb) 14%, transparent);
+    --bs-btn-hover-color: #0f172a;
+    --bs-btn-hover-border-color: var(--tblr-primary, #2563eb);
+    --bs-btn-active-bg: color-mix(in srgb, var(--tblr-primary, #2563eb) 24%, transparent);
+    --bs-btn-active-color: #0f172a;
+  }
+  html[data-bs-theme="light"] div.dt-button-info {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-info h2 {
+    background-color: #f8fafc !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+  html[data-bs-theme="light"] div.dt-button-info > div {
+    color: var(--bs-body-color, #0f172a) !important;
+  }
+
   /* ---- Таблица списка: сортировка, действия строки ---- */
   table.dataTable thead > tr > th.sorting:hover,
   table.dataTable thead > tr > th.sorting_asc:hover,
@@ -510,11 +741,18 @@
     border-color: rgba(255, 255, 255, 0.12) !important;
     color: var(--bs-body-color, #e2e8f0) !important;
   }
+  html[data-bs-theme="light"] .dataTables_wrapper .dataTables_paginate .paginate_button:not(.disabled):not(.current):hover {
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+  }
 
   .dataTables_wrapper .dataTables_paginate .paginate_button.current {
     background: color-mix(in srgb, var(--tblr-primary, #4299e1) 35%, transparent) !important;
     border-color: var(--mp-focus-ring) !important;
     color: var(--bs-body-color, #e2e8f0) !important;
+  }
+  html[data-bs-theme="light"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    color: var(--bs-body-color, #0f172a) !important;
   }
 
   .dataTables_wrapper .dataTables_paginate .paginate_button:focus-visible {
@@ -542,7 +780,7 @@
 {% block body %}
     <div class="page">
         {% block sidebar %}
-            <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark" aria-label="Основная навигация">
+            <aside class="navbar navbar-vertical navbar-expand-lg" aria-label="Основная навигация">
                 <div class="container-fluid">
                     <button class="navbar-toggler"
                             type="button"
@@ -620,7 +858,7 @@
         {% endblock %}
         {% block navbar %}
             {% if current_user or i18n_config.language_switcher or (timezone_config and timezone_config.timezone_switcher) %}
-                <header class="navbar navbar-expand-md navbar-dark d-flex d-print-none" data-bs-theme="dark">
+                <header id="mp-admin-topbar" class="navbar navbar-expand-md navbar-dark d-flex d-print-none">
                     <div class="container-xl w-100 d-flex flex-wrap align-items-center justify-content-between">
                         <a class="admin-topbar-wordmark text-decoration-none me-2 me-md-3 flex-shrink-0"
                            href="{{ url_for(__name__ ~ ':index') }}"
@@ -628,6 +866,11 @@
                             <span class="text-nowrap">money pulso</span>
                         </a>
                         <div class="admin-topbar-end">
+                        <div class="nav-item d-flex align-items-center me-1" role="presentation">
+                            <label class="form-check form-switch mb-0" title="Светлая тема">
+                                <input class="form-check-input" type="checkbox" id="mp-admin-theme-switch" role="switch" aria-label="Светлая цветовая схема" />
+                            </label>
+                        </div>
                         <button class="navbar-toggler d-lg-none"
                                 type="button"
                                 data-bs-toggle="collapse"
@@ -878,6 +1121,52 @@
     document.addEventListener("DOMContentLoaded", mount);
   } else {
     mount();
+  }
+})();
+
+(function () {
+  var KEY = "mp_admin_color_scheme";
+  var EVT = "mp-admin-theme-change";
+
+  function currentMode() {
+    return document.documentElement.getAttribute("data-bs-theme") === "light" ? "light" : "dark";
+  }
+
+  function applyMode(mode) {
+    var m = mode === "light" ? "light" : "dark";
+    document.documentElement.setAttribute("data-bs-theme", m);
+    try {
+      localStorage.setItem(KEY, m);
+    } catch (e) {}
+    var top = document.getElementById("mp-admin-topbar");
+    if (top) {
+      top.classList.remove("navbar-dark", "navbar-light");
+      top.classList.add(m === "light" ? "navbar-light" : "navbar-dark");
+    }
+    var sw = document.getElementById("mp-admin-theme-switch");
+    if (sw) sw.checked = m === "light";
+    try {
+      window.dispatchEvent(new CustomEvent(EVT, { detail: { mode: m } }));
+    } catch (e) {}
+  }
+
+  function initToggle() {
+    var sw = document.getElementById("mp-admin-theme-switch");
+    if (!sw) return;
+    sw.checked = currentMode() === "light";
+    sw.addEventListener("change", function () {
+      applyMode(sw.checked ? "light" : "dark");
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      applyMode(currentMode());
+      initToggle();
+    });
+  } else {
+    applyMode(currentMode());
+    initToggle();
   }
 })();
 </script>

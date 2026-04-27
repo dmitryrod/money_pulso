@@ -260,7 +260,7 @@ model._additional_css_links(request, "EDIT" | ra) %}
 {% endfor %}
 <style>
     .is-invalid .select2-selection {
-        border-color: #d63939 !important;
+        border-color: var(--mp-form-invalid, #d63939) !important;
     }
 
     .accordion-button.section-title {
@@ -279,15 +279,15 @@ model._additional_css_links(request, "EDIT" | ra) %}
         font-size: 0.9rem;
         font-weight: 500;
         white-space: nowrap;
-        color: #9aa0ac;
+        color: var(--mp-filter-muted, #9aa0ac);
     }
 
     .filter-status-badge[data-enabled="true"] {
-        color: #2fb344;
+        color: var(--mp-filter-enabled, #2fb344);
     }
 
     .filter-status-badge[data-enabled="false"] {
-        color: #d63939;
+        color: var(--mp-form-invalid, #d63939);
     }
 </style>
 {% endblock %} {% block script %} {{ super() }}

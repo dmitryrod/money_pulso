@@ -6,23 +6,23 @@
 <style>
   /* Переопределяем стили для соответствия общей эстетике */
   .mp-ui-settings .card {
-    background: #1a1f2e;
-    border: 1px solid #2d3550;
+    background: var(--mp-c-surface, #1a1f2e);
+    border: 1px solid var(--mp-c-border, #2d3550);
     border-radius: 10px;
   }
   .mp-ui-settings .form-label {
     font-weight: 600;
-    color: #c0ccdd;
+    color: var(--mp-c-text-soft, #c0ccdd);
   }
   .mp-ui-settings .form-select {
-    background: #232a3e;
-    color: #e0e6f0;
-    border-color: #2d3550;
+    background: var(--mp-c-raised, #232a3e);
+    color: var(--mp-c-text, #e0e6f0);
+    border-color: var(--mp-c-border, #2d3550);
   }
   .mp-ui-settings .form-select:focus {
-    background: #2a334d;
-    border-color: #3a5bbf;
-    color: #fff;
+    background: var(--mp-c-raised-focus, #2a334d);
+    border-color: var(--mp-c-border-focus, #3a5bbf);
+    color: var(--mp-c-text-bright, #fff);
   }
   /* Строка настроек: подпись + контрол; повторять .mp-setting-row для новых полей */
   .mp-ui-settings .mp-setting-row:last-child {

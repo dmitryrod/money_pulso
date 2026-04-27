@@ -6,6 +6,12 @@
 
 ### Изменено
 
+- **Админка / UX (2026-04-28):** **`layout.html`** — переключатель темы в шапке (`#mp-admin-theme-switch`): обводка трека и hover только на input; у label сброшены отступы Bootstrap `.form-switch` (`padding` 0, `width: fit-content`, у input `float`/`margin-left` 0), чтобы не было серого «хвоста» справа при наведении; логика `localStorage` / `mp-admin-theme-change` без изменений. Меню **Экспорт** (DataTables `div.dt-button-collection`): читаемый hover/focus в **dark** / **light**, в т.ч. `button.dt-button`, без засвета vendor-стилей.
+
+- **Админка / список скринеров (2026-04-28):** светлая тема — кнопка **«Экспорт»** и прочие `.btn-secondary` в **`.page .card`** (тулбар DataTables): на **hover** / **focus** / **active** явный тёмный `color` и чуть сильнее фон/бордер, чтобы текст и иконка не сливались с подложкой.
+
+- **Админка / тема (2026-04-28):** светлая цветовая схема (`[data-bs-theme="light"]`) и переключатель в **верхней панели** (form-switch): выбор хранится в **`localStorage`** (`mp_admin_color_scheme`, значения `dark` / `light`), по умолчанию **тёмная**; ранний скрипт в **`base.html`** уменьшает мигание при загрузке. Семантические CSS-переменные (`--mp-c-surface`, `--mp-c-link`, …) в **`base.html`**; кастомные страницы (**Аналитика**, **Сигналы**, **Логи**, **Система**, stat, настройки, create/edit screener) переведены на эти токены где были жёсткие hex. Событие **`mp-admin-theme-change`** для перерисовки графика на stat. Топбар: **`navbar-light`** / **`navbar-dark`** по режиму (`#mp-admin-topbar`).
+
 - **Админка / Настройки (2026-04-28):** страница **`/admin/settings`** — выбор **IANA** часового пояса (список из `Intl.supportedValuesOf('timeZone')` при поддержке браузером, иначе короткий fallback); подписи зон с UTC±; применение в **`localStorage`** только по кнопке **«Сохранить»** (активна при отличии от сохранённого; до сохранения глобальная зона не меняется). Общий скрипт **`/admin_api/ui/timezone.js`** (`MpAdminTime`) в **`layout.html`** `<head>`; время на **Аналитика**, **Сигналы**, stat — в выбранной зоне; API/БД — UTC.
 
 - **Админка / Analytics Stat (2026-04-28):** **`app/admin/templates/analytics_stat.html`** — ось **«цена (USDT)»** (`yPrice`): явные **min/max** от массива min/max за минуту (low–high столбцы), **padding** ~5% полосы и мин. относительный зазор ~0.01% к середине диапазона; опциональный чекбокс **«Срез выбросов (цена)»** — перцентили **p1** / **p99** по low/high, чтобы единичные всплески не сжимали столбцы. Design: `app/docs/design/Page_Stst/design_Page_Stat.md`.
