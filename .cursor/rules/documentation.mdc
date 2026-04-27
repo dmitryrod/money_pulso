@@ -65,12 +65,25 @@ DOCS = app/docs
 - **Менять при:** пересмотре приоритетов, закрытии эпиков, отмене запланированного.
 - **Содержимое:** краткие пункты с критерием готовности.
 
+### `app/docs/marketing/`
+- **Назначение:** позиционирование, ICP, дифференциация, голос бренда для **приложения** в `app/`; канон для маркетинговых агентов и скиллов.
+- **Менять при:** смене продукта, аудитории, обещаний на рынке; синхронизировать с `app/docs/ARCHITECTURE.md` / `CHANGELOG.md`.
+- **Содержимое:** см. `app/docs/marketing/README.md`; длинный текст не дублировать в `.cursor/marketing-context.md` (там — короткий указатель).
+- **`research/`:** intake, synthesis, brief, **marketing roadmap** (файлы по соглашению в `marketing-research-playbook`); не путать с `app/docs/ROADMAP.md` (план продукта в коде).
+- **`artifacts/`:** тактические материалы (копирайт, email и т.д.), если путь не задан пользователем.
+
 ### `app/docs/troubleshooting.md`
 - **Назначение:** симптом → причина → шаги → проверка. Сократить время отладки, не дублировать заметки в чатах/issue.
 - **Менять при:** повторяющейся проблеме (2+ раза), неочевидной ошибке с известным фиксом, смене поведения после релиза, новом обязательном шаге окружения без которого скрипт падает.
 - **Формат:** один симптом — одна карточка; несколько причин — подпункты «Если … то …».
 - **Устаревшее:** пометка `Устарело с <версия/дата>` + «вместо этого см. …»; удалять если поведение гарантированно убрано.
 - **Запрещено:** дублировать туториал из `app/docs/README.md` — только ссылка; хранить секреты/токены; копировать весь debug.log.
+
+### Документация `.cursor/` при интеграции внешних скиллов
+
+- Команда **`/workflow-integrate-skill`** и скилл **`.cursor/skills/ecosystem-integrator`** — канон: [`.cursor/docs/CREATING_ASSETS.md` § ecosystem-integrator](../docs/CREATING_ASSETS.md#ecosystem-integrator).
+- **Documenter** после интеграции обновляет: **`agent-intent-map.csv`**, при необходимости **`CREATING_ASSETS.md`**, **`rules/README.md`** (если добавлено новое правило `.mdc`).
+- Если интеграция **не трогает** `app/` (только `.cursor/`) — **`app/docs/` не менять**. Если добавлены новые переменные окружения, MCP, влияющие на запуск приложения, или изменился контракт CLI — правь зону ответственности по таблице ниже (`CHANGELOG`, `README`, `.env.example` и т.д.).
 
 ## Когда что обновлять
 
@@ -80,8 +93,12 @@ DOCS = app/docs
 | `app/docker-compose.yml` / `Dockerfile` | `app/docs/README.md` (раздел "Запуск"), `app/docs/CHANGELOG.md` |
 | `app/pyproject.toml` (новая/удалённая зависимость) | `app/docs/CHANGELOG.md`; если меняет рантайм — `app/docs/README.md` |
 | Архитектурное (новый модуль, провайдер, схема данных) | `app/docs/ARCHITECTURE.md` |
+| Позиционирование, ICP, маркетинг-формулировки продукта | `app/docs/marketing/context.md`, навигация в `app/docs/README.md` |
+| Маркетинговые исследования / GTM roadmap (агент marketing-researcher) | `app/docs/marketing/research/*`, `app/docs/marketing/README.md` при новой структуре |
+| Тактические маркетинговые файлы (агент marketing) | `app/docs/marketing/artifacts/*` при записи в репо |
 | Повторяющийся сбой с решением | `app/docs/troubleshooting.md` |
 | Внутренний рефактор без смены поведения | Не трогать (если текст остаётся правдивым) |
+| Интеграция внешнего скилла / best practices только в `.cursor/` (без `app/`) | `.cursor/docs/agent-intent-map.csv`, `.cursor/docs/CREATING_ASSETS.md`, при новом правиле — `.cursor/rules/README.md` |
 
 ## Python Docstrings (Google-style)
 

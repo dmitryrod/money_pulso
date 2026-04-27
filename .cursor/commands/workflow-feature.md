@@ -1,18 +1,19 @@
 # workflow-feature
 
-**Полный workflow** — задействует planner, worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter. Для сложных фич с планированием, реализацией, проверками, review и аудитом.
+**Полный workflow** — задействует planner, worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter. Для сложных фич с планированием, реализацией, проверками, review и аудитом. Для сложных marketing/GTM инициатив первичный агент — `marketing-researcher`, а тактические артефакты после roadmap делает `marketing`.
 
 **Использование:** `/workflow-feature <описание фичи>` — например: `/workflow-feature Добавь систему аутентификации с email/password и OAuth`
 
 ## Шаги
 
 **Как вызывать субагентов:** для каждого шага вызывай инструмент **Task** с параметрами:
-- **subagent_type:** `planner` | `designer` | `worker` | `refactor` | `test-runner` | `debugger` | `reviewer-senior` | `security-auditor` | `documenter`
+- **subagent_type:** `planner` | `designer` | `imager` | `worker` | `refactor` | `test-runner` | `debugger` | `reviewer-senior` | `security-auditor` | `documenter`
+- **marketing path:** `marketing-researcher` | `marketing` | `researcher` можно использовать как первичный/вспомогательный путь для marketing/GTM feature work
 - **prompt:** формулировка задачи для субагента (включая контекст, ID подзадачи, что уже сделано)
 - **description:** краткое описание вызова (3–5 слов)
 - **resume:** при необходимости продолжить прерванную сессию — передай agent ID из предыдущего вызова
 
-Не выполняй шаги planner/worker/test-runner/reviewer-senior/documenter/security-auditor самостоятельно — только через Task.
+Не выполняй шаги planner/worker/test-runner/reviewer-senior/documenter/security-auditor/marketing/marketing-researcher самостоятельно — только через Task.
 
 Выполни последовательно:
 
@@ -20,9 +21,15 @@
    - **Опционально:** если пользователь явно не просит инициализировать репо (например, «быстрый прототип», «без git») — можно пропустить шаг.
    - Иначе: если папка не git-репозиторий (или нет remote) — выполни `git init`, при наличии `gh` и прав — `gh repo create` (или выведи команду пользователю). Задай origin. Первый коммит — после создания структуры worker'ом.
 
-1. **Planner — декомпозиция**
+**Ветвление по типу feature:**
+
+- **Engineering-heavy feature:** следуй шагам 1–6 ниже как обычно.
+- **Marketing / GTM feature:** если задача — полный marketing research, positioning, ICP, launch plan, multi-channel roadmap — начни с `Task(subagent_type="marketing-researcher", ...)`. После roadmap вызывай `researcher` только для свежих веб-фактов и `marketing` для конечных тактических deliverables.
+
+1. **Planner — брейншторм затем декомпозиция**
    - Вызови Task с subagent_type="planner" и prompt с описанием фичи из запроса пользователя.
-   - Пример: `Task(subagent_type="planner", prompt="Декомпозируй задачу: [описание из запроса пользователя]. Укажи подзадачи с ID, порядком, зависимостями и рекомендуемым субагентом.", description="Planner decomposition")`
+   - В промпте требуй **двухфазный** процесс агента `planner`: (1) скилл `brainstorming` — контекст, варианты, согласованный дизайн, при необходимости файл `.cursor/plans/YYYY-MM-DD-<topic>-design.md`; (2) скилл `planning` — Gap-to-Goal, таблица Plan, Next Prompts.
+   - Пример: `Task(subagent_type="planner", prompt="Фича: [описание]. Сначала brainstorming по .cursor/skills/brainstorming/SKILL.md (полный или trivial path), затем декомпозиция: подзадачи с ID, порядком, зависимостями и рекомендуемым субагентом.", description="Planner brainstorm + decomposition")`
    - Planner разбивает задачу на подзадачи с ID (например AUTH-001, AUTH-002), порядком, зависимостями и **рекомендуемым субагентом на каждую** (worker, refactor, documenter и т.д.).
    - Перед сохранением плана: если папок из `config.json` (documentation.paths) не существует — создай их с `.gitkeep` в каждой.
    - Сохрани план. Дождись завершения.
@@ -76,13 +83,36 @@
 6. **PR (если есть GitHub)**
    - Выполни `gh pr create` с body, привязывающим PR к issues. См. [gh-commands.md](.cursor/templates/gh-commands.md).
 
-**Параллельность:** Шаги 3 (reviewer-senior) и 5 (documenter) можно выполнять параллельно — оба работают с уже готовым кодом. Вызови **два** Task **параллельно**: один с subagent_type="reviewer-senior", другой с subagent_type="documenter".
+## Marketing feature branch
+
+Используй эту ветку, если задача — не кодовая фича в `app/`, а **полный marketing/GTM initiative**:
+
+1. **Marketing-Researcher — intake + roadmap**
+   - Вызови Task(subagent_type="marketing-researcher", prompt="...", description="Marketing roadmap").
+   - Требуй: intake → файлы в **`app/docs/marketing/research/`** (`intake-…`, `synthesis-…`, `brief-…`) → обновление **`app/docs/marketing/context.md`** по необходимости → roadmap как **`app/docs/marketing/research/roadmap-YYYY-MM-DD.md`** (или `roadmap.md`) + Next Prompts с путями к файлам.
+
+2. **Researcher — свежие веб-факты (опционально)**
+   - Если roadmap зависит от актуальных рыночных/конкурентных данных, вызови Task(subagent_type="researcher", ...).
+   - Не выдумывай цены, обзоры, конкурентные claims без этого шага.
+
+3. **Marketing — tactical execution**
+   - Для первых приоритетных артефактов из roadmap вызови Task(subagent_type="marketing", ...).
+   - Один вызов = один deliverable или маленький пакет близких deliverables; по умолчанию путь записи — **`app/docs/marketing/artifacts/`** (если пользователь не задал другое).
+
+4. **Reviewer-Senior / Documenter (опционально)**
+   - `reviewer-senior` — если нужен review качества материалов в **`app/docs/marketing/`** или связанных артефактов.
+   - `documenter` — если нужно синхронизировать **`app/docs/`** (README, CHANGELOG) после смены контракта «куда писать маркетинг»; **не** считать `.cursor/` основным местом хранения маркетинговых исследований.
+
+5. **Метрики и отчёт**
+   - В session report укажи `taskType: "marketing_research"` или `taskType: "marketing_tactical"`; для неинженерных шагов `testsApplicable: false`.
+
+**Параллельность:** Шаги 4 (`Reviewer-Senior / Documenter` в marketing branch) можно выполнять параллельно, если оба действительно нужны. В инженерной ветке reviewer-senior и итоговый `documenter` тоже можно выполнять параллельно после завершения реализации.
 
 ## Результат
 
 Перед возвратом результата:
 
-1. **Session report:** сохрани отчёт в `.cursor/reports/session-<YYYYMMDD-HHmm>.json` (путь из config.metrics.sessionsPath) со структурой: command (workflow-feature), workflow (feature), escalation, subagentsCalled, debuggerCalls, testsPassed, reviewerFindings, securityAuditorCalled, documentationCreated, taskSummary.
+1. **Session report:** сохрани отчёт в `.cursor/reports/session-<YYYYMMDD-HHmm>.json` (путь из config.metrics.sessionsPath) со структурой: timestamp, reportDate, command (workflow-feature), workflow (feature), workflowReason, primaryAgent, taskType, escalation, subagentsCalled, debuggerCalls, testsApplicable, testsPassed, reviewerFindings, securityAuditorCalled, documentationCreated, taskSummary.
 2. **Запусти скрипт метрик:** `node .cursor/scripts/metrics-report.js`.
 3. Включи итоговый скор в ответ (блок «Метрики»).
 
@@ -97,6 +127,7 @@
 ## Заметки
 
 - **Полный набор субагентов:** planner, worker, refactor, test-runner, debugger, reviewer-senior, security-auditor, documenter.
+- Для marketing/GTM feature допустим полный путь `marketing-researcher` → `researcher` (опц.) → `marketing`, без обязательного `worker` / `test-runner`, если код не меняется.
 - Security-auditor вызывается один раз в конце (шаг 4), не на каждую подзадачу.
 - Соблюдай порядок задач из плана (учти зависимости).
 - Уважай рекомендацию planner'а по субагенту (worker vs refactor) для каждой подзадачи.

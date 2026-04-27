@@ -7,6 +7,7 @@ __all__ = [
     "AnalyticsCatalogView",
 ]
 
+import asyncio
 import os
 from datetime import datetime
 from typing import Any
@@ -394,7 +395,9 @@ class MetrCustomView(CustomView):
         """Возвращает шаблон с загрузкой CPU, RAM, диска и времени аптайма."""
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # interval=1 в async-хендлере блокировал весь event loop uvicorn (~1 с на запрос).
+        # Короткий опрос в thread pool: не стопорит остальные запросы, типичная задержка ~0.1 с.
+        cpu_percent = await asyncio.to_thread(psutil.cpu_percent, 0.1)
         boot_time = datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
 
         context: dict[str, Any] = {

@@ -435,6 +435,19 @@ def all_filters_ok(test_filters: list[dict[str, Any]] | None) -> bool:
     return all(bool(r.get("ok")) for r in test_filters)
 
 
+def no_enabled_filters_ok(test_filters: list[dict[str, Any]] | None) -> bool:
+    """True если ни у одного включённого фильтра нет ``ok`` (все «выключены»).
+
+    Пустой список или нет включённых строк — False (не считаем «все выключены»).
+    """
+    if not test_filters:
+        return False
+    rows = [r for r in test_filters if r.get("enabled", True)]
+    if not rows:
+        return False
+    return not any(bool(r.get("ok")) for r in rows)
+
+
 def evaluate_test_mode_snapshot(
     symbol: str,
     ticker: str,

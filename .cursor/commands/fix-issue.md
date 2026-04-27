@@ -30,7 +30,7 @@
 6. **Результат**
 
    Перед возвратом:
-   - **Session report:** сохрани отчёт в `.cursor/reports/session-<YYYYMMDD-HHmm>.json` (путь из config.metrics.sessionsPath) со структурой: command (fix-issue), workflow (null или выбранный при эскалации), subagentsCalled, debuggerCalls, testsPassed, taskSummary (кратко issue).
+   - **Session report:** сохрани отчёт в `.cursor/reports/session-<YYYYMMDD-HHmm>.json` (путь из config.metrics.sessionsPath) со структурой: timestamp, reportDate, command (fix-issue), workflow (null или выбранный при эскалации), workflowReason, primaryAgent, taskType, subagentsCalled, debuggerCalls, testsApplicable, testsPassed, reviewerFindings, securityAuditorCalled, documentationCreated, taskSummary (кратко issue).
    - **Запусти скрипт метрик:** `node .cursor/scripts/metrics-report.js`.
    - Включи итоговый скор в ответ (блок «Метрики»).
 

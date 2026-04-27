@@ -29,7 +29,7 @@ class _DatabaseConfig:
 class _AdminConfig:
     """Настройки админ-панели."""
 
-    title: str = "Paid Screener"
+    title: str = "Money Pulso"
     logo_url: str = (
         "https://images.icon-icons.com/3256/PNG/512/admin_lock_padlock_icon_205893.png"
     )

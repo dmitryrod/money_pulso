@@ -2,6 +2,7 @@
 
 __all__ = [
     "register_admin_routes",
+    "signal_orm_row_to_dict",
 ]
 
 import asyncio
@@ -14,7 +15,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import desc, func, select, update
+from sqlalchemy import delete, desc, func, select, update
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -28,6 +29,7 @@ from app.config import config
 from app.database import Database, SettingsORM, SignalORM
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener import scanner_runtime
+from app.screener.statistics_store import purge_statistics_data_files
 from app.test_signal_broadcast import (
     register_test_stream_subscriber,
     unregister_test_stream_subscriber,
@@ -47,6 +49,38 @@ _SIGNALS_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "signals_log.
 _APP_DIR = Path(__file__).resolve().parents[1]
 # Абсолютный путь: относительный "app/admin/templates" ломается при cwd внутри app/ (TemplateNotFound).
 _ADMIN_TEMPLATES_DIR = str(Path(__file__).resolve().parent / "templates")
+
+
+def signal_orm_row_to_dict(row: SignalORM) -> dict:
+    """Сериализация строки `signals` для API `/admin_api/signals` и SSE."""
+    live_rank = get_cmc_rank_for_symbol(row.symbol)
+    card_snapshot = None
+    raw_snap = getattr(row, "card_snapshot_json", None)
+    if raw_snap:
+        try:
+            card_snapshot = json.loads(raw_snap)
+        except (json.JSONDecodeError, TypeError):
+            card_snapshot = None
+    tid = getattr(row, "tracking_id", None)
+    stat_href = scanner_runtime.stat_url_path(row.symbol, tid) if tid else None
+    has_snap = bool(card_snapshot and isinstance(card_snapshot, dict))
+    return {
+        "id": row.id,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "screener_name": row.screener_name,
+        "screener_id": row.screener_id,
+        "exchange": row.exchange,
+        "market_type": row.market_type,
+        "symbol": row.symbol,
+        "telegram_text": row.telegram_text,
+        "telegram_ok": row.telegram_ok,
+        "error": row.error,
+        "cmc_rank": live_rank,
+        "tracking_id": tid,
+        "stat_href": stat_href,
+        "card_snapshot": card_snapshot,
+        "render_as_scanner": has_snap,
+    }
 
 
 def register_admin_routes(app: FastAPI) -> None:
@@ -207,36 +241,6 @@ def register_admin_routes(app: FastAPI) -> None:
     # Signals API
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _signal_orm_to_dict(row: SignalORM) -> dict:
-        live_rank = get_cmc_rank_for_symbol(row.symbol)
-        card_snapshot = None
-        raw_snap = getattr(row, "card_snapshot_json", None)
-        if raw_snap:
-            try:
-                card_snapshot = json.loads(raw_snap)
-            except (json.JSONDecodeError, TypeError):
-                card_snapshot = None
-        tid = getattr(row, "tracking_id", None)
-        stat_href = (
-            scanner_runtime.stat_url_path(row.symbol, tid) if tid else None
-        )
-        return {
-            "id": row.id,
-            "created_at": row.created_at.isoformat() if row.created_at else None,
-            "screener_name": row.screener_name,
-            "screener_id": row.screener_id,
-            "exchange": row.exchange,
-            "market_type": row.market_type,
-            "symbol": row.symbol,
-            "telegram_text": row.telegram_text,
-            "telegram_ok": row.telegram_ok,
-            "error": row.error,
-            "cmc_rank": live_rank,
-            "tracking_id": tid,
-            "stat_href": stat_href,
-            "card_snapshot": card_snapshot,
-        }
-
     def _parse_log_line(line: str) -> dict | None:
         """Парсит строку из signals_log.txt. Возвращает dict или None если не сигнал."""
         line = line.strip()
@@ -331,13 +335,44 @@ def register_admin_routes(app: FastAPI) -> None:
                 )
             ).scalars().all()
         return JSONResponse({
-            "items": [_signal_orm_to_dict(r) for r in rows],
+            "items": [signal_orm_row_to_dict(r) for r in rows],
             "total": total,
             "page": page,
             "per_page": per_page,
             "pages": max(1, math.ceil(total / per_page)),
             "source": "db",
         })
+
+    @app.post("/admin_api/signals/purge")
+    async def _purge_signals(
+        target: str = Query(..., description="db — только таблица signals; log — только signals_log.txt"),
+    ) -> JSONResponse:
+        """Очистка по выбору: только БД или только лог-файл сигналов."""
+        t = (target or "").strip().lower()
+        if t == "db":
+            deleted = 0
+            try:
+                async with Database.session_context() as db:
+                    cnt = await db.session.scalar(
+                        select(func.count()).select_from(SignalORM)
+                    )
+                    deleted = int(cnt or 0)
+                    await db.session.execute(delete(SignalORM))
+                    await db.commit()
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            return JSONResponse({"ok": True, "signals_deleted": deleted})
+        if t == "log":
+            try:
+                _SIGNALS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                _SIGNALS_LOG_PATH.write_text("", encoding="utf-8")
+            except OSError as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            return JSONResponse({"ok": True, "log_cleared": True})
+        raise HTTPException(
+            status_code=400,
+            detail="target must be 'db' or 'log'",
+        )
 
     @app.get("/admin_api/signals/stream")
     async def _stream_signals(
@@ -392,7 +427,7 @@ def register_admin_routes(app: FastAPI) -> None:
                         ).scalars().all()
                     for row in rows:
                         last_id = row.id
-                        yield f"data: {json.dumps(_signal_orm_to_dict(row), ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps(signal_orm_row_to_dict(row), ensure_ascii=False)}\n\n"
                 except Exception:
                     pass
                 ping_counter += 1
@@ -577,6 +612,34 @@ def register_admin_routes(app: FastAPI) -> None:
                 }
             )
         return JSONResponse({"items": items})
+
+    @app.post("/admin_api/analytics/purge")
+    async def _analytics_purge_all() -> JSONResponse:
+        """Полная очистка аналитики Scanner: таблица ``tracking_sessions`` и файлы ``statistics-data``."""
+        deleted_rows = 0
+        try:
+            async with Database.session_context() as db:
+                cnt = await db.session.scalar(
+                    select(func.count()).select_from(TrackingSessionORM)
+                )
+                deleted_rows = int(cnt or 0)
+                await db.session.execute(delete(TrackingSessionORM))
+                await db.commit()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        try:
+            files_n = await asyncio.to_thread(purge_statistics_data_files)
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        scanner_runtime.reset_statistics_runtime_state()
+        scanner_runtime.bump_cache_refresh()
+        return JSONResponse(
+            {
+                "ok": True,
+                "tracking_sessions_deleted": deleted_rows,
+                "files_deleted": files_n,
+            }
+        )
 
     @app.get("/admin_api/analytics/samples")
     async def _analytics_samples_api(tracking_id: str = Query(...)) -> JSONResponse:

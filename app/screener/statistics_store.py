@@ -4,11 +4,27 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 _STAT_ROOT = Path(__file__).resolve().parents[1] / "statistics-data"
+
+
+def purge_statistics_data_files() -> int:
+    """Удаляет всё содержимое ``app/statistics-data`` и пересоздаёт пустой каталог.
+
+    Returns:
+        Число удалённых файлов (до удаления дерева).
+    """
+    if not _STAT_ROOT.exists():
+        _STAT_ROOT.mkdir(parents=True, exist_ok=True)
+        return 0
+    n_files = sum(1 for p in _STAT_ROOT.rglob("*") if p.is_file())
+    shutil.rmtree(_STAT_ROOT)
+    _STAT_ROOT.mkdir(parents=True, exist_ok=True)
+    return n_files
 
 
 def _ensure_dir(path: Path) -> None:

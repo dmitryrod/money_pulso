@@ -12,6 +12,12 @@
     background: #232a3e; color: #c0ccdd; border: 1px solid #2d3550; border-radius: 6px; padding: 6px 10px; font-size: 13px;
     min-width: 200px;
   }
+  .btn-analytics-purge {
+    background: #3d2a2a; color: #e8b4b4; border: 1px solid #6a4040; border-radius: 6px;
+    padding: 6px 12px; font-size: 13px; cursor: pointer;
+  }
+  .btn-analytics-purge:hover:not(:disabled) { background: #4a3030; }
+  .btn-analytics-purge:disabled { opacity: 0.5; cursor: not-allowed; }
   .analytics-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2d3550; }
   table.analytics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.analytics-table th, table.analytics-table td {
@@ -35,6 +41,9 @@
   <h1>Аналитика Scanner</h1>
   <div class="analytics-toolbar">
     <input type="search" id="analytics-filter" placeholder="Фильтр: символ, биржа, tracking_id…" autocomplete="off" />
+    <button type="button" id="analytics-btn-purge" class="btn-analytics-purge" title="Удалить все сессии из БД и все JSONL в app/statistics-data">
+      Очистить
+    </button>
   </div>
   <div class="analytics-table-wrap">
     <table class="analytics-table" id="analytics-table">
@@ -61,7 +70,56 @@
   const tbody = document.getElementById('analytics-tbody');
   const errEl = document.getElementById('analytics-err');
   const filterEl = document.getElementById('analytics-filter');
+  const btnPurge = document.getElementById('analytics-btn-purge');
   let items = [];
+
+  function loadSessions() {
+    errEl.style.display = 'none';
+    tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">Загрузка…</td></tr>';
+    fetch('/admin_api/analytics/sessions', { credentials: 'same-origin' })
+      .then((r) => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then((data) => {
+        items = data.items || [];
+        render(items);
+      })
+      .catch((e) => {
+        errEl.style.display = '';
+        errEl.textContent = 'Ошибка: ' + e.message;
+        tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">—</td></tr>';
+      });
+  }
+
+  if (btnPurge) {
+    btnPurge.addEventListener('click', async function () {
+      if (!window.confirm(
+        'Удалить всю статистику Scanner?\n\n'
+        + '— таблица tracking_sessions в БД\n'
+        + '— все файлы в каталоге statistics-data\n'
+        + '— сброс сессий Scanner в памяти процесса'
+      )) return;
+      btnPurge.disabled = true;
+      try {
+        const r = await fetch('/admin_api/analytics/purge', { method: 'POST', credentials: 'same-origin' });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.detail || data.error || ('HTTP ' + r.status));
+        items = [];
+        render([]);
+        errEl.style.display = '';
+        errEl.style.color = '#8fdf8f';
+        errEl.textContent = 'Очищено: строк БД ' + (data.tracking_sessions_deleted ?? '—')
+          + ', файлов ' + (data.files_deleted ?? '—') + '.';
+      } catch (e) {
+        errEl.style.display = '';
+        errEl.style.color = '#e57373';
+        errEl.textContent = 'Ошибка: ' + (e && e.message ? e.message : e);
+      } finally {
+        btnPurge.disabled = false;
+      }
+    });
+  }
 
   function catClass(cat) {
     if (cat === 'active') return 'cat-pill cat-active';
@@ -123,20 +181,7 @@
 
   filterEl.addEventListener('input', applyFilter);
 
-  fetch('/admin_api/analytics/sessions', { credentials: 'same-origin' })
-    .then((r) => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then((data) => {
-      items = data.items || [];
-      render(items);
-    })
-    .catch((e) => {
-      errEl.style.display = '';
-      errEl.textContent = 'Ошибка: ' + e.message;
-      tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">—</td></tr>';
-    });
+  loadSessions();
 })();
 </script>
 

@@ -69,6 +69,18 @@
     color: #c0ccdd;
   }
 
+  .btn-purge-signals {
+    background: #3a2626;
+    color: #f0d0d0;
+    border: 1px solid #664040;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-purge-signals:hover:not(:disabled) { background: #4a3030; }
+  .btn-purge-signals:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* Индикатор соединения */
   .sse-status {
     display: flex;
@@ -807,6 +819,13 @@
       <button id="btn-src-file" onclick="switchSource('file')">Лог-файл</button>
     </div>
 
+    <button type="button" id="btn-purge-db" class="btn-purge-signals" style="display:none" title="Удалить все записи из таблицы signals">
+      Очистить БД
+    </button>
+    <button type="button" id="btn-purge-log" class="btn-purge-signals" style="display:none" title="Очистить файл signals_log.txt">
+      Очистить лог-файл
+    </button>
+
     <span class="new-badge" id="new-badge">+<span id="new-count">0</span> новых</span>
 
     <select class="per-page-select" id="per-page-sel" onchange="changePerPage(this.value)">
@@ -918,8 +937,39 @@
     return TEST_MAX_ALLOWED.includes(n) ? n : 10;
   }
 
-  /** Режим БД: разворачиваем frozen snapshot в ту же горизонтальную карточку, что и Scanner. */
-  function normalizeItemForCard(item) {
+  /**
+   * Строка БД без card_snapshot: та же горизонтальная вёрстка Scanner; блок фильтров — пояснение.
+   */
+  function dbRowToScannerLayoutItem(row) {
+    return {
+      ...row,
+      mode: 'test',
+      scanner_snapshot_frozen: true,
+      db_legacy_no_snapshot: true,
+      test_filters: [
+        {
+          id: 'legacy',
+          title: 'Снимок Scanner',
+          enabled: true,
+          ok: true,
+          current: {
+            info: 'Нет card_snapshot_json — запись до внедрения Scanner Analytics или без trigger. После очистки истории новые сигналы получат полный снимок.',
+          },
+          thresholds: {},
+        },
+      ],
+      scanner_filter_max_list: [],
+      score: null,
+      ok_count: null,
+      tie_break_score: null,
+    };
+  }
+
+  /**
+   * Режим БД: snapshot → та же карточка, что Scanner; без snapshot → горизонтальная карточка с текстом из БД.
+   * @param {string} src — 'test' | 'db' | 'file'
+   */
+  function normalizeItemForCard(item, src) {
     if (!item || item.mode === 'test') return item;
     if (item.card_snapshot && typeof item.card_snapshot === 'object' && Object.keys(item.card_snapshot).length) {
       const snap = item.card_snapshot;
@@ -936,7 +986,11 @@
         tracking_id: item.tracking_id,
         stat_href: item.stat_href,
         mode: 'test',
+        scanner_snapshot_frozen: true,
       };
+    }
+    if (src === 'db') {
+      return dbRowToScannerLayoutItem(item);
     }
     return item;
   }
@@ -982,8 +1036,14 @@
   }
 
   function setupTestCardActions(div) {
+    const frozen = div.dataset.scannerSnapshotFrozen === '1';
     const lockBtn = div.querySelector('.sct-btn-lock');
     const closeBtn = div.querySelector('.sct-btn-close');
+    if (frozen) {
+      if (lockBtn) lockBtn.style.display = 'none';
+      if (closeBtn) closeBtn.style.display = 'none';
+      return;
+    }
     if (lockBtn && !lockBtn._wired) {
       lockBtn._wired = true;
       lockBtn.textContent = '🔓';
@@ -1089,6 +1149,48 @@
     if (scannerRuntimeWrap) {
       scannerRuntimeWrap.style.display = isTest ? 'inline-flex' : 'none';
       if (isTest) refreshScannerRuntimeUi();
+    }
+  }
+
+  function updatePurgeButtons() {
+    const bDb = document.getElementById('btn-purge-db');
+    const bLog = document.getElementById('btn-purge-log');
+    if (bDb) bDb.style.display = source === 'db' ? 'inline-block' : 'none';
+    if (bLog) bLog.style.display = source === 'file' ? 'inline-block' : 'none';
+  }
+
+  function wirePurgeButtons() {
+    const bDb = document.getElementById('btn-purge-db');
+    const bLog = document.getElementById('btn-purge-log');
+    async function postPurge(target) {
+      const label = target === 'db' ? 'все записи в таблице signals' : 'файл signals_log.txt';
+      if (!window.confirm('Очистить ' + label + '?')) return;
+      const btn = target === 'db' ? bDb : bLog;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch('/admin_api/signals/purge?target=' + encodeURIComponent(target), { method: 'POST', credentials: 'same-origin' });
+        if (!r.ok) {
+          let msg = 'HTTP ' + r.status;
+          try {
+            const j = await r.json();
+            if (j.detail) msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+          } catch { /* use msg */ }
+          throw new Error(msg);
+        }
+        await loadPage(page);
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    if (bDb && !bDb._purgeWired) {
+      bDb._purgeWired = true;
+      bDb.addEventListener('click', () => postPurge('db'));
+    }
+    if (bLog && !bLog._purgeWired) {
+      bLog._purgeWired = true;
+      bLog.addEventListener('click', () => postPurge('log'));
     }
   }
 
@@ -1404,10 +1506,20 @@
 
   function updateScannerDurationForCard(card) {
     if (!card || !card.classList || !card.classList.contains('signal-card--test')) return;
-    const iso = card.dataset.scannerTrackedSince;
-    const start = parseIsoToMs(iso);
     const durEl = card.querySelector('.sct-id-duration');
     if (!durEl) return;
+    if (card.dataset.scannerSnapshotFrozen === '1') {
+      const raw = card.dataset.scannerDurationAtTriggerMs;
+      const ms = raw !== undefined && raw !== '' ? Number(raw) : NaN;
+      if (Number.isFinite(ms) && ms >= 0) {
+        durEl.textContent = fmtElapsedHmsAndSec(ms);
+      } else {
+        durEl.textContent = '';
+      }
+      return;
+    }
+    const iso = card.dataset.scannerTrackedSince;
+    const start = parseIsoToMs(iso);
     if (start == null) {
       durEl.textContent = '';
       return;
@@ -1431,6 +1543,18 @@
   }
 
   function applyCardData(div, item) {
+    if (item.scanner_snapshot_frozen) {
+      div.dataset.scannerSnapshotFrozen = '1';
+      const dm = item.scanner_duration_at_trigger_ms;
+      if (dm != null && dm !== undefined && Number.isFinite(Number(dm))) {
+        div.dataset.scannerDurationAtTriggerMs = String(Math.max(0, Number(dm)));
+      } else {
+        delete div.dataset.scannerDurationAtTriggerMs;
+      }
+    } else {
+      delete div.dataset.scannerSnapshotFrozen;
+      delete div.dataset.scannerDurationAtTriggerMs;
+    }
     const bodyDiv = div.querySelector('.signal-body');
     const isTest = item.mode === 'test';
     if (isTest && bodyDiv) {
@@ -1772,7 +1896,7 @@
         if (source === 'test') updateTestFeedCount();
       } else {
         for (const raw of data.items) {
-          feed.appendChild(buildCard(normalizeItemForCard(raw), false));
+          feed.appendChild(buildCard(normalizeItemForCard(raw, source), false));
         }
         if (source === 'test') {
           reorderTestFeed();
@@ -1785,6 +1909,7 @@
 
     // Переключаем SSE только при первой загрузке или смене источника
     startSSE();
+    updatePurgeButtons();
   }
 
   /* ── SSE ── */
@@ -1799,9 +1924,9 @@
     es.onmessage = (evt) => {
       let item;
       try { item = JSON.parse(evt.data); } catch { return; }
-      item = normalizeItemForCard(item);
+      item = normalizeItemForCard(item, source);
 
-      if (item.mode === 'test') {
+      if (item.mode === 'test' && source === 'test') {
         const existing = findCardById(item.id);
         if (existing) {
           applyCardData(existing, item);
@@ -1881,6 +2006,8 @@
   if (scannerRuntimeSave) {
     scannerRuntimeSave.addEventListener('click', () => { saveScannerRuntime(); });
   }
+
+  wirePurgeButtons();
 
   setInterval(updateAllScannerDurationDisplays, 1000);
 

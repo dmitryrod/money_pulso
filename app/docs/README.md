@@ -1,4 +1,4 @@
-# Документация Paid Screener
+# Документация Money Pulso
 
 Канонические материалы по приложению в `app/docs/`. Код и точка входа — в каталоге `app/` (см. [SYSTEM_PROMPT.MD](../SYSTEM_PROMPT.MD) для правил сопровождения доков).
 
@@ -9,14 +9,40 @@
 | [README.md](README.md) | Это оглавление и краткое руководство пользователя |
 | [CHANGELOG.md](CHANGELOG.md) | Версии и заметные изменения поведения |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Потоки данных, модули, интеграции, архитектурные преимущества и производительность |
+| [DESIGN.md](DESIGN.md) | Текущее состояние frontend, design tokens и направление редизайна для Google Stitch |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Окружение разработчика, проверки, стиль |
 | [ROADMAP.md](ROADMAP.md) | Планы (не дублирует историю из CHANGELOG) |
 | [TODO.md](TODO.md) | Отложенные задачи из активных планов (исторический бэктест и др.) |
 | [troubleshooting.md](troubleshooting.md) | Симптом → причина → шаги |
+| [marketing/](marketing/README.md) | Позиционирование, ICP, голос бренда (канон для маркетинга) |
 
 Быстрый старт установки и Docker: [../README.MD](../README.MD).
 
 Переменные окружения (без секретов): [../.env.example](../.env.example).
+
+### Презентации Marp (инструменты)
+
+**Где лежит дек:** исходники — Markdown в **`presentations/`** (см. `.cursor/config.json` → `presentations.source`). Актуальный пример: `presentations/russia-economy-2022-2026.md` — CSV в `presentations/sample-data/{gdp-growth,cpi-yoy,cbr-key-rate,value-added-share}.csv`, PNG — `presentations/assets/chart-{gdp,cpi,key-rate,sectors}.png`, обложка (AI/метафора) — `presentations/assets/generated/cover-economy.png`. Сборка **pptx** / **pdf** / **html** — в **`presentations/dist/`** (`presentations.output`). Оркестрация агентов и скилл — `.cursor/skills/marp-slide/SKILL.md`, ассеты — `.cursor/docs/CREATING_ASSETS.md`.
+
+**Графики CSV → PNG (`chart_from_csv`):** в каталоге `app/` установить extra **`presentations`** (`matplotlib`): `uv sync --extra presentations`. Из **корня репозитория** (где лежат `app/` и `presentations/`):
+
+`uv run --project app python presentations/tools/chart_from_csv.py presentations/sample-data/gdp-growth.csv -o presentations/assets/chart-gdp.png --title "ВВП РФ, % г/г" --dark`
+
+(`--no-dark` — светлая тема; `--kind bar` — столбцы; путь `-o` любой под каталогом `presentations/`.) Реализация: модуль `presentations/chart_from_csv.py` (корень репо), обёртка CLI — `presentations/tools/chart_from_csv.py`. В `pyproject.toml` также есть extra `presentations-plotly`; фактический рендер в CLI сейчас через **`matplotlib`**. Внешние API картинок (Polza и т.д.) — только для обложек/метафор, не для точных рядов — см. скилл marp-slide.
+
+**Сборка pptx (`npx marp`):** из корня репозитория, с зависимостью `@marp-team/marp-cli` из корневого `package.json`:
+
+`npx @marp-team/marp-cli presentations/russia-economy-2022-2026.md -o presentations/dist/russia-economy-2022-2026.pptx --pptx --no-stdin --allow-local-files`
+
+(или `--pdf` / `--html`; на Windows у `npx` нужен `--no-stdin`, а для локальных PNG/SVG — `--allow-local-files`). Пример выхода для дека выше: `presentations/dist/russia-economy-2022-2026.pptx` — см. [CHANGELOG.md](CHANGELOG.md).
+
+**Токены и Polza:** канонический спек — `presentations/DESIGN_TOKENS.md`; сырой Stitch snapshot для этого дека — `presentations/stitch-russia-economy-deck-raw.tokens.json`. Генерация картинок через Polza — скрипт `presentations/scripts/polza_marp_images.py` (подкоманда `generate`, функция `generate_image_polza`); в оркестрации агентов — **`.cursor/agents/imager.md`**, **`designer`** только планирует и делегирует. Ключи `POLZA_API_KEY` / `POLZA_AI_API_KEY`, опционально `POLZA_BASE_URL`, **`POLZA_MODEL`** — см. `app/.env.example`. Обложки — **локальные** PNG под `presentations/assets/generated/`. См. `CHANGELOG.md` и `.cursor/docs/CREATING_ASSETS.md`.
+
+**Типовой пайплайн для дека Russia 2022-2026:**
+
+`python presentations/tools/chart_from_csv.py presentations/sample-data/gdp-growth.csv -o presentations/assets/chart-gdp.png --title "ВВП РФ, % г/г" --dark`
+
+`npx @marp-team/marp-cli presentations/russia-economy-2022-2026.md -o presentations/dist/russia-economy-2022-2026.pptx --pptx --no-stdin --allow-local-files`
 
 ---
 

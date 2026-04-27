@@ -13,10 +13,12 @@ from app.screener import scanner_runtime
 def _reset_scanner_runtime_state():
     """Изолировать глобальные кэши сессий между тестами."""
     scanner_runtime._sessions.clear()  # noqa: SLF001
+    scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
     scanner_runtime._manual_close_ids.clear()  # noqa: SLF001
     scanner_runtime._cooldown_until.clear()  # noqa: SLF001
     yield
     scanner_runtime._sessions.clear()  # noqa: SLF001
+    scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
     scanner_runtime._manual_close_ids.clear()  # noqa: SLF001
     scanner_runtime._cooldown_until.clear()  # noqa: SLF001
 
@@ -56,6 +58,18 @@ def test_is_posttracking_true_when_triggered_and_window_open() -> None:
     )
     scanner_runtime._sessions[(7, "SOLUSDT")] = st  # noqa: SLF001
     assert scanner_runtime.is_posttracking(7, "SOLUSDT") is True
+
+
+def test_session_is_triggered() -> None:
+    assert scanner_runtime.session_is_triggered(1, "XXXUSDT") is False
+    st = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id="tid1",
+        entered_monotonic=0.0,
+        triggered=True,
+        posttracking_until=None,
+    )
+    scanner_runtime._sessions[(3, "AAAUSDT")] = st  # noqa: SLF001
+    assert scanner_runtime.session_is_triggered(3, "AAAUSDT") is True
 
 
 def test_build_sample_line_kind_and_filters() -> None:

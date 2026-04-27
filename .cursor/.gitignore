@@ -1,0 +1,72 @@
+skills/deb-art/
+
+# Cursor build assets are versioned by default.
+# Ignore only runtime/local artifacts.
+.cursor/reports/session-*.json
+.cursor/reports/METRICS_SUMMARY.md
+.cursor/active_memory.md
+.cursor/memory/chroma_db/
+.cursor/memory/rag_fts.sqlite
+.cursor/memory/*.tmp
+.cursor/memory/.ingest_state.json
+.cursor/mcp*.local.json
+.cursor/gh-issue-title.txt
+.cursor/gh-issue-body.txt
+.cursor/gh-pr-title.txt
+.cursor/gh-pr-body.txt
+gh-issue-title.txt
+gh-issue-body.txt
+gh-pr-title.txt
+gh-pr-body.txt
+
+# Keep the Cursor presentations output directory, ignore generated exports.
+.cursor/presentations/dist/*
+!.cursor/presentations/dist/.gitkeep
+
+output/
+
+# Build outputs and caches.
+dist/
+build/
+.cache/
+.parcel-cache/
+.turbo/
+.next/
+.nuxt/
+.vite/
+coverage/
+
+# Node artifacts.
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python artifacts.
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Environments.
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+ENV/
+
+# OS/editor files.
+.DS_Store
+Thumbs.db
+desktop.ini

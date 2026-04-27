@@ -28,6 +28,8 @@ from app.config import (
     log_debug_event_async,
     log_signals_event_async,
 )
+from sqlalchemy import select
+
 from app.database import Database, SignalORM
 from app.models import SettingsDTO, SignalDTO, ScreeningResult
 from app.test_signal_broadcast import broadcast_test_payload, test_stream_is_active
@@ -44,6 +46,7 @@ from app.screener.test_mode_eval import (
     build_scanner_filter_max_list,
     evaluate_test_mode_snapshot,
     extract_peak_metric_for_scanner_row,
+    no_enabled_filters_ok,
 )
 
 from .filters import (
@@ -487,6 +490,7 @@ class Consumer:
             parsed.append((main, test_payload, task_symbol))
 
         allowed: set[str] = set()
+        scanner_eligible: set[str] = set()
         if test_enabled:
             scored: list[tuple[str, float]] = []
             for _main, test_payload, task_symbol in parsed:
@@ -504,7 +508,17 @@ class Consumer:
             top_set = {s for s, _ in scored[:topn]}
             post_set = scanner_runtime.symbols_in_posttracking(self.settings.id)
             allowed = top_set | post_set
-            scanner_runtime.prune_sessions_not_in_set(self.settings.id, allowed)
+            # Символ с all_filters_ok может не попасть в top-N по score, но всё равно
+            # даст продакшн-сигнал — сессию Scanner и pending-снимок нельзя резать в prune
+            # и нельзя пропускать ветку обогащения (иначе card_snapshot_json в БД пустой).
+            must_all_ok: set[str] = set()
+            for _main, test_payload, task_symbol in parsed:
+                if test_payload is None or not task_symbol:
+                    continue
+                if all_filters_ok(test_payload.get("test_filters") or []):
+                    must_all_ok.add(task_symbol)
+            scanner_eligible = allowed | must_all_ok
+            scanner_runtime.prune_sessions_not_in_set(self.settings.id, scanner_eligible)
 
         pending_snap: dict[str, tuple[str | None, str | None]] = {}
         ex_s = str(self.settings.exchange.value)
@@ -512,7 +526,7 @@ class Consumer:
 
         for main, test_payload, task_symbol in parsed:
             if test_enabled and task_symbol:
-                if test_payload is not None and task_symbol in allowed:
+                if test_payload is not None and task_symbol in scanner_eligible:
                     start_ts = self._scanner_track_start.get(task_symbol)
                     if start_ts is None:
                         start_ts = time.time()
@@ -540,43 +554,69 @@ class Consumer:
                         prev_ok_map, fire_map, tf, start_ts, now_sec
                     )
                     attach_fire_meta_to_test_filter_rows(tf, fire_map)
-                    scanner_runtime.attach_tracking_meta(
-                        test_payload,
-                        screener_id=self.settings.id,
-                        symbol=task_symbol,
-                        screener_name=self.settings.name,
-                        exchange=ex_s,
-                        market_type=mt_s,
-                    )
-                    if all_filters_ok(tf):
-                        snap_copy = json.loads(json.dumps(test_payload, default=str))
-                        tid, snap = scanner_runtime.mark_triggered(
-                            self.settings.id, task_symbol, snap_copy
+
+                    removed_untriggered = False
+                    if no_enabled_filters_ok(tf):
+                        removed_untriggered = (
+                            scanner_runtime.remove_untriggered_session_and_artifacts(
+                                self.settings.id, task_symbol
+                            )
                         )
-                        if tid and snap:
-                            pending_snap[task_symbol] = (tid, snap)
-                    await scanner_runtime.maybe_persist_sample(
-                        screener_id=self.settings.id,
-                        symbol=task_symbol,
-                        screener_name=self.settings.name,
-                        exchange=ex_s,
-                        market_type=mt_s,
-                        enriched_payload=test_payload,
-                        force=False,
-                    )
-                    test_payload["scanner_posttracking"] = (
-                        scanner_runtime.is_posttracking(
+                        if removed_untriggered:
+                            self._scanner_track_start.pop(task_symbol, None)
+                            self._scanner_filter_peaks.pop(task_symbol, None)
+                            self._scanner_filter_prev_ok.pop(task_symbol, None)
+                            self._scanner_filter_fire.pop(task_symbol, None)
+
+                    skip_scanner_tail = removed_untriggered or (
+                        no_enabled_filters_ok(tf)
+                        and not scanner_runtime.session_is_triggered(
                             self.settings.id, task_symbol
                         )
                     )
-                    test_payload["scanner_show_close"] = test_payload[
-                        "scanner_posttracking"
-                    ]
-                    if test_stream_is_active():
-                        try:
-                            await broadcast_test_payload(test_payload)
-                        except Exception:
-                            pass
+
+                    if not skip_scanner_tail:
+                        scanner_runtime.attach_tracking_meta(
+                            test_payload,
+                            screener_id=self.settings.id,
+                            symbol=task_symbol,
+                            screener_name=self.settings.name,
+                            exchange=ex_s,
+                            market_type=mt_s,
+                        )
+                        if all_filters_ok(tf):
+                            trigger_wall = time.time()
+                            elapsed_ms = int(max(0.0, (trigger_wall - start_ts) * 1000))
+                            snap_copy = json.loads(json.dumps(test_payload, default=str))
+                            snap_copy["scanner_duration_at_trigger_ms"] = elapsed_ms
+                            snap_copy["scanner_snapshot_frozen"] = True
+                            tid, snap = scanner_runtime.mark_triggered(
+                                self.settings.id, task_symbol, snap_copy
+                            )
+                            if tid and snap:
+                                pending_snap[task_symbol] = (tid, snap)
+                        await scanner_runtime.maybe_persist_sample(
+                            screener_id=self.settings.id,
+                            symbol=task_symbol,
+                            screener_name=self.settings.name,
+                            exchange=ex_s,
+                            market_type=mt_s,
+                            enriched_payload=test_payload,
+                            force=False,
+                        )
+                        test_payload["scanner_posttracking"] = (
+                            scanner_runtime.is_posttracking(
+                                self.settings.id, task_symbol
+                            )
+                        )
+                        test_payload["scanner_show_close"] = test_payload[
+                            "scanner_posttracking"
+                        ]
+                        if test_stream_is_active():
+                            try:
+                                await broadcast_test_payload(test_payload)
+                            except Exception:
+                                pass
                 else:
                     self._scanner_track_start.pop(task_symbol, None)
                     self._scanner_filter_peaks.pop(task_symbol, None)
@@ -636,6 +676,15 @@ class Consumer:
                     card_json: str | None = None
                     if signal.symbol in pending_snap:
                         tr_id, card_json = pending_snap[signal.symbol]
+                    if not card_json:
+                        tid_fb, snap_fb = (
+                            scanner_runtime.get_card_snapshot_for_signal_row(
+                                self.settings.id, signal.symbol
+                            )
+                        )
+                        if snap_fb:
+                            tr_id = tr_id or tid_fb
+                            card_json = snap_fb
 
                     alert_task = asyncio.create_task(
                         self._send_signal(
@@ -780,9 +829,26 @@ class Consumer:
         tracking_id: str | None = None,
         card_snapshot_json: str | None = None,
     ) -> None:
-        """Сохраняет запись о сигнале в таблицу signals. Не бросает исключений наружу."""
+        """Сохраняет запись о сигнале в таблицу signals. Не бросает исключений наружу.
+
+        При непустом ``tracking_id`` вторая и последующие вставки с тем же id
+        пропускаются (одна строка на сессию Scanner posttrigger / posttracking).
+        """
         try:
             async with Database.session_context() as db:
+                if tracking_id:
+                    existing_id = await db.session.scalar(
+                        select(SignalORM.id)
+                        .where(SignalORM.tracking_id == tracking_id)
+                        .limit(1)
+                    )
+                    if existing_id is not None:
+                        self._logger.trace(
+                            "skip duplicate signals row tracking_id={} symbol={}",
+                            tracking_id,
+                            symbol,
+                        )
+                        return
                 record = SignalORM(
                     screener_name=self.settings.name,
                     screener_id=self.settings.id,
