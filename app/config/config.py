@@ -37,12 +37,26 @@ class _AdminConfig:
     password: str = getenv("ADMIN_PASSWORD", "admin")
 
 
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return getenv(name, default).strip().lower() in ("1", "true", "yes")
+
+
+@dataclass(frozen=True)
+class _DemoConfig:
+    """Публичный демо-вход (отдельная роль ``demo``). Включается только из env."""
+
+    enabled: bool = _env_truthy("ADMIN_DEMO_ENABLED", "0")
+    login: str = getenv("DEMO_LOGIN", "")
+    password: str = getenv("DEMO_PASSWORD", "")
+
+
 @dataclass(frozen=True)
 class Configuration:
     """Единая точка доступа к настройкам приложения."""
 
     db: _DatabaseConfig = _DatabaseConfig()
     admin: _AdminConfig = _AdminConfig()
+    demo: _DemoConfig = _DemoConfig()
 
     try:
         environment: EnvironmentType = EnvironmentType(

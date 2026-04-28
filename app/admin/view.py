@@ -30,6 +30,7 @@ from unicex import Exchange, MarketType
 from app.schemas import TextTemplateType
 from app.config import logger, config
 from app.admin.dashboard_summary import build_dashboard_summary
+from .roles import is_demo_session
 from app.admin.monitoring_metrics import get_template_context, record_snapshot
 
 # Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.
@@ -86,6 +87,15 @@ class SettingsModelView(ModelView):
         if action_s == "LIST" or action_s.endswith(".LIST"):
             return [*links, "/admin_api/screeners/global-debug.js"]
         return links
+
+    def can_create(self, request: Request) -> bool:
+        return not is_demo_session(request)
+
+    def can_edit(self, request: Request) -> bool:
+        return not is_demo_session(request)
+
+    def can_delete(self, request: Request) -> bool:
+        return not is_demo_session(request)
 
     fields = [
         # Общие настройки
@@ -455,6 +465,11 @@ class MetrCustomView(CustomView):
 class LogsViewerView(CustomView):
     """Просмотр логов приложения в админке."""
 
+    def is_accessible(self, request: Request) -> bool:
+        if is_demo_session(request):
+            return False
+        return super().is_accessible(request)
+
     async def render(self, request: Request, templates: Jinja2Templates) -> Response:  # noqa: D401
         """Возвращает шаблон со списком логов."""
         logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
@@ -480,6 +495,7 @@ class SignalsView(CustomView):
         context: dict[str, Any] = {
             "request": request,
             "per_page_default": 100,
+            "is_demo": is_demo_session(request),
         }
         return templates.TemplateResponse(request, "signals.html", context)
 
