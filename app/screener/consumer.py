@@ -896,6 +896,15 @@ class Consumer:
             telegram={},
             error=None,
         )
+        if card_snapshot_json:
+            try:
+                snap = json.loads(card_snapshot_json)
+                if isinstance(snap, dict) and snap:
+                    payload_base["card_snapshot"] = snap
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if tracking_id:
+            payload_base["tracking_id"] = tracking_id
         try:
             resp = await self._telegram_bot.send_message(
                 bot_token=self.settings.bot_token,

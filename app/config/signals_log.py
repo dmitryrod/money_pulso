@@ -142,6 +142,7 @@ def build_signal_log_payload(
     telegram: dict[str, Any] | None,
     error: str | None = None,
 ) -> dict[str, Any]:
+    """Базовый JSON для строки `signals_log.txt`. Поля ``card_snapshot`` и ``tracking_id`` добавляет ``Consumer._send_signal`` при наличии снимка в БД."""
     text_one_line = (telegram_text or "").replace("\r\n", "\n").replace("\n", "\\n")
     base: dict[str, Any] = {
         "kind": "signal",

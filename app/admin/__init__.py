@@ -3,6 +3,7 @@
 __all__ = [
     "register_admin_routes",
     "signal_orm_row_to_dict",
+    "parse_signals_log_line",
 ]
 
 import asyncio
@@ -79,6 +80,63 @@ def signal_orm_row_to_dict(row: SignalORM) -> dict:
         "telegram_text": row.telegram_text,
         "telegram_ok": row.telegram_ok,
         "error": row.error,
+        "cmc_rank": live_rank,
+        "tracking_id": tid,
+        "stat_href": stat_href,
+        "card_snapshot": card_snapshot,
+        "render_as_scanner": has_snap,
+    }
+
+
+def parse_signals_log_line(line: str) -> dict | None:
+    """Парсит строку из ``signals_log.txt``. Возвращает dict для API/SSE или ``None``.
+
+    Поля ``card_snapshot``, ``tracking_id``, ``stat_href``, ``render_as_scanner`` —
+    если в JSON записан снимок Scanner (паритет с ``signal_orm_row_to_dict`` для БД).
+    """
+    line = line.strip()
+    if not line:
+        return None
+    try:
+        tab_idx = line.index("\t")
+        ts = line[:tab_idx]
+        payload = json.loads(line[tab_idx + 1 :])
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if payload.get("kind") != "signal":
+        return None
+    symbol = payload.get("symbol", "")
+    live_rank = get_cmc_rank_for_symbol(symbol)
+    card_snapshot = None
+    raw_snap = payload.get("card_snapshot")
+    if raw_snap is not None:
+        if isinstance(raw_snap, str):
+            try:
+                card_snapshot = json.loads(raw_snap)
+            except (json.JSONDecodeError, TypeError):
+                card_snapshot = None
+        elif isinstance(raw_snap, dict):
+            card_snapshot = raw_snap
+    tid = payload.get("tracking_id")
+    if not tid or not isinstance(tid, str):
+        tid = None
+    stat_href = scanner_runtime.stat_url_path(symbol, tid) if tid else None
+    has_snap = bool(
+        card_snapshot
+        and isinstance(card_snapshot, dict)
+        and len(card_snapshot) > 0
+    )
+    return {
+        "id": ts,
+        "created_at": payload.get("ts_moscow") or ts,
+        "screener_name": payload.get("screener_name", ""),
+        "screener_id": payload.get("screener_id", 0),
+        "exchange": payload.get("exchange", ""),
+        "market_type": payload.get("market_type", ""),
+        "symbol": symbol,
+        "telegram_text": (payload.get("telegram_text") or "").replace("\\n", "\n"),
+        "telegram_ok": bool(payload.get("telegram_ok", False)),
+        "error": payload.get("error"),
         "cmc_rank": live_rank,
         "tracking_id": tid,
         "stat_href": stat_href,
@@ -281,35 +339,6 @@ def register_admin_routes(app: FastAPI) -> None:
     # Signals API
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _parse_log_line(line: str) -> dict | None:
-        """Парсит строку из signals_log.txt. Возвращает dict или None если не сигнал."""
-        line = line.strip()
-        if not line:
-            return None
-        try:
-            tab_idx = line.index("\t")
-            ts = line[:tab_idx]
-            payload = json.loads(line[tab_idx + 1:])
-        except (ValueError, json.JSONDecodeError):
-            return None
-        if payload.get("kind") != "signal":
-            return None
-        symbol = payload.get("symbol", "")
-        live_rank = get_cmc_rank_for_symbol(symbol)
-        return {
-            "id": ts,
-            "created_at": payload.get("ts_moscow") or ts,
-            "screener_name": payload.get("screener_name", ""),
-            "screener_id": payload.get("screener_id", 0),
-            "exchange": payload.get("exchange", ""),
-            "market_type": payload.get("market_type", ""),
-            "symbol": symbol,
-            "telegram_text": payload.get("telegram_text", "").replace("\\n", "\n"),
-            "telegram_ok": bool(payload.get("telegram_ok", False)),
-            "error": payload.get("error"),
-            "cmc_rank": live_rank,
-        }
-
     def _read_file_signals() -> list[dict]:
         """Читает все сигналы из signals_log.txt. Новые — в начале."""
         if not _SIGNALS_LOG_PATH.exists():
@@ -318,7 +347,7 @@ def register_admin_routes(app: FastAPI) -> None:
         try:
             with _SIGNALS_LOG_PATH.open("r", encoding="utf-8", errors="replace") as fh:
                 for line in fh:
-                    parsed = _parse_log_line(line)
+                    parsed = parse_signals_log_line(line)
                     if parsed:
                         items.append(parsed)
         except OSError:
@@ -491,7 +520,7 @@ def register_admin_routes(app: FastAPI) -> None:
                                 new_bytes = fh.read(current_size - file_pos)
                             file_pos = current_size
                             for raw_line in new_bytes.decode("utf-8", errors="replace").splitlines():
-                                parsed = _parse_log_line(raw_line)
+                                parsed = parse_signals_log_line(raw_line)
                                 if parsed:
                                     yield f"data: {json.dumps(parsed, ensure_ascii=False)}\n\n"
                         elif current_size < file_pos:

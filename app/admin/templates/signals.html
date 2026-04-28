@@ -975,6 +975,7 @@
 
   /**
    * Режим БД: snapshot → та же карточка, что Scanner; без snapshot → горизонтальная карточка с текстом из БД.
+   * Режим лог-файла: при непустом `card_snapshot` из API — тот же путь, что БД; без снимка — узкая legacy-карточка.
    * @param {string} src — 'test' | 'db' | 'file'
    */
   function normalizeItemForCard(item, src) {

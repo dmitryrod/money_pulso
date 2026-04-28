@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app.admin import signal_orm_row_to_dict
+from app.admin import parse_signals_log_line, signal_orm_row_to_dict
 from app.database.models.signal import SignalORM
 
 
@@ -66,3 +66,59 @@ def test_signal_orm_row_to_dict_no_snapshot_not_scanner_layout() -> None:
 
     assert d["render_as_scanner"] is False
     assert d["card_snapshot"] is None
+
+
+def test_parse_signals_log_line_includes_card_snapshot_and_stat() -> None:
+    snap = {
+        "symbol": "BTCUSDT",
+        "test_filters": [{"id": "pd", "ok": True}],
+        "scanner_snapshot_frozen": True,
+    }
+    line = "2026-04-28T10:00:00+03:00\t" + json.dumps(
+        {
+            "kind": "signal",
+            "ts_moscow": "2026-04-28T10:00:00+03:00",
+            "screener_name": "S",
+            "screener_id": 1,
+            "exchange": "bybit",
+            "market_type": "futures",
+            "symbol": "BTCUSDT",
+            "telegram_text": "x",
+            "telegram_ok": True,
+            "card_snapshot": snap,
+            "tracking_id": "tid-log-1",
+        },
+        ensure_ascii=False,
+    )
+    with patch("app.admin.get_cmc_rank_for_symbol", return_value=7):
+        d = parse_signals_log_line(line)
+    assert d is not None
+    assert d["render_as_scanner"] is True
+    assert d["card_snapshot"] == snap
+    assert d["tracking_id"] == "tid-log-1"
+    assert d["stat_href"] == "/admin/analytics/stat-btcusdt-tid-log-1"
+    assert d["cmc_rank"] == 7
+
+
+def test_parse_signals_log_line_legacy_no_snapshot() -> None:
+    line = "2026-04-28T10:00:00+03:00\t" + json.dumps(
+        {
+            "kind": "signal",
+            "ts_moscow": "2026-04-28T10:00:00+03:00",
+            "screener_name": "S",
+            "screener_id": 1,
+            "exchange": "bybit",
+            "market_type": "futures",
+            "symbol": "ETHUSDT",
+            "telegram_text": "old",
+            "telegram_ok": True,
+        },
+        ensure_ascii=False,
+    )
+    with patch("app.admin.get_cmc_rank_for_symbol", return_value=None):
+        d = parse_signals_log_line(line)
+    assert d is not None
+    assert d["render_as_scanner"] is False
+    assert d["card_snapshot"] is None
+    assert d["tracking_id"] is None
+    assert d["stat_href"] is None
