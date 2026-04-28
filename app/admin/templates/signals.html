@@ -813,15 +813,10 @@
   }
   #unread-badge.visible { display: inline-block !important; }
 
-  /* ── Адаптив: очень узкий экран ── */
+  /* ── Адаптив: очень узкий экран ──
+     Не скрываем aside.navbar.navbar-vertical: на мобильном гамбургер в колонке
+     открывает #sidebar-menu (как на /admin/settings). Скрытие сайдбара ломало shell. */
   @media (max-width: 600px) {
-    /* Боковая колонка Tabler — не трогаем горизонтальный topbar (#mp-admin-topbar, header без .navbar-vertical). */
-    aside.navbar.navbar-vertical,
-    .sidebar {
-      display: none !important;
-    }
-    .main-content, .content-wrapper, main { margin-left: 0 !important; padding-left: 0 !important; }
-
     .signals-page { padding: 8px 4px 70px; }
     .signals-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 8px 10px; }
     .sse-status { margin-left: 0; }

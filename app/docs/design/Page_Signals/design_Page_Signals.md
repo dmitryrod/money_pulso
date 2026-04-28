@@ -22,17 +22,17 @@ Viewport assumption: desktop `approx. 1440x900`. Текущая страница
 
 Структура:
 
-- shell sidebar/topbar;
+- shell sidebar/topbar (**без** скрытия `aside.navbar.navbar-vertical` на узком экране — как остальные кастомные страницы админки, чтобы мобильный гамбургер открывал `#sidebar-menu`);
 - `.signals-page` vertical stack;
 - toolbar card;
 - feed/list of signal/test cards;
 - optional sticky connection status.
 
-Responsive: при `<=1100px` test card меняется на two-column layout; на мобильном — one-column, details wrap.
+Responsive: при `<=1100px` test card меняется на two-column layout; на мобильном — one-column, details wrap; `@media (max-width: 600px)` — только отступы/тулбар/карточки, не оболочка `layout.html`.
 
 ## 4. Иерархия блоков сверху вниз
 
-1. Shell navigation.
+1. Shell navigation (общий `layout.html`, см. выше).
 2. Signals toolbar with stream status and controls.
 3. Filter/search/time range controls if present.
 4. Signal/test card feed.

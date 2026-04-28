@@ -111,7 +111,8 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 - top header: следует классам Tabler **`navbar-dark` / `navbar-light`** в зависимости от темы; переключатель светлой схемы в шапке;
 - content area: scrollable main region с плотным page padding;
 - breakpoint `>=992px`: sidebar toggle видим и работает;
-- mobile/tablet: sidebar collapses over content, main content keeps horizontal scroll for wide tables/charts.
+- mobile/tablet: sidebar collapses over content, main content keeps horizontal scroll for wide tables/charts;
+- мобильное меню разделов — только через **`navbar-toggler`** в **`aside`** (**`#sidebar-menu`**); в **`#mp-admin-topbar`** отдельного toggler к пустому коллапсу нет (убрано как дубль).
 
 Целевой shell в Stitch: crypto admin terminal with persistent left nav, compact top market/status bar, dark surfaces, yellow primary accents, blue links, green/red signal states.
 

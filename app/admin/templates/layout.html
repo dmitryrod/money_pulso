@@ -130,11 +130,6 @@
   html[data-bs-theme="light"] .admin-topbar-user-trigger .admin-topbar-user-label {
     color: #0f172a;
   }
-  @media (min-width: 992px) {
-    .page > header.navbar:not(.navbar-vertical) .navbar-toggler {
-      display: none;
-    }
-  }
 
   @media (max-width: 991.98px) {
     .admin-sidebar-edge-toggle {
@@ -271,12 +266,6 @@
   .page > header.navbar:not(.navbar-vertical) .admin-topbar-user-trigger:focus-visible {
     outline: 2px solid var(--mp-focus-ring);
     outline-offset: 2px;
-  }
-
-  .page > header.navbar:not(.navbar-vertical) .navbar-toggler:focus-visible {
-    outline: 2px solid var(--mp-focus-ring);
-    outline-offset: 2px;
-    box-shadow: none;
   }
 
   .page > header.navbar:not(.navbar-vertical) .btn.dropdown-toggle:hover:not(:disabled) {
@@ -928,15 +917,6 @@
                                 <input class="form-check-input" type="checkbox" id="mp-admin-theme-switch" role="switch" aria-label="Светлая цветовая схема" />
                             </label>
                         </div>
-                        <button class="navbar-toggler d-lg-none"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#navbar-menu"
-                                aria-controls="navbar-menu"
-                                aria-expanded="false"
-                                aria-label="Открыть верхнее меню">
-                            <span class="navbar-toggler-icon"></span>
-                        </button>
                         <div class="navbar-nav flex-row gap-2">
                             {% if i18n_config.language_switcher %}
                                 <div class="nav-item dropdown">
@@ -1054,8 +1034,6 @@
                                     </div>
                                 </div>
                             {% endif %}
-                        </div>
-                        <div class="collapse navbar-collapse w-100 order-5" id="navbar-menu">
                         </div>
                         </div>
                     </div>

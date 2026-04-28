@@ -10,6 +10,10 @@
 
 ### Исправлено
 
+- **Админка / topbar (мобильная вёрстка):** в **`app/admin/templates/layout.html`** удалены второй **`navbar-toggler`** (**`data-bs-target="#navbar-menu"`**) и пустой **`#navbar-menu`**; гамбургер для навигации — только в **`aside.navbar.navbar-vertical`** (**`#sidebar-menu`**). См. также историческую запись про перенос **`#navbar-menu`** в **`CHANGELOG`** (блок за 2026-04-28) — поведение заменено на отсутствие дублей.
+
+- **Админка / Сигналы (мобильная навигация):** на странице **`/admin/signals`** убран CSS, скрывавший **`aside.navbar.navbar-vertical`** при ширине ≤600px — восстановлен тот же chrome, что на **`/admin/settings`** (гамбургер открывает **`#sidebar-menu`**). Шаблон: **`signals.html`**.
+
 - **SSE / Signals:** **`ProductionAssetCacheMiddleware`** переведён с `BaseHTTPMiddleware` на прямой ASGI-обработчик заголовков `http.response.start` — исправляет ``RuntimeError: No response returned`` при потоковом **`GET /admin_api/signals/stream`** (старое поведение TaskGroup/async в BaseHTTPMiddleware + `StreamingResponse`).
 
 ### Изменено
