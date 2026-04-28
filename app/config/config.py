@@ -1,11 +1,72 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import os
 import uuid
 from os import getenv
 
 from app.schemas import EnvironmentType
+
+_log = logging.getLogger(__name__)
+
+
+def parse_optional_telegram_chat_id(raw: str | None) -> int | None:
+    """Разбор ``TELEGRAM_CHAT_ID`` из env: пусто / мусор / ``#…`` → ``None`` без падения процесса.
+
+    Некорректное значение логируется как WARNING; приложение стартует, доставка в Telegram
+    отключается до появления валидной пары токен + chat (см. ``consumer._telegram_delivery_configured``).
+
+    Args:
+        raw: Сырое значение из окружения или ``None``.
+
+    Returns:
+        Целый chat id или ``None``, если задать нельзя.
+    """
+    if raw is None:
+        return None
+    s = raw.strip()
+    if not s:
+        return None
+    if s.startswith("#"):
+        _log.warning(
+            "TELEGRAM_CHAT_ID starts with '#'; treating as unset. "
+            "Use a plain integer (no shell-style comment prefix in the value)."
+        )
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        _log.warning(
+            "TELEGRAM_CHAT_ID is not a valid integer (%r); treating as unset.",
+            raw,
+        )
+        return None
+
+
+def parse_optional_telegram_bot_token(raw: str | None) -> str | None:
+    """Разбор ``TELEGRAM_BOT_TOKEN`` из env: пусто / только пробелы / префикс ``#`` → ``None``.
+
+    Некорректный префикс логируется как WARNING (см. комментарии в ``parse_optional_telegram_chat_id``).
+
+    Args:
+        raw: Сырое значение из окружения или ``None``.
+
+    Returns:
+        Токен без лишних пробелов или ``None``.
+    """
+    if raw is None:
+        return None
+    s = raw.strip()
+    if not s:
+        return None
+    if s.startswith("#"):
+        _log.warning(
+            "TELEGRAM_BOT_TOKEN starts with '#'; treating as unset. "
+            "Do not prefix the token with '#' in .env."
+        )
+        return None
+    return s
 
 
 @dataclass(frozen=True)
@@ -69,11 +130,12 @@ class Configuration:
         "CYPHER_KEY", uuid.UUID(int=uuid.getnode()).hex[-12:]
     )
 
-    # Дефолты для Telegram, если не заданы в настройках скринера
-    telegram_bot_token: str | None = getenv("TELEGRAM_BOT_TOKEN")
-    _telegram_chat_id_raw: str | None = getenv("TELEGRAM_CHAT_ID")
-    telegram_chat_id: int | None = (
-        int(_telegram_chat_id_raw) if _telegram_chat_id_raw else None
+    # Дефолты для Telegram, если не заданы в настройках скринера (опционально; битый env не валит импорт)
+    telegram_bot_token: str | None = parse_optional_telegram_bot_token(
+        getenv("TELEGRAM_BOT_TOKEN")
+    )
+    telegram_chat_id: int | None = parse_optional_telegram_chat_id(
+        getenv("TELEGRAM_CHAT_ID")
     )
 
 

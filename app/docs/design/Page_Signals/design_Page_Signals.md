@@ -70,6 +70,7 @@ Role: one signal or scanner test result with structured fields.
 - Target border: `1px solid #2d3550`.
 - Padding: `10-14px`.
 - Hover: subtle border `#3a5bbf` or bg lift.
+- Подсказки при наведении (нативный `title`, без Bootstrap Tooltip): на test-карточке Scanner — ранг CoinMarketCap, Score, название скринера, биржа и тип рынка (отдельная подсказка на каждое значение), время запуска скринера, длительность от старта; на узкой карточке — биржа/рынок и время сигнала.
 
 ### Card Column 1: Identity/Time
 

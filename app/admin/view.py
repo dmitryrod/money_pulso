@@ -12,6 +12,7 @@ __all__ = [
 import asyncio
 import os
 from typing import Any
+
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.templating import Jinja2Templates
@@ -23,18 +24,27 @@ from starlette_admin import (
     IntegerField,
     StringField,
 )
+from starlette_admin._types import RequestAction
 from starlette_admin.contrib.sqla import ModelView
 from starlette_admin.exceptions import FormValidationError
 from unicex import Exchange, MarketType
 
+from app.database import SettingsORM
 from app.schemas import TextTemplateType
 from app.config import logger, config
-from .roles import is_demo_session
+from .privacy_mask import mask_credential_display
+from .roles import DEMO_SCREENER_NAME, is_demo_session
 from app.admin.dashboard_summary import build_dashboard_summary
 from app.admin.monitoring_metrics import get_template_context, record_snapshot
 
 # Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.
 _LOG_TAIL_MAX_BYTES = 512 * 1024
+
+# Список / детали / JSON API: ``chat_id`` и ``bot_token`` маскируются для всех ролей;
+# полные значения — только в формах CREATE/EDIT (см. ``serialize_field_value``).
+_MASK_TELEGRAM_ACTIONS: frozenset[RequestAction] = frozenset(
+    {RequestAction.API, RequestAction.LIST, RequestAction.DETAIL}
+)
 
 
 def _read_app_log_tail(log_path: str, max_bytes: int = _LOG_TAIL_MAX_BYTES) -> tuple[str, bool]:
@@ -96,6 +106,40 @@ class SettingsModelView(ModelView):
 
     def can_delete(self, request: Request) -> bool:
         return not is_demo_session(request)
+
+    def get_list_query(self, request: Request):  # type: ignore[override]
+        stmt = super().get_list_query(request)
+        if is_demo_session(request):
+            stmt = stmt.where(SettingsORM.name == DEMO_SCREENER_NAME)
+        return stmt
+
+    def get_count_query(self, request: Request):  # type: ignore[override]
+        stmt = super().get_count_query(request)
+        if is_demo_session(request):
+            stmt = stmt.where(SettingsORM.name == DEMO_SCREENER_NAME)
+        return stmt
+
+    def get_details_query(self, request: Request):  # type: ignore[override]
+        stmt = super().get_details_query(request)
+        if is_demo_session(request):
+            stmt = stmt.where(SettingsORM.name == DEMO_SCREENER_NAME)
+        return stmt
+
+    async def serialize_field_value(  # type: ignore[override]
+        self,
+        value: Any,
+        field: Any,
+        action: RequestAction,
+        request: Request,
+    ) -> Any:
+        if field.name in ("chat_id", "bot_token") and action in _MASK_TELEGRAM_ACTIONS:
+            if value is None:
+                return await field.serialize_none_value(request, action)
+            masked = mask_credential_display(value)
+            if masked is None:
+                return await field.serialize_none_value(request, action)
+            return masked
+        return await super().serialize_field_value(value, field, action, request)
 
     fields = [
         # Общие настройки

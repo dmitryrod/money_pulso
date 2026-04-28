@@ -270,8 +270,8 @@ def register_admin_routes(app: FastAPI) -> None:
 
   function renderToggle(mount) {
     const wrapper = el('div', {
-      class: 'd-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 ms-0 ms-md-3 w-100 flex-wrap flex-md-nowrap',
-      style: 'min-width:0;',
+      class: 'mp-global-debug-toggle d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 flex-wrap flex-md-nowrap',
+      style: 'min-width:0; max-width:100%;',
     });
 
     const switchWrap = el('label', { class: 'form-check form-switch m-0 align-self-start align-self-md-center' });
@@ -289,7 +289,7 @@ def register_admin_routes(app: FastAPI) -> None:
     wrapper.append(switchWrap, status);
 
     if (mount?.type === 'after-button' && mount.button?.parentElement) {
-      mount.button.insertAdjacentElement('afterend', wrapper);
+      mount.button.insertAdjacentElement('beforebegin', wrapper);
     } else {
       mount.container.append(wrapper);
     }

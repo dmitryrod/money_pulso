@@ -10,6 +10,10 @@
 
 ### Исправлено
 
+- **Конфиг / Telegram (env):** некорректные **`TELEGRAM_CHAT_ID`** (не целое, префикс **`#`**, пробелы) и **`TELEGRAM_BOT_TOKEN`**, начинающийся с **`#`**, больше не вызывают **`ValueError` при импорте** — трактуются как «не задано» (**`WARNING`** в лог); стартуют Alembic и Uvicorn. Скринер без пары токен+chat по-прежнему работает, отправка в Telegram отключается (**`app/config/config.py`**: **`parse_optional_telegram_chat_id`**, **`parse_optional_telegram_bot_token`**), тесты **`tests/test_configuration_telegram_env.py`**. Уточнены комментарии в **`app/.env.example`**; карточка в **`app/docs/troubleshooting.md`**.
+
+- **Админка / список скринеров (`/admin/screeners/list`):** main-тулбар DataTables в **`#btn_container`** (Экспорт, видимость столбцов, конструктор поиска) на desktop снова в **одну горизонтальную строку** (`flex-wrap: nowrap !important`), а на ширине ≤768px переносит кнопки в несколько строк без горизонтального скролла. Кнопка **«Добавить скринер»** остаётся справа в **`card-header`**; блок **«Глобальный режим отладки»** размещается рядом/ниже и не сдвигает create button от правого края. **`layout.html`**, **`app/admin/__init__.py`**.
+
 - **Админка / topbar (мобильная вёрстка):** в **`app/admin/templates/layout.html`** удалены второй **`navbar-toggler`** (**`data-bs-target="#navbar-menu"`**) и пустой **`#navbar-menu`**; гамбургер для навигации — только в **`aside.navbar.navbar-vertical`** (**`#sidebar-menu`**). См. также историческую запись про перенос **`#navbar-menu`** в **`CHANGELOG`** (блок за 2026-04-28) — поведение заменено на отсутствие дублей.
 
 - **Админка / Сигналы (мобильная навигация):** на странице **`/admin/signals`** убран CSS, скрывавший **`aside.navbar.navbar-vertical`** при ширине ≤600px — восстановлен тот же chrome, что на **`/admin/settings`** (гамбургер открывает **`#sidebar-menu`**). Шаблон: **`signals.html`**.
@@ -17,6 +21,10 @@
 - **SSE / Signals:** **`ProductionAssetCacheMiddleware`** переведён с `BaseHTTPMiddleware` на прямой ASGI-обработчик заголовков `http.response.start` — исправляет ``RuntimeError: No response returned`` при потоковом **`GET /admin_api/signals/stream`** (старое поведение TaskGroup/async в BaseHTTPMiddleware + `StreamingResponse`).
 
 ### Изменено
+
+- **Админка / Скринеры — demo и приватность:** при сессии с ролью **`demo`** в списке и деталях видна только запись с именем **`demo`** (константа **`DEMO_SCREENER_NAME`** в **`app/admin/roles.py`**); прямой URL к чужому PK не открывает строку. Колонки **ID Telegram чата** и **токен бота** в таблице, деталях и API-сериализации starlette-admin (**`API` / `LIST` / `DETAIL`**) маскируются для **всех** ролей (первые и последние 4 символа, середина **`****`**); в формах **создания и редактирования** значения без маски. **`SettingsModelView`** (`get_list_query`, `get_count_query`, `get_details_query`, `serialize_field_value`), **`app/admin/privacy_mask.py`**, тесты **`tests/test_admin_screener_privacy.py`**.
+
+- **Админка / Сигналы (`/admin/signals`):** нативные подсказки при наведении (`title`) на ранг CoinMarketCap, Score (средний вклад по фильтрам), название скринера, биржу и тип рынка (раздельно), время запуска скринера и длительность отслеживания на test-карточках Scanner; на узких карточках — подсказки для биржи/рынка и времени сигнала. **`signals.html`**.
 
 - **Админка / Scanner (test-карточки на `/admin/signals`):** кнопка **«Закрепить»** (`.sct-btn-lock`) в одной строке со ссылкой **«График»** (`.sct-id-stat` / `.btn-analytics-chart`), справа от графика; обёртка **`.sct-stat-row`**; высота замка выровнена с **«Графиком»** (те же `padding` / `line-height` / `border-radius`, что у `.btn-analytics-chart`). **`signals.html`**.
 

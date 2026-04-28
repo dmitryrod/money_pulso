@@ -368,6 +368,15 @@
   .signal-card--test .sct-id-exchange {
     font-size: 11px;
     color: var(--mp-c-hint, #445577);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+    max-width: 100%;
+  }
+  .signal-card--test .sct-id-exchange-sep {
+    flex: 0 0 auto;
+    padding: 0 0.25em;
   }
   .signal-card--test .sct-id-tracking {
     display: flex;
@@ -1007,6 +1016,16 @@
   const TEST_MAX_ALLOWED = [5, 10, 20, 30, 50, 100];
   const LS_TEST_MAX_VISIBLE = 'signals_test_max_visible';
 
+  /** Подсказки для карточек Scanner / обычных сигналов (native title). */
+  const TT_CMC_RANK = 'Место монеты в рейтинге CoinMarketCap';
+  const TT_SCORE_FILTERS = 'Средний вклад по фильтрам';
+  const TT_SCREENER_NAME = 'Название скринера';
+  const TT_EXCHANGE_NAME = 'Название биржи';
+  const TT_MARKET_TYPE = 'Тип рынка';
+  const TT_SCANNER_STARTED_AT = 'Дата и время запуска скринера';
+  const TT_DURATION_SINCE_START = 'Длительность с момента старта';
+  const TT_SIGNAL_CREATED_AT = 'Дата и время сигнала';
+
   function normalizeTestMax(val) {
     const n = parseInt(val, 10);
     return TEST_MAX_ALLOWED.includes(n) ? n : 10;
@@ -1544,9 +1563,20 @@
     }
     const exEl = div.querySelector('.sct-id-exchange');
     if (exEl) {
+      const nameEl = exEl.querySelector('.sct-id-exchange-name');
+      const sepEl = exEl.querySelector('.sct-id-exchange-sep');
+      const marketEl = exEl.querySelector('.sct-id-exchange-market');
       const ex = (item.exchange || '').toUpperCase();
       const mt = (item.market_type || '').toUpperCase();
-      exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
+      if (nameEl && sepEl && marketEl) {
+        nameEl.textContent = ex;
+        marketEl.textContent = mt;
+        nameEl.style.display = ex ? '' : 'none';
+        marketEl.style.display = mt ? '' : 'none';
+        sepEl.style.display = ex && mt ? '' : 'none';
+      } else {
+        exEl.textContent = ex && mt ? (ex + ' - ' + mt) : (ex || mt || '');
+      }
     }
     const statWrap = div.querySelector('.sct-id-stat');
     if (statWrap) {
@@ -1712,6 +1742,7 @@
     }
 
     const scoreEl = div.querySelector('.signal-test-score');
+    if (scoreEl) scoreEl.title = TT_SCORE_FILTERS;
     if (item.mode === 'test' || (item.test_filters && item.test_filters.length)) {
       let oc = item.ok_count;
       let ts = item.tie_break_score;
@@ -1792,9 +1823,9 @@
     const headerInner = `
         <div class="signal-symbol" title="Нажмите, чтобы скопировать">
           <span class="sym-text">${escHtml(symbol)}</span>
-          ${rank ? `<span class="signal-num">#${escHtml(rank)}</span>` : ''}
+          ${rank ? `<span class="signal-num" title="${escHtml(TT_CMC_RANK)}">#${escHtml(rank)}</span>` : ''}
           ${hasBell ? '<span class="bell-icon">🔔</span>' : ''}
-          <span class="signal-test-score" style="display:none" title="Score: среднее signed-вкладов по активным фильтрам"></span>
+          <span class="signal-test-score" style="display:none" title="${escHtml(TT_SCORE_FILTERS)}"></span>
         </div>
         ${statusIcon}`;
 
@@ -1808,10 +1839,10 @@
                 <span class="sym-text">${escHtml(symbol)}</span>
               </div>
               <div class="sct-id-rank-score">
-                <span class="sct-id-rank signal-num"></span>
-                <span class="sct-id-score signal-test-score" style="display:none" title="Score: среднее signed-вкладов по активным фильтрам"></span>
+                <span class="sct-id-rank signal-num" title="${escHtml(TT_CMC_RANK)}"></span>
+                <span class="sct-id-score signal-test-score" style="display:none" title="${escHtml(TT_SCORE_FILTERS)}"></span>
               </div>
-              <div class="sct-id-screener"></div>
+              <div class="sct-id-screener" title="${escHtml(TT_SCREENER_NAME)}"></div>
               <div class="sct-id-links"></div>
               <div class="sct-stat-row">
                 <div class="sct-id-stat" style="display:none"></div>
@@ -1820,10 +1851,12 @@
               <div class="sct-id-actions">
                 <button type="button" class="sct-btn-close" style="display:none" title="Закрыть посттрекинг">✕</button>
               </div>
-              <div class="sct-id-exchange"></div>
+              <div class="sct-id-exchange">
+                <span class="sct-id-exchange-name" title="${escHtml(TT_EXCHANGE_NAME)}"></span><span class="sct-id-exchange-sep"> - </span><span class="sct-id-exchange-market" title="${escHtml(TT_MARKET_TYPE)}"></span>
+              </div>
               <div class="sct-id-tracking">
-                <div class="sct-id-time"></div>
-                <div class="sct-id-duration"></div>
+                <div class="sct-id-time" title="${escHtml(TT_SCANNER_STARTED_AT)}"></div>
+                <div class="sct-id-duration" title="${escHtml(TT_DURATION_SINCE_START)}"></div>
               </div>
             </div>
           </section>
@@ -1835,14 +1868,24 @@
         </div>
       </div>`;
     } else {
+      const exF = (item.exchange || '').toUpperCase();
+      const mtF = (item.market_type || '').toUpperCase();
+      let metaFoot = '';
+      if (exF && mtF) {
+        metaFoot = `<span class="signal-meta-ex" title="${escHtml(TT_EXCHANGE_NAME)}">${escHtml(exF)}</span><span class="signal-meta-sep"> · </span><span class="signal-meta-mt" title="${escHtml(TT_MARKET_TYPE)}">${escHtml(mtF)}</span>`;
+      } else if (exF) {
+        metaFoot = `<span class="signal-meta-ex" title="${escHtml(TT_EXCHANGE_NAME)}">${escHtml(exF)}</span>`;
+      } else if (mtF) {
+        metaFoot = `<span class="signal-meta-mt" title="${escHtml(TT_MARKET_TYPE)}">${escHtml(mtF)}</span>`;
+      }
       div.innerHTML = `
       <div class="signal-header">
         ${headerInner}
       </div>
       <div class="signal-body"></div>
       <div class="signal-footer">
-        <span class="signal-meta">${escHtml((item.exchange||'').toUpperCase())} · ${escHtml((item.market_type||'').toUpperCase())}</span>
-        <span class="signal-time">${fmt_date(item.created_at)}</span>
+        <span class="signal-meta">${metaFoot}</span>
+        <span class="signal-time" title="${escHtml(TT_SIGNAL_CREATED_AT)}">${escHtml(fmt_date(item.created_at))}</span>
       </div>`;
     }
 

@@ -11,6 +11,9 @@ SESSION_ROLE_KEY: Final[str] = "mp_admin_role"
 ROLE_ADMIN: Final[Literal["admin"]] = "admin"
 ROLE_DEMO: Final[Literal["demo"]] = "demo"
 
+# Единственная запись скринеров, видимая в админке при сессии demo (список / детали).
+DEMO_SCREENER_NAME: Final[str] = "demo"
+
 # Отображаемые и отдаваемые GET /admin_api/scanner/runtime-settings в demo (без записи в БД).
 DEMO_SCANNER_RUNTIME_RESPONSE: Final[dict[str, Any]] = {
     "max_cards": 10,
