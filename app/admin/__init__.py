@@ -4,6 +4,7 @@ __all__ = [
     "register_admin_routes",
     "signal_orm_row_to_dict",
     "parse_signals_log_line",
+    "dedupe_signal_log_items_newest_first",
 ]
 
 import asyncio
@@ -86,6 +87,38 @@ def signal_orm_row_to_dict(row: SignalORM) -> dict:
         "card_snapshot": card_snapshot,
         "render_as_scanner": has_snap,
     }
+
+
+def dedupe_signal_log_items_newest_first(items: list[dict]) -> list[dict]:
+    """Убирает повторы одной Scanner-сессии в ленте лог-файла.
+
+    После ``items.reverse()`` в `_read_file_signals` порядок — от новых к старым.
+    Для строк с непустым ``tracking_id`` оставляем только первую (самую новую)
+    для пары (tracking_id, symbol, exchange, market_type). Без ``tracking_id``
+    каждая строка считается отдельным событием (как в legacy-логах).
+
+    Args:
+        items: Список dict из ``parse_signals_log_line`` (уже в порядке новые первые).
+
+    Returns:
+        Отфильтрованный список той же структуры.
+    """
+    seen: set[tuple[str, str, str, str]] = set()
+    out: list[dict] = []
+    for it in items:
+        tid = it.get("tracking_id")
+        if isinstance(tid, str) and tid.strip():
+            key = (
+                tid.strip(),
+                str(it.get("symbol") or ""),
+                str(it.get("exchange") or ""),
+                str(it.get("market_type") or ""),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(it)
+    return out
 
 
 def parse_signals_log_line(line: str) -> dict | None:
@@ -353,7 +386,7 @@ def register_admin_routes(app: FastAPI) -> None:
         except OSError:
             return []
         items.reverse()
-        return items
+        return dedupe_signal_log_items_newest_first(items)
 
     @app.get("/admin_api/signals")
     async def _get_signals(

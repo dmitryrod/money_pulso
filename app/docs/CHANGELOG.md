@@ -8,7 +8,15 @@
 
 - **Сигналы / лог-файл (2026-04-28):** в `signals_log.txt` при записи сигнала в JSON добавляются **`card_snapshot`** (тот же объект, что в `signals.card_snapshot_json`) и **`tracking_id`**, чтобы режим **«Лог-файл»** в админке показывал **горизонтальные** карточки Scanner, как **«БД»**. Парсер вынесен в `parse_signals_log_line` (`app/admin/__init__.py`); в ответе API — поля `card_snapshot`, `tracking_id`, `stat_href`, `render_as_scanner` (как у `signal_orm_row_to_dict`). **Обратная совместимость:** старые строки лога **без** `card_snapshot` остаются **узкими** (legacy), как раньше.
 
+### Исправлено
+
+- **Сигналы / лог-файл (2026-04-28):** несколько строк в `signals_log.txt` с одним и тем же **`tracking_id`** (повторные срабатывания / ошибки Telegram при неизменном «замороженном» `card_snapshot`) больше не дают **дубликатов** карточек: при чтении лога остаётся **самая новая** запись на ключ (tracking_id, symbol, exchange, market_type) — `dedupe_signal_log_items_newest_first` в `app/admin/__init__.py`. В **`signals.html`** при SSE для **лог-файла** и **БД** событие с уже показанным `tracking_id` **обновляет** карточку вместо вставки второй (на случай новых строк при открытой странице).
+
 ### Изменено
+
+- **Админка / форма скринера (2026-04-28):** страницы **`/admin/screeners/create`** и **`/admin/screeners/edit`** (`create_screener.html`, `edit_screener.html`): контейнер **`mp-screener-form`** — селекты **`form-select`** (и контейнер **Select2**, если подключён) с **`max-width`**, не на всю ширину карточки; заголовки секций аккордеона без **`text-dark`**, стили панелей под токены **`DESIGN.md`** (`--mp-surface`, `--mp-border-soft`, светлая тема через **`html[data-bs-theme="light"]`**); кнопки **«Развернуть все»** / **«Свернуть все»** — взаимоисключающее **`btn-primary`** / **`btn-outline-secondary`**, по умолчанию активна развёртка; при смешанном состоянии панелей (ручной клик) обе кнопки нейтральные (**outline**). Исправлен лишний символ **`>`** в разметке label обязательного поля.
+
+- **Админка / Аналитика Scanner (2026-04-28):** **`analytics.html`** — в таблице каталога сессий ссылка **Stat →** заменена на кнопку **«График»** (класс **`btn-analytics-chart`**, без стрелки). **`signals.html`** — та же подпись и стиль для ссылки на stat у карточек Scanner.
 
 - **Админка / UX (2026-04-28):** **`layout.html`** — переключатель темы в шапке (`#mp-admin-theme-switch`): обводка трека и hover только на input; у label сброшены отступы Bootstrap `.form-switch` (`padding` 0, `width: fit-content`, у input `float`/`margin-left` 0), чтобы не было серого «хвоста» справа при наведении; логика `localStorage` / `mp-admin-theme-change` без изменений. Меню **Экспорт** (DataTables `div.dt-button-collection`): читаемый hover/focus в **dark** / **light**, в т.ч. `button.dt-button`, без засвета vendor-стилей.
 

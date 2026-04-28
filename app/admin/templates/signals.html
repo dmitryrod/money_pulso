@@ -615,7 +615,28 @@
     box-shadow: 0 0 0 1px rgba(106,122,154,0.5);
   }
   .signal-card--test .sct-id-stat { font-size: 12px; }
-  .signal-card--test .sct-id-stat a { color: var(--mp-c-link, #7ab8ff); }
+  .signal-card--test .sct-id-stat a.btn-analytics-chart {
+    display: inline-block;
+    background: var(--mp-c-link, #5b9cf6);
+    color: #fff;
+    border: 1px solid color-mix(in srgb, var(--mp-c-link, #5b9cf6) 75%, #000);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .signal-card--test .sct-id-stat a.btn-analytics-chart:hover {
+    filter: brightness(1.08);
+    text-decoration: none;
+  }
+  .signal-card--test .sct-id-stat a.btn-analytics-chart:focus-visible {
+    outline: 2px solid var(--mp-c-link, #5b9cf6);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
   .signal-card--test .sct-id-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1468,7 +1489,8 @@
       if (item.stat_href) {
         const a = document.createElement('a');
         a.href = item.stat_href;
-        a.textContent = 'Stat';
+        a.className = 'btn-analytics-chart';
+        a.textContent = 'График';
         statWrap.appendChild(a);
         statWrap.style.display = '';
       } else {
@@ -1676,6 +1698,13 @@
 
   function findCardById(id) {
     return [...feed.querySelectorAll('.signal-card')].find(c => String(c.dataset.id) === String(id)) || null;
+  }
+
+  /** Одна карточка на tracking_id в режимах БД / лог-файл (обновление вместо дубля при SSE). */
+  function findCardByTrackingId(tid) {
+    if (!tid) return null;
+    const s = String(tid);
+    return [...feed.querySelectorAll('.signal-card')].find(c => String(c.dataset.trackingId || '') === s) || null;
   }
 
   /* Строим HTML карточки */
@@ -1946,6 +1975,15 @@
         if (existing) {
           applyCardData(existing, item);
           reorderTestFeed();
+          return;
+        }
+      }
+
+      if ((source === 'file' || source === 'db') && item.tracking_id) {
+        const existingTr = findCardByTrackingId(item.tracking_id);
+        if (existingTr) {
+          existingTr.dataset.id = String(item.id);
+          applyCardData(existingTr, item);
           return;
         }
       }

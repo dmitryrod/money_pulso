@@ -6,7 +6,11 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app.admin import parse_signals_log_line, signal_orm_row_to_dict
+from app.admin import (
+    dedupe_signal_log_items_newest_first,
+    parse_signals_log_line,
+    signal_orm_row_to_dict,
+)
 from app.database.models.signal import SignalORM
 
 
@@ -98,6 +102,46 @@ def test_parse_signals_log_line_includes_card_snapshot_and_stat() -> None:
     assert d["tracking_id"] == "tid-log-1"
     assert d["stat_href"] == "/admin/analytics/stat-btcusdt-tid-log-1"
     assert d["cmc_rank"] == 7
+
+
+def test_dedupe_signal_log_items_keeps_newest_per_tracking_id() -> None:
+    """Повторные строки лога с тем же tracking_id — одна карточка (новая первой)."""
+    newer = {
+        "id": "2026-04-28T12:00:02+03:00",
+        "symbol": "ZBTUSDT",
+        "exchange": "BYBIT",
+        "market_type": "FUTURES",
+        "tracking_id": "71afe4b212124278a32f",
+        "created_at": "2026-04-28T12:00:02+03:00",
+    }
+    older = {
+        "id": "2026-04-28T12:00:01+03:00",
+        "symbol": "ZBTUSDT",
+        "exchange": "BYBIT",
+        "market_type": "FUTURES",
+        "tracking_id": "71afe4b212124278a32f",
+        "created_at": "2026-04-28T12:00:01+03:00",
+    }
+    other_tid = {
+        "id": "2026-04-28T12:00:03+03:00",
+        "symbol": "ZBTUSDT",
+        "exchange": "BYBIT",
+        "market_type": "FUTURES",
+        "tracking_id": "3d8764ab2dad48159eaa",
+        "created_at": "2026-04-28T12:00:03+03:00",
+    }
+    items = [newer, older, other_tid]
+    out = dedupe_signal_log_items_newest_first(items)
+    assert len(out) == 2
+    assert out[0]["id"] == newer["id"]
+    assert out[1]["id"] == other_tid["id"]
+
+
+def test_dedupe_signal_log_items_no_tracking_keeps_all() -> None:
+    a = {"id": "a", "symbol": "X", "exchange": "E", "market_type": "M", "tracking_id": None}
+    b = {"id": "b", "symbol": "X", "exchange": "E", "market_type": "M", "tracking_id": None}
+    out = dedupe_signal_log_items_newest_first([a, b])
+    assert out == [a, b]
 
 
 def test_parse_signals_log_line_legacy_no_snapshot() -> None:

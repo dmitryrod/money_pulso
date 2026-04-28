@@ -44,6 +44,28 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
+  table.analytics-table a.btn-analytics-chart {
+    display: inline-block;
+    background: var(--mp-c-link, #5b9cf6);
+    color: #fff;
+    border: 1px solid color-mix(in srgb, var(--mp-c-link, #5b9cf6) 75%, #000);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  table.analytics-table a.btn-analytics-chart:hover {
+    filter: brightness(1.08);
+    text-decoration: none;
+  }
+  table.analytics-table a.btn-analytics-chart:focus-visible {
+    outline: 2px solid var(--mp-c-link, #5b9cf6);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
   .cat-pill {
     display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
   }
@@ -171,7 +193,7 @@
         <td>${esc((r.exchange || '') + ' ' + (r.market_type || ''))}</td>
         <td><span class="${catClass(r.category)}">${esc(r.status || '')}</span></td>
         <td style="font-variant-numeric:tabular-nums;font-size:12px;color:var(--mp-c-text-muted, #8899bb)">${esc(trig)}</td>
-        <td><a href="${href}">Stat →</a></td>`;
+        <td><a class="btn-analytics-chart" href="${href}">График</a></td>`;
       tbody.appendChild(tr);
     }
   }
