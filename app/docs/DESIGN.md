@@ -12,6 +12,7 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 
 | Страница | Route |
 |----------|-------|
+| Вход | `/admin/login` |
 | Обзор (дашборд) | `/admin/` |
 | Screeners | `/admin/screeners/list` |
 | Add Screener | `/admin/screeners/create` |

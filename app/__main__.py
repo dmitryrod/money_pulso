@@ -6,6 +6,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import Response
 from sqlalchemy import text
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
+from app.middleware import ProductionAssetCacheMiddleware
 from unicex import start_exchanges_info
 
 from .admin import register_admin_routes
@@ -104,6 +108,10 @@ app = FastAPI(
     if config.environment == EnvironmentType.PRODUCTION
     else {}, # type: ignore
 )
+# Одна сессия для `/admin` и `/admin_api` (роль demo / ACL на API).
+app.add_middleware(SessionMiddleware, secret_key=config.cypher_key)
+app.add_middleware(GZipMiddleware, minimum_size=512)
+app.add_middleware(ProductionAssetCacheMiddleware)
 
 
 @app.get("/.well-known/appspecific/com.chrome.devtools.json")

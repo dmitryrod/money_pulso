@@ -4,7 +4,17 @@
 
 ## [1.5.0] — в разработке
 
+### Изменено
+
+- **Админка / производительность и Lighthouse (2026-04-28):** `timezone.js` перенесён из `<head>` в конец цепочки скриптов страницы (не блокирует первую отрисовку после CSS); в шапке задан явный контраст текста имени пользователя (в т.ч. **DEMO**) — класс **`admin-topbar-user-label`**. В **`EnvironmentType.PRODUCTION`**: заголовки **`Cache-Control`** для **`/admin/statics/*`** (долго, `immutable`) и **`/admin_api/ui/timezone.js`** (сутки); глобально подключён **`GZipMiddleware`** (исключён `text/event-stream` в Starlette). Код: `app/middleware/production_asset_cache.py`, `app/__main__.py`.
+
+### Добавлено
+
+- **Админка / демо-режим (2026-04-28):** реальная аутентификация (`app/admin/auth.py`), отдельная роль **`demo`** из env (`ADMIN_DEMO_ENABLED`, `DEMO_LOGIN`, `DEMO_PASSWORD`). ACL на `POST` для `global-debug`, `scanner/runtime-settings`, `signals/purge`; для demo `GET runtime-settings` отдаёт фиксированный снимок (10 / 10 мин / 24 ч / JSONL). **Логи** недоступны в demo. `SessionMiddleware` на корневом FastAPI (`app/__main__.py`), чтобы `/admin_api/*` видел ту же сессию. Шаблон **`login.html`**. Публичный demo: задавайте сильные пароли в env; **Аналитика** — полный доступ к данным, включая purge (осознанный риск для публичной демо-инсталляции).
+
 ### Документация
+
+- **Troubleshooting (2026-04-28):** карточка «модалка Chrome „Смените пароль“ после `/admin/login`» — браузер, не приложение; шаги: сильный `DEMO_PASSWORD` в env, настройки Chrome.
 
 - **Дизайн админки (2026-04-28):** `app/docs/DESIGN.md` согласован с **`base.html`** / **`layout.html`** (темы **`mp_admin_color_scheme`**, **`#mp-admin-theme-switch`**, **`mp-admin-theme-change`**, collapsible sidebar / edge-toggle, стили коллекций DataTables); в таблицу маршрутов добавлены **редактирование скринера** и уточнён шаблон URL **Analytics Stat**; **Source Map** — пометка про опциональные скриншоты в `app/docs/design/frontend/`, строка **Настройки UI**, ссылка на спек списка скринеров — `design/Page_Screeners/old_design_Page_Screeners.md`. Обновлены `design_Page_Add_Screener.md`, `design_Page_Signals.md`, вводная в `old_design_Page_Screeners.md` про имя файла.
 
@@ -17,6 +27,8 @@
 - **Сигналы / лог-файл (2026-04-28):** в `signals_log.txt` при записи сигнала в JSON добавляются **`card_snapshot`** (тот же объект, что в `signals.card_snapshot_json`) и **`tracking_id`**, чтобы режим **«Лог-файл»** в админке показывал **горизонтальные** карточки Scanner, как **«БД»**. Парсер вынесен в `parse_signals_log_line` (`app/admin/__init__.py`); в ответе API — поля `card_snapshot`, `tracking_id`, `stat_href`, `render_as_scanner` (как у `signal_orm_row_to_dict`). **Обратная совместимость:** старые строки лога **без** `card_snapshot` остаются **узкими** (legacy), как раньше.
 
 ### Изменено
+
+- **Админка / вход (2026-04-28):** на **`/admin/login`** убран верхний логотип/иконка (`login.html`); логотип в шапке после входа без изменений.
 
 - **Админка / Обзор — производительность (2026-04-28):** сводка строится одним SQL-агрегатом + GROUP BY статусов сессий; **`signals.total`** — как в списке сигналов (`pg_stat`, иначе точный COUNT), поле **`signals.total_source`** (`estimate` \| `exact`); снимок метрик для дашборда **без** тяжёлого `os.walk` каталога (`record_snapshot_for_dashboard`); in-process TTL **~5 с** на результат сводки (сброс при рестарте воркера); на клиенте **sessionStorage** `mp_admin_dashboard_summary_v1` — быстрый первый показ и опрос сервера; общая логика estimate — **`app/admin/pg_counts.py`**.
 

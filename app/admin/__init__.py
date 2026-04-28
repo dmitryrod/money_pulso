@@ -22,8 +22,6 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 from starlette.routing import Route
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
 from starlette_admin import I18nConfig
 from starlette_admin.contrib.sqla import Admin
 
@@ -40,6 +38,7 @@ from app.test_signal_broadcast import (
 from app.utils.coinmarketcap_rank import get_cmc_rank_for_symbol
 
 from .auth import AdminAuthProvider
+from .roles import DEMO_SCANNER_RUNTIME_RESPONSE, ensure_full_admin, is_demo_session
 from .dashboard_summary import build_dashboard_summary
 from .monitoring_metrics import get_payload, record_snapshot
 from .pg_counts import signals_total_for_list_ui
@@ -210,7 +209,8 @@ def register_admin_routes(app: FastAPI) -> None:
         )
 
     @app.post("/admin_api/screeners/global-debug")
-    async def _set_global_debug(enabled: bool) -> JSONResponse:
+    async def _set_global_debug(request: Request, enabled: bool) -> JSONResponse:
+        ensure_full_admin(request)
         async with Database.session_context() as db:
             await db.session.execute(update(SettingsORM).values(debug=enabled))
             await db.commit()
@@ -218,8 +218,13 @@ def register_admin_routes(app: FastAPI) -> None:
         return JSONResponse({"ok": True, "enabled": enabled, "total": int(total or 0)})
 
     @app.get("/admin_api/screeners/global-debug.js")
-    async def _global_debug_js() -> Response:
-        js = r"""
+    async def _global_debug_js(request: Request) -> Response:
+        demo_js = "true" if is_demo_session(request) else "false"
+        js = (
+            "window.__MP_ADMIN_SCREENERS_DEMO__ = "
+            + demo_js
+            + ";\n"
+            + r"""
 (() => {
   const STATE_URL = '/admin_api/screeners/global-debug';
 
@@ -292,6 +297,11 @@ def register_admin_routes(app: FastAPI) -> None:
     };
 
     const setLoading = (loading) => {
+      if (window.__MP_ADMIN_SCREENERS_DEMO__) {
+        input.disabled = true;
+        status.setAttribute('data-loading', loading ? 'true' : 'false');
+        return;
+      }
       input.disabled = loading;
       status.setAttribute('data-loading', loading ? 'true' : 'false');
     };
@@ -304,6 +314,10 @@ def register_admin_routes(app: FastAPI) -> None:
       .finally(() => setLoading(false));
 
     input.addEventListener('change', async () => {
+      if (window.__MP_ADMIN_SCREENERS_DEMO__) {
+        if (lastState) setUI(lastState);
+        return;
+      }
       const enabled = input.checked;
       setLoading(true);
       try {
@@ -328,6 +342,7 @@ def register_admin_routes(app: FastAPI) -> None:
   });
 })();
 """
+        )
         return Response(content=js, media_type="application/javascript; charset=utf-8")
 
     @app.get("/admin_api/ui/timezone.js")
@@ -355,7 +370,7 @@ def register_admin_routes(app: FastAPI) -> None:
         auth_provider=AdminAuthProvider(),
         login_logo_url=config.admin.logo_url,
         i18n_config=I18nConfig(default_locale="ru"),
-        middlewares=[Middleware(SessionMiddleware, secret_key=config.cypher_key)],
+        middlewares=[],
         index_view=DashboardCustomView(),
     )
     # В production — noindex в шаблоне; в development Lighthouse не штрафует за «blocked from indexing».
@@ -439,9 +454,11 @@ def register_admin_routes(app: FastAPI) -> None:
 
     @app.post("/admin_api/signals/purge")
     async def _purge_signals(
+        request: Request,
         target: str = Query(..., description="db — только таблица signals; log — только signals_log.txt"),
     ) -> JSONResponse:
         """Очистка по выбору: только БД или только лог-файл сигналов."""
+        ensure_full_admin(request)
         t = (target or "").strip().lower()
         if t == "db":
             deleted = 0
@@ -580,7 +597,9 @@ def register_admin_routes(app: FastAPI) -> None:
     # ──────────────────────────────────────────────────────────────────────────
 
     @app.get("/admin_api/scanner/runtime-settings")
-    async def _get_scanner_runtime_settings_api() -> JSONResponse:
+    async def _get_scanner_runtime_settings_api(request: Request) -> JSONResponse:
+        if is_demo_session(request):
+            return JSONResponse(dict(DEMO_SCANNER_RUNTIME_RESPONSE))
         async with Database.session_context() as db:
             row = await db.session.get(ScannerRuntimeSettingsORM, 1)
             if row is None:
@@ -605,11 +624,13 @@ def register_admin_routes(app: FastAPI) -> None:
 
     @app.post("/admin_api/scanner/runtime-settings")
     async def _post_scanner_runtime_settings_api(
+        request: Request,
         max_cards: int | None = Query(None),
         posttracking_minutes: int | None = Query(None),
         cooldown_hours: int | None = Query(None),
         statistics_enabled: bool | None = Query(None),
     ) -> JSONResponse:
+        ensure_full_admin(request)
         async with Database.session_context() as db:
             row = await db.session.get(ScannerRuntimeSettingsORM, 1)
             if row is None:

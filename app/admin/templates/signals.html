@@ -926,6 +926,8 @@
 (function () {
   'use strict';
 
+  const MP_SIGNALS_DEMO = {{ is_demo | default(false) | tojson }};
+
   /* ── Состояние ── */
   let source   = 'test';   // 'test' (Scanner) | 'db' | 'file'
   let page     = 1;
@@ -957,6 +959,29 @@
   const testMaxCardsSel = document.getElementById('test-max-cards');
   const scannerRuntimeWrap = document.getElementById('scanner-runtime-wrap');
   const scannerRuntimeSave = document.getElementById('scanner-runtime-save');
+
+  function applyDemoSignalsRestrictions() {
+    if (!MP_SIGNALS_DEMO) return;
+    if (testMaxCardsSel) {
+      for (const opt of testMaxCardsSel.options) {
+        opt.disabled = opt.value !== '10';
+      }
+      testMaxCardsSel.value = '10';
+    }
+    const pt = document.getElementById('scanner-posttrack');
+    const cd = document.getElementById('scanner-cooldown');
+    const se = document.getElementById('scanner-stats-enabled');
+    if (pt) {
+      pt.readOnly = true;
+      pt.disabled = true;
+    }
+    if (cd) {
+      cd.readOnly = true;
+      cd.disabled = true;
+    }
+    if (se) se.disabled = true;
+    if (scannerRuntimeSave) scannerRuntimeSave.disabled = true;
+  }
 
   const TEST_MAX_ALLOWED = [5, 10, 20, 30, 50, 100];
   const LS_TEST_MAX_VISIBLE = 'signals_test_max_visible';
@@ -1051,6 +1076,7 @@
   }
 
   async function saveScannerRuntime() {
+    if (MP_SIGNALS_DEMO) return;
     const params = new URLSearchParams();
     if (testMaxCardsSel) params.set('max_cards', testMaxCardsSel.value);
     const pt = document.getElementById('scanner-posttrack');
@@ -1175,6 +1201,7 @@
     if (testMaxWrap) {
       testMaxWrap.style.display = isTest ? 'inline-flex' : 'none';
       if (isTest) applyTestMaxToSelect();
+      if (isTest) applyDemoSignalsRestrictions();
     }
     if (scannerRuntimeWrap) {
       scannerRuntimeWrap.style.display = isTest ? 'inline-flex' : 'none';
@@ -1185,8 +1212,25 @@
   function updatePurgeButtons() {
     const bDb = document.getElementById('btn-purge-db');
     const bLog = document.getElementById('btn-purge-log');
-    if (bDb) bDb.style.display = source === 'db' ? 'inline-block' : 'none';
-    if (bLog) bLog.style.display = source === 'file' ? 'inline-block' : 'none';
+    if (MP_SIGNALS_DEMO) {
+      if (bDb) {
+        bDb.style.display = source === 'db' ? 'inline-block' : 'none';
+        bDb.disabled = true;
+      }
+      if (bLog) {
+        bLog.style.display = source === 'file' ? 'inline-block' : 'none';
+        bLog.disabled = true;
+      }
+      return;
+    }
+    if (bDb) {
+      bDb.style.display = source === 'db' ? 'inline-block' : 'none';
+      bDb.disabled = false;
+    }
+    if (bLog) {
+      bLog.style.display = source === 'file' ? 'inline-block' : 'none';
+      bLog.disabled = false;
+    }
   }
 
   function wirePurgeButtons() {
@@ -2043,6 +2087,12 @@
   };
 
   window.changeTestMaxCards = function(val) {
+    if (MP_SIGNALS_DEMO) {
+      if (testMaxCardsSel) testMaxCardsSel.value = '10';
+      trimTestFeedToMax();
+      updateTestFeedCount();
+      return;
+    }
     const n = normalizeTestMax(val);
     localStorage.setItem(LS_TEST_MAX_VISIBLE, String(n));
     if (testMaxCardsSel) testMaxCardsSel.value = String(n);
@@ -2061,6 +2111,7 @@
   }
 
   wirePurgeButtons();
+  applyDemoSignalsRestrictions();
 
   setInterval(updateAllScannerDurationDisplays, 1000);
 

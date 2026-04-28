@@ -17,7 +17,6 @@
 
 {% block head_css %}
 {{ super() }}
-<script src="/admin_api/ui/timezone.js"></script>
 <style>
   @media (min-width: 992px) {
     .admin-sidebar-edge-toggle {
@@ -120,6 +119,16 @@
     letter-spacing: 0.04em;
     line-height: 1.2;
     color: var(--bs-body-color, #e2e8f0);
+  }
+
+  /* Подпись пользователя в шапке (в т.ч. demo login): достаточный контраст к фону navbar. */
+  .admin-topbar-user-trigger .admin-topbar-user-label {
+    color: #f1f5f9;
+    font-weight: 500;
+    max-width: 12rem;
+  }
+  html[data-bs-theme="light"] .admin-topbar-user-trigger .admin-topbar-user-label {
+    color: #0f172a;
   }
   @media (min-width: 992px) {
     .page > header.navbar:not(.navbar-vertical) .navbar-toggler {
@@ -988,7 +997,7 @@
                                             {% endif %}
                                         </span>
                                         <div class="ps-2">
-                                            <div>{{ current_user.username }}</div>
+                                            <div class="admin-topbar-user-label text-truncate">{{ current_user.username }}</div>
                                         </div>
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
@@ -1023,6 +1032,7 @@
 {% endblock %}
 
 {% block script %}
+<script src="/admin_api/ui/timezone.js"></script>
 {{ super() }}
 <script>
 (function () {

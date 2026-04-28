@@ -24,7 +24,7 @@ docker compose up --build
 
 Полное оглавление, архитектура, changelog, troubleshooting и гайд по скринеру: **[app/docs/README.md](docs/README.md)**.
 
-Правила ведения доков: [SYSTEM_PROMPT.MD](SYSTEM_PROMPT.MD).
+Правила ведения доков: [SYSTEM_PROMPT.MD](docs/SYSTEM_PROMPT.MD).
 
 ## Миграции БД
 
