@@ -5,10 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-<<<<<<< HEAD
 from starlette.exceptions import HTTPException
-=======
->>>>>>> dev
 
 from app.admin.auth import match_admin_or_demo
 from app.admin.roles import (
@@ -19,10 +16,6 @@ from app.admin.roles import (
     ensure_full_admin,
     is_demo_session,
 )
-<<<<<<< HEAD
-=======
-from starlette.exceptions import HTTPException
->>>>>>> dev
 
 
 def test_match_admin_credentials() -> None:
@@ -104,7 +97,6 @@ def test_ensure_full_admin_raises_for_demo() -> None:
     assert ei.value.status_code == 403
 
 
-<<<<<<< HEAD
 def test_ensure_full_admin_raises_401_without_role() -> None:
     req = _request_with_session({})
     with pytest.raises(HTTPException) as ei:
@@ -124,8 +116,6 @@ def test_ensure_full_admin_allows_admin() -> None:
     ensure_full_admin(req)
 
 
-=======
->>>>>>> dev
 def test_demo_runtime_contract() -> None:
     assert DEMO_SCANNER_RUNTIME_RESPONSE["max_cards"] == 10
     assert DEMO_SCANNER_RUNTIME_RESPONSE["posttracking_minutes"] == 10

@@ -47,7 +47,8 @@ docker compose up --build
 | Участие и окружение разработчика | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
 | Типовые сбои | [`docs/troubleshooting.md`](docs/troubleshooting.md) |
 
-<<<<<<< HEAD
+Правила ведения документов: [`docs/SYSTEM_PROMPT.MD`](docs/SYSTEM_PROMPT.MD).
+
 ## Безопасность
 
 - Секреты (боты, БД, ключи шифрования сессии) задаются только через **окружение**, не коммитьте реальные значения.
@@ -60,9 +61,6 @@ docker compose up --build
 ## Лицензия
 
 В корне репозитория файл лицензии может отсутствовать — условия использования уточняйте у владельца проекта.
-=======
-Правила ведения доков: [SYSTEM_PROMPT.MD](docs/SYSTEM_PROMPT.MD).
->>>>>>> dev
 
 ## Миграции БД
 
