@@ -102,11 +102,11 @@ class SettingsDTO(BaseModel):
     timeout_sec: int
     """Таймаут между сигналами по одинаковой монете."""
 
-    chat_id: int
-    """ID чата, в который нужно отправлять уведомления."""
+    chat_id: int | None
+    """ID чата для уведомлений; ``None`` — не слать в Telegram."""
 
-    bot_token: str
-    """Токен бота для отправки уведомлений."""
+    bot_token: str | None
+    """Токен бота; ``None`` или пустая строка — не слать в Telegram."""
 
     text_template_type: TextTemplateType
     """Тип шаблона текста сигнала."""

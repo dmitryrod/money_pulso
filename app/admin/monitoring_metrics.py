@@ -117,8 +117,20 @@ def _series_to_json(deq: deque[tuple[float, float]]) -> list[dict[str, float]]:
     return [{"t": t, "v": v} for t, v in deq]
 
 
-def record_snapshot() -> None:
-    """Собирает снимок, дописывает кольцевые буферы. Вызывать из thread pool (sync)."""
+def record_snapshot(*, scan_app_directory: bool = True) -> None:
+    """Собирает снимок, дописывает кольцевые буферы. Вызывать из thread pool (sync).
+
+    Args:
+        scan_app_directory: Если False — не выполнять ``os.walk`` по каталогу приложения
+            (тяжёлый шаг). Используется для дашборда / TTL-сводки: метрики CPU/RAM/диска
+            обновляются, размер ``app/`` берётся из последнего успешного скана (или «Система»
+            / polling ``/admin_api/monitoring/metrics`` дополнит позже).
+
+    Узкие места по времени ответа дашборда (типично): полный ``COUNT(*)`` по большой таблице
+    ``signals`` без pg_stat; полный walk каталога при первом запросе; последовательные round-trip
+    к Postgres. См. ``app/admin/dashboard_summary.py`` (один SQL-агрегат, estimate через
+    pg_stat, ``scan_app_directory=False`` для SSR/API сводки).
+    """
     now = time.time()
     with _SnapshotState.lock:
         try:
@@ -143,6 +155,9 @@ def record_snapshot() -> None:
             _SnapshotState.last_error = err
             logger.warning("monitoring snapshot failed: {}", err)
 
+        if not scan_app_directory:
+            return
+
         # Размер каталога: не чаще 60 с; поминутная точка — при новом полном скане
         mon = time.monotonic()
         if mon - _SnapshotState._last_dir_scan_monotonic >= _DIR_SCAN_MIN_INTERVAL_SEC or (
@@ -157,6 +172,11 @@ def record_snapshot() -> None:
                 logger.warning("monitoring dir size failed: {}", exc)
                 if _SnapshotState.app_dir_bytes is None:
                     _SnapshotState.app_dir_bytes = 0
+
+
+def record_snapshot_for_dashboard() -> None:
+    """Снимок без обхода дерева каталога — быстрый путь для главной админки."""
+    record_snapshot(scan_app_directory=False)
 
 
 def get_payload() -> dict[str, Any]:

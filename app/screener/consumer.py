@@ -140,6 +140,12 @@ def attach_fire_meta_to_test_filter_rows(
             row["fire_meta"] = dict(fire_by_fid[fid])
 
 
+def _telegram_delivery_configured(settings: SettingsDTO) -> bool:
+    """Пара токен + chat_id задана и годна для попытки отправки в Bot API."""
+    token = (settings.bot_token or "").strip()
+    return bool(token) and settings.chat_id is not None
+
+
 class Consumer:
     """Прослушивает данные с парсеров и с определенной переодичностью
     проверяет данные на совпадение условий, чтобы отправить сигнал в телеграм."""
@@ -905,10 +911,46 @@ class Consumer:
                 pass
         if tracking_id:
             payload_base["tracking_id"] = tracking_id
+
+        if not _telegram_delivery_configured(self.settings):
+            self._logger.trace(
+                "telegram skipped (not configured) screener_id={} symbol={}",
+                self.settings.id,
+                symbol,
+            )
+            payload_base["telegram_ok"] = False
+            payload_base["error"] = None
+            await log_signals_event_async(payload_base)
+            await self._save_signal_to_db(
+                symbol=symbol,
+                telegram_text=text,
+                telegram_ok=False,
+                error=None,
+                tracking_id=tracking_id,
+                card_snapshot_json=card_snapshot_json,
+            )
+            if self.settings.debug:
+                self._schedule_debug_log(
+                    level="info",
+                    screener_name=self.settings.name,
+                    screener_id=self.settings.id,
+                    exchange=str(self.settings.exchange.value),
+                    market_type=str(self.settings.market_type.value),
+                    event="telegram_skipped",
+                    symbol=symbol,
+                    payload={"reason": "not_configured"},
+                    run_id=self._run_id,
+                    cycle_id=self._cycle_id,
+                )
+            return {}
+
         try:
+            chat_id = self.settings.chat_id
+            token = (self.settings.bot_token or "").strip()
+            assert chat_id is not None and token
             resp = await self._telegram_bot.send_message(
-                bot_token=self.settings.bot_token,
-                chat_id=self.settings.chat_id,
+                bot_token=token,
+                chat_id=chat_id,
                 text=text,
             )
             payload_base["telegram_ok"] = True
@@ -951,6 +993,12 @@ class Consumer:
         except Exception as e:
             payload_base["telegram_ok"] = False
             payload_base["error"] = str(e)
+            self._logger.warning(
+                "telegram send failed screener_id={} symbol={}: {}",
+                self.settings.id,
+                symbol,
+                e,
+            )
             await log_signals_event_async(payload_base)
             await self._save_signal_to_db(
                 symbol=symbol,
@@ -977,7 +1025,7 @@ class Consumer:
                     cycle_id=self._cycle_id,
                     exc=e,
                 )
-            raise
+            return {}
 
     async def _enrich_signal_with_funding_rate(self, signal: SignalDTO) -> None:
         """Добирает актуальный фандинг по символу, если парсер не заполнил его.

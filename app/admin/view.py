@@ -2,6 +2,7 @@
 
 __all__ = [
     "SettingsModelView",
+    "DashboardCustomView",
     "MetrCustomView",
     "LogsViewerView",
     "AnalyticsCatalogView",
@@ -28,6 +29,7 @@ from unicex import Exchange, MarketType
 
 from app.schemas import TextTemplateType
 from app.config import logger, config
+from app.admin.dashboard_summary import build_dashboard_summary
 from app.admin.monitoring_metrics import get_template_context, record_snapshot
 
 # Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.
@@ -251,8 +253,9 @@ class SettingsModelView(ModelView):
             label="ID Telegram чата для уведомлений",
             required=False,
             help_text=(
-                "ID Telegram чата, в который будут отправляться уведомления.",
-                "Если оставить пустым — будет использовано значение из TELEGRAM_CHAT_ID в .env.",
+                "ID чата для уведомлений. Необязательно: без пары токен+чат скринер работает, "
+                "сигналы пишутся в БД и лог без отправки в Telegram.",
+                "Пустое поле + TELEGRAM_CHAT_ID в .env — подставится из .env.",
             ),
         ),
         StringField(
@@ -260,8 +263,8 @@ class SettingsModelView(ModelView):
             label="Токен Telegram-бота, который будет отправлять уведомления",
             required=False,
             help_text=(
-                "API-токен Telegram бота, который отправляет сигналы. Получите его у @BotFather и вставьте сюда.",
-                "Если оставить пустым — будет использовано значение из TELEGRAM_BOT_TOKEN в .env.",
+                "Токен бота (@BotFather). Необязательно: см. подсказку у поля «ID чата».",
+                "Пустое поле + TELEGRAM_BOT_TOKEN в .env — подставится из .env.",
             ),
         ),
         EnumField(
@@ -336,21 +339,19 @@ class SettingsModelView(ModelView):
         if not data.get("text_template_type"):
             data["text_template_type"] = TextTemplateType.DEFAULT.value
 
-        # Подстановка дефолтных Telegram-настроек из .env, если поля не заполнены
-        if (not data.get("bot_token")) and config.telegram_bot_token:
-            data["bot_token"] = config.telegram_bot_token
-        if (not data.get("chat_id")) and config.telegram_chat_id is not None:
-            data["chat_id"] = config.telegram_chat_id
+        # Нормализация и подстановка дефолтов Telegram из .env (отправка необязательна)
+        raw_token = data.get("bot_token")
+        if isinstance(raw_token, str):
+            raw_token = raw_token.strip() or None
+        data["bot_token"] = raw_token
+        if data.get("chat_id") == "":
+            data["chat_id"] = None
 
-        # Гарантируем, что в итоге Telegram-настройки заданы либо в форме, либо через .env
-        if not data.get("bot_token"):
-            errors["bot_token"] = (
-                "Укажите токен бота или задайте TELEGRAM_BOT_TOKEN в .env."
-            )
-        if data.get("chat_id") is None:
-            errors["chat_id"] = (
-                "Укажите ID чата или задайте TELEGRAM_CHAT_ID в .env."
-            )
+        env_tok = (config.telegram_bot_token or "").strip() or None
+        if (not data.get("bot_token")) and env_tok:
+            data["bot_token"] = env_tok
+        if (data.get("chat_id") is None) and config.telegram_chat_id is not None:
+            data["chat_id"] = config.telegram_chat_id
 
         def has_any_filters_selected() -> bool:
             """Проверяет, активирован ли хотя бы один фильтр."""
@@ -414,6 +415,28 @@ class SettingsModelView(ModelView):
 
         if errors:
             raise FormValidationError(errors)
+
+
+class DashboardCustomView(CustomView):
+    """Главная страница админки: сводка скринеров, сигналов, аналитики и метрик процесса."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            label="Обзор",
+            icon="fa fa-home",
+            path="/",
+            name="dashboard_index",
+            template_path="dashboard.html",
+            add_to_menu=True,
+        )
+
+    async def render(self, request: Request, templates: Jinja2Templates) -> Response:
+        summary = await build_dashboard_summary()
+        return templates.TemplateResponse(
+            request,
+            "dashboard.html",
+            {"request": request, "dashboard_initial": summary},
+        )
 
 
 class MetrCustomView(CustomView):

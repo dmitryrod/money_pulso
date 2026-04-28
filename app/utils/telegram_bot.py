@@ -3,6 +3,7 @@ __all__ = ["TelegramApiError", "TelegramBot"]
 import json
 
 import aiohttp
+from aiohttp import ClientTimeout
 
 
 class TelegramApiError(RuntimeError):
@@ -27,7 +28,7 @@ class TelegramBot:
 
     def __init__(self):
         """Инициализирует экземпляр класса TelegramBot."""
-        self._session = aiohttp.ClientSession()
+        self._session = aiohttp.ClientSession(timeout=ClientTimeout(total=30))
 
     async def send_message(self, bot_token: str, chat_id: int, text: str) -> dict:
         """Отправляет сообщение в телеграм.

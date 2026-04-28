@@ -4,17 +4,21 @@
 
 ## Текущее состояние
 
-Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, Tabler и Jinja-шаблонах. Общий shell задаётся в **`app/admin/templates/layout.html`** (полная копия структуры starlette-admin с `extends base.html`): collapsible sidebar toggle для ширины `>=992px`, регион **`main`**, мета-теги description/robots, подписи **aria** для кнопок/меню, **alt** у логотипа. Навигационные макросы — **`app/admin/templates/macros/views.html`** (переопределяют пакет через `ChoiceLoader`).
+Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, Tabler и Jinja-шаблонах. Корень разметки — **`app/admin/templates/base.html`** (переопределяет апстрим через `ChoiceLoader`: без внешних веб-шрифтов, дефолт **`data-bs-theme="dark"`**, до отрисовки читается **`localStorage`** ключ **`mp_admin_color_scheme`** — значения `light` / иначе dark). Общий shell страниц — **`app/admin/templates/layout.html`** (`{% extends "base.html" %}`): collapsible sidebar (класс **`html.admin-sidebar-collapsed`**, кнопка **`admin-sidebar-edge-toggle`** при ширине `>=992px`), регион **`main`**, мета-теги description/robots, подписи **aria** для кнопок/меню, **alt** у логотипа, переключатель темы **`#mp-admin-theme-switch`** в верхней панели (событие **`mp-admin-theme-change`**; страницы с Chart.js могут на него подписываться). Навигационные макросы — **`app/admin/templates/macros/views.html`** (переопределяют пакет через `ChoiceLoader`).
+
+Визуально это всё ещё **гибрид** относительно целевого «единого тёмного терминала»: боковая панель и часть страниц близки к crypto-shell, но Tabler/карточки и формы могут выглядеть светлее в режиме **`html[data-bs-theme="light"]`**; оверлеи **DataTables** (Buttons, SearchBuilder, colvis) принудительно стилизованы под активную тему в **`layout.html`**. Цель редизайна из раздела «Целевое направление» остаётся актуальной.
 
 Основные маршруты:
 
 | Страница | Route |
 |----------|-------|
+| Обзор (дашборд) | `/admin/` |
 | Screeners | `/admin/screeners/list` |
 | Add Screener | `/admin/screeners/create` |
+| Edit Screener | `/admin/screeners/edit/{pk}` (шаблон `edit_screener.html`, та же форма что и create) |
 | Signals | `/admin/signals` |
 | Analytics | `/admin/analytics` |
-| Analytics Stat | `/admin/analytics/stat-<symbol>-<tracking_id>` |
+| Analytics Stat | `/admin/analytics/stat-<symbol_slug>-<tracking_id>` (после префикса `stat-` **первый** `-` отделяет slug символа от `tracking_id`; см. `parse_stat_page_path` в `app/screener/scanner_runtime.py`) |
 | System | `/admin/monitoring` |
 | Logs | `/admin/logs` |
 | Настройки UI | `/admin/settings` |
@@ -28,13 +32,12 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 | `/admin_api/screeners/global-debug` | массовое чтение/переключение debug mode |
 | `/admin_api/screeners/global-debug.js` | JS для global debug switch |
 | `/admin_api/ui/timezone.js` | общий JS: часовой пояс интерфейса (IANA), форматирование меток времени |
+| `/admin_api/dashboard/summary` | сводка для главной админки (скринеры, сигналы, аналитика, Scanner runtime, subset метрик мониторинга); у ``signals`` поле ``total_source``: ``estimate`` (pg_stat) или ``exact`` |
 | `/admin_api/signals` | список/снимок сигналов |
 | `/admin_api/signals/stream` | stream обновлений сигналов |
 | `/admin_api/analytics/sessions` | analytics sessions |
 | `/admin_api/analytics/samples` | samples для аналитики |
 | purge endpoints | очистка analytics/log-like данных в админке |
-
-Текущие скриншоты показывают гибрид: тёмный левый sidebar, белый top header, светлые формы и системные карточки, отдельные тёмные страницы Analytics/Signals/Logs. Редизайн должен убрать визуальный разнобой и привести все страницы к единому trading terminal shell.
 
 ## Целевое направление
 
@@ -73,6 +76,8 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 
 Текущий sidebar уже близок к целевому shell: `background: rgba(26,31,46,.92)`, `border: rgba(255,255,255,.12)`, `color: #e0e6f0`, fixed offsets top/left `2.25rem`.
 
+**Светлая тема:** при `html[data-bs-theme="light"]` фокус/hover/active и ряд компонентов (в т.ч. вторичные кнопки в карточках, коллекции DataTables) переопределены в **`layout.html`**. Формы скринера (`mp-screener-form` в `create_screener.html` / `edit_screener.html`) используют токены поверхностей и границ согласованно с тёмным каноном и светлой веткой (см. `CHANGELOG.md`).
+
 ### Typography
 
 - Базовый шрифт: Tabler/system sans-serif, без подключения новых зависимостей.
@@ -99,10 +104,10 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 
 ## Layout Shell
 
-Базовый layout остаётся серверным. `layout.html` расширяет `@starlette-admin/layout.html` и должен быть источником общего shell:
+Базовый layout остаётся серверным. **`layout.html`** расширяет **`base.html`** (цепочка starlette-admin + Tabler) и задаёт общий shell:
 
-- left sidebar: fixed/collapsible, dark translucent surface, border-right;
-- top header: целевое состояние dark topbar, не white header;
+- left sidebar: fixed/collapsible, dark translucent surface, border-right; на десктопе — отдельный **edge-toggle** у края сайдбара;
+- top header: следует классам Tabler **`navbar-dark` / `navbar-light`** в зависимости от темы; переключатель светлой схемы в шапке;
 - content area: scrollable main region с плотным page padding;
 - breakpoint `>=992px`: sidebar toggle видим и работает;
 - mobile/tablet: sidebar collapses over content, main content keeps horizontal scroll for wide tables/charts.
@@ -118,6 +123,8 @@ Frontend сейчас не SPA. Это FastAPI admin UI на `starlette-admin`, 
 ### Tables
 
 Текущий Analytics table уже задаёт нужный паттерн: wrapper radius `10`, border `#2d3550`, header `#1a1f2e`, header text `#8899bb`, hover `#1e2538`, links `#5b9cf6`. Для Screeners нужен такой же exchange-style table вместо default admin table.
+
+Список скринеров использует **DataTables** с подключением **`dt.min.css` после** блока стилей layout; выпадающие коллекции кнопок (экспорт, видимость столбцов, SearchBuilder) стилизованы в **`layout.html`** с якорем **`html[data-bs-theme="dark|light"]`** и `!important` там, где vendor задаёт светлый фон.
 
 ### Forms
 
@@ -145,25 +152,31 @@ Analytics Stat использует Chart.js `4.4.1`. Chart container: `#1a1f2e`
 
 ## Source Map
 
-| Page | Screenshot | Template | Route/API |
-|------|------------|----------|-----------|
+Референсные скриншоты (если лежат в репо): каталог **`app/docs/design/frontend/`** (`Page Analitycs.jpg`, `Page Stat.jpg`, … — имена с опечатками/пробелами сохранены исторически). Файлы могут отсутствовать в клоне; спека страниц — в таблице ниже и в **`design/**/*.md`**.
+
+| Page | Screenshot (номинальный путь) | Template | Route/API |
+|------|------------------------------|----------|-----------|
 | Add Screener | `app/docs/design/frontend/Page Add Screener.jpg` | `app/admin/templates/create_screener.html` | `/admin/screeners/create` |
+| Edit Screener | *(тот же визуальный тип, что Add)* | `app/admin/templates/edit_screener.html` | `/admin/screeners/edit/{pk}` |
 | Analytics (list) | `app/docs/design/frontend/Page Analitycs.jpg` | `app/admin/templates/analytics.html` | `/admin/analytics`, `/admin_api/analytics/sessions`, purge endpoints |
 | Analytics Stat (detail) | `app/docs/design/frontend/Page Stat.jpg` | `app/admin/templates/analytics_stat.html` | `/admin/analytics/stat-<symbol_slug>-<tracking_id>`, `/admin_api/analytics/samples` |
 | Logs | `app/docs/design/frontend/Page Logs.jpg` | `app/admin/templates/logs.html` | `/admin/logs` |
 | Screeners | `app/docs/design/frontend/Page Screeners.jpg` | starlette-admin list + `layout.html` + global debug JS | `/admin/screeners/list`, `/admin_api/screeners/global-debug(.js)` |
 | Signals | `app/docs/design/frontend/Page Signals.jpg` | `app/admin/templates/signals.html` | `/admin/signals`, `/admin_api/signals`, `/admin_api/signals/stream` |
 | System | `app/docs/design/frontend/Page Sistem.jpg` | `app/admin/templates/metr.html` | `/admin/monitoring` |
+| Настройки UI | *(при наличии скриншота)* | `app/admin/templates/ui_settings.html` | `/admin/settings` |
 
 ## Page Detail Files
 
-- [Add Screener](design/Page_Add_Screener/design_Page_Add_Screener.md)
+- [Add Screener](design/Page_Add_Screener/design_Page_Add_Screener.md) (создание и редактирование — см. шаблоны `create_screener.html` / `edit_screener.html`)
 - [Analytics (list)](design/Page_Analytics/design_Page_Analytics.md)
 - [Analytics Stat (detail chart)](design/Page_Stst/design_Page_Stat.md)
 - [Logs](design/Page_Logs/design_Page_Logs.md)
-- [Screeners](design/Page_Screeners/design_Page_Screeners.md)
+- [Screeners](design/Page_Screeners/old_design_Page_Screeners.md) (файл с префиксом `old_` — историческое имя; содержимое — актуальный спек списка скринеров)
 - [Signals](design/Page_Signals/design_Page_Signals.md)
 - [System](design/Page_System/design_Page_System.md)
+
+**Настройки UI** (`/admin/settings`, `ui_settings.html`): отдельного файла в `design/` нет; поведение часового пояса и `localStorage` — в **`CHANGELOG.md`** и **`app/docs/README.md`**.
 
 ## Global Google Stitch Direction Prompt
 
@@ -175,5 +188,6 @@ Create a dark crypto-exchange admin dashboard redesign for Money Pulso, a FastAP
 
 - Часть визуальных размеров оценена как `approx.` по скриншотам; точные размеры нужно сверять в браузере.
 - Для Screeners используется default admin table, поэтому часть detail spec описывает текущий вид по скриншоту и целевое приведение к shared table.
-- Имена screenshot-файлов сохранены как есть: `Page Analitycs.jpg`, `Page Stat.jpg` (пробел в имени), `Page Sistem.jpg`; в документации используются правильные названия страниц Analytics/System.
+- Имена screenshot-файлов сохранены как есть: `Page Analitycs.jpg`, `Page Stat.jpg` (пробел в имени), `Page Sistem.jpg`; в документации используются правильные названия страниц Analytics/System. Каталог **`app/docs/design/frontend/`** может быть пустым в клоне репозитория.
+- Клиентское состояние UI: **`mp_admin_timezone`** (IANA, только после «Сохранить» на `/admin/settings`) и **`mp_admin_color_scheme`** (`dark` / `light`) — не путать друг с другом.
 - View path для отдельных Starlette Admin actions может быть неочевиден без чтения Python view-классов; в page specs указаны найденные/известные routes и templates.

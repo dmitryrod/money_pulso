@@ -4,9 +4,21 @@
 
 ## [1.5.0] — в разработке
 
+### Документация
+
+- **Дизайн админки (2026-04-28):** `app/docs/DESIGN.md` согласован с **`base.html`** / **`layout.html`** (темы **`mp_admin_color_scheme`**, **`#mp-admin-theme-switch`**, **`mp-admin-theme-change`**, collapsible sidebar / edge-toggle, стили коллекций DataTables); в таблицу маршрутов добавлены **редактирование скринера** и уточнён шаблон URL **Analytics Stat**; **Source Map** — пометка про опциональные скриншоты в `app/docs/design/frontend/`, строка **Настройки UI**, ссылка на спек списка скринеров — `design/Page_Screeners/old_design_Page_Screeners.md`. Обновлены `design_Page_Add_Screener.md`, `design_Page_Signals.md`, вводная в `old_design_Page_Screeners.md` про имя файла.
+
 ### Добавлено
 
+- **Админка / Обзор (2026-04-28):** главная **`/admin/`** — дашборд сводки (скринеры, сигналы и Telegram за 24 ч, сессии аналитики по статусам, параметры Scanner runtime, компактные CPU/RAM/диск и размер каталога `app/`). API **`GET /admin_api/dashboard/summary`**; опрос раз в **20 с** с клиента; агрегация **`app/admin/dashboard_summary.py`**, **`DashboardCustomView`** (`index_view`), шаблон **`dashboard.html`**.
+
+- **Скринеры / Telegram (2026-04-28):** токен бота и ID чата **необязательны**. Без пары (в форме и/или после подстановки из `.env`) скринер сохраняется и работает; сигналы пишутся в БД и журнал без вызова Bot API. Миграция Alembic `202604281200_tg_opt` — `settings.bot_token` и `settings.chat_id` допускают `NULL`. При ошибках Telegram (сеть, блокировки, `ok: false`) цикл скринера не прерывается; событие фиксируется как раньше, добавлен `warning` в лог приложения.
+
 - **Сигналы / лог-файл (2026-04-28):** в `signals_log.txt` при записи сигнала в JSON добавляются **`card_snapshot`** (тот же объект, что в `signals.card_snapshot_json`) и **`tracking_id`**, чтобы режим **«Лог-файл»** в админке показывал **горизонтальные** карточки Scanner, как **«БД»**. Парсер вынесен в `parse_signals_log_line` (`app/admin/__init__.py`); в ответе API — поля `card_snapshot`, `tracking_id`, `stat_href`, `render_as_scanner` (как у `signal_orm_row_to_dict`). **Обратная совместимость:** старые строки лога **без** `card_snapshot` остаются **узкими** (legacy), как раньше.
+
+### Изменено
+
+- **Админка / Обзор — производительность (2026-04-28):** сводка строится одним SQL-агрегатом + GROUP BY статусов сессий; **`signals.total`** — как в списке сигналов (`pg_stat`, иначе точный COUNT), поле **`signals.total_source`** (`estimate` \| `exact`); снимок метрик для дашборда **без** тяжёлого `os.walk` каталога (`record_snapshot_for_dashboard`); in-process TTL **~5 с** на результат сводки (сброс при рестарте воркера); на клиенте **sessionStorage** `mp_admin_dashboard_summary_v1` — быстрый первый показ и опрос сервера; общая логика estimate — **`app/admin/pg_counts.py`**.
 
 ### Исправлено
 

@@ -17,7 +17,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import delete, desc, func, select, text, update
+from sqlalchemy import delete, desc, func, select, update
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -40,9 +40,12 @@ from app.test_signal_broadcast import (
 from app.utils.coinmarketcap_rank import get_cmc_rank_for_symbol
 
 from .auth import AdminAuthProvider
+from .dashboard_summary import build_dashboard_summary
 from .monitoring_metrics import get_payload, record_snapshot
+from .pg_counts import signals_total_for_list_ui
 from .view import (
     AnalyticsCatalogView,
+    DashboardCustomView,
     LogsViewerView,
     MetrCustomView,
     SettingsModelView,
@@ -180,22 +183,7 @@ def parse_signals_log_line(line: str) -> dict | None:
 
 async def _signals_total_for_pagination(db: Database) -> int:
     """Число строк signals для UI пагинации: сначала быстрая оценка из pg_stat (PostgreSQL)."""
-    try:
-        res = await db.session.execute(
-            text(
-                "SELECT n_live_tup FROM pg_stat_user_tables "
-                "WHERE relname = 'signals' AND schemaname = current_schema()"
-            )
-        )
-        row = res.first()
-        if row and row[0] is not None and int(row[0]) > 0:
-            return int(row[0])
-    except Exception:
-        pass
-    total_scalar = await db.session.scalar(
-        select(func.count()).select_from(SignalORM)
-    )
-    return int(total_scalar or 0)
+    return await signals_total_for_list_ui(db.session)
 
 
 def register_admin_routes(app: FastAPI) -> None:
@@ -354,6 +342,12 @@ def register_admin_routes(app: FastAPI) -> None:
         await asyncio.to_thread(record_snapshot)
         return JSONResponse(get_payload())
 
+    @app.get("/admin_api/dashboard/summary")
+    async def _admin_dashboard_summary() -> JSONResponse:
+        """Сводка для главной админки и опционального автообновления виджетов."""
+        data = await build_dashboard_summary()
+        return JSONResponse(data)
+
     admin = Admin(
         engine=Database.engine,
         base_url="/admin",
@@ -362,6 +356,7 @@ def register_admin_routes(app: FastAPI) -> None:
         login_logo_url=config.admin.logo_url,
         i18n_config=I18nConfig(default_locale="ru"),
         middlewares=[Middleware(SessionMiddleware, secret_key=config.cypher_key)],
+        index_view=DashboardCustomView(),
     )
     # В production — noindex в шаблоне; в development Lighthouse не штрафует за «blocked from indexing».
     admin.templates.env.globals["admin_robots_noindex"] = (
