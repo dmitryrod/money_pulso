@@ -637,6 +637,29 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
+  .signal-card--test .sct-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .signal-card--test .sct-stat-row .sct-id-stat {
+    min-width: 0;
+  }
+  .signal-card--test .sct-stat-row .sct-btn-lock {
+    box-sizing: border-box;
+    flex-shrink: 0;
+    background: var(--mp-c-raised, #2a3145);
+    border: 1px solid var(--mp-c-border, #3a4558);
+    border-radius: 6px;
+    color: var(--mp-cat-done-fg, #aab8d0);
+    font-size: 12px;
+    line-height: 1.2;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .signal-card--test .sct-stat-row .sct-btn-lock:hover { background: var(--mp-c-raised, #343d52); }
   .signal-card--test .sct-id-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1790,9 +1813,11 @@
               </div>
               <div class="sct-id-screener"></div>
               <div class="sct-id-links"></div>
-              <div class="sct-id-stat" style="display:none"></div>
-              <div class="sct-id-actions">
+              <div class="sct-stat-row">
+                <div class="sct-id-stat" style="display:none"></div>
                 <button type="button" class="sct-btn-lock" title="Закрепить — не участвует в сортировке">🔓</button>
+              </div>
+              <div class="sct-id-actions">
                 <button type="button" class="sct-btn-close" style="display:none" title="Закрыть посттрекинг">✕</button>
               </div>
               <div class="sct-id-exchange"></div>

@@ -18,6 +18,8 @@
 
 ### Изменено
 
+- **Админка / Scanner (test-карточки на `/admin/signals`):** кнопка **«Закрепить»** (`.sct-btn-lock`) в одной строке со ссылкой **«График»** (`.sct-id-stat` / `.btn-analytics-chart`), справа от графика; обёртка **`.sct-stat-row`**; высота замка выровнена с **«Графиком»** (те же `padding` / `line-height` / `border-radius`, что у `.btn-analytics-chart`). **`signals.html`**.
+
 - **CoinMarketCap rank cache:** инициализация перенесена из импорта модуля в **`lifespan`** FastAPI (`app/__main__.py`), чтобы не блокировать тесты и избежать параллельной работы фонового потока при моках HTTP. Для `GET /v1/cryptocurrency/listings/latest`: ретраи при **HTTP 429** с поддержкой **`Retry-After`** или экспоненциальным backoff (потолок **120 с**), пагинация с `CMC_LISTINGS_PAGE_SIZE`, пауза между страницами **`CMC_INTER_PAGE_SLEEP_SEC`**, переменные **`CMC_RETRY_MAX`**, **`CMC_RETRY_BACKOFF_BASE_SEC`**. Дефолтный интервал опроса (**`CMC_UPDATE_TIME`**) в коде — **90** минут и джиттер **±5%** между циклами. В **`CMC_PRO_API_KEY`** / **`X-CMC_PRO_API_KEY`** можно указать несколько ключей через **`|`**; перед каждым HTTP-запросом выбирается случайный (`secrets.choice`). Тесты: `tests/test_coinmarketcap_rank.py`.
 
 ### Добавлено
