@@ -269,14 +269,22 @@ def register_admin_routes(app: FastAPI) -> None:
   }
 
   function renderToggle(mount) {
-    const wrapper = el('div', { class: 'd-flex align-items-center gap-2 ms-3', style: 'white-space:nowrap; flex: 0 0 auto;' });
+    const wrapper = el('div', {
+      class: 'd-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 ms-0 ms-md-3 w-100 flex-wrap flex-md-nowrap',
+      style: 'min-width:0;',
+    });
 
-    const switchWrap = el('label', { class: 'form-check form-switch m-0' });
+    const switchWrap = el('label', { class: 'form-check form-switch m-0 align-self-start align-self-md-center' });
     const input = el('input', { class: 'form-check-input', type: 'checkbox', id: 'global-debug-toggle' });
-    const label = el('span', { class: 'form-check-label', text: 'Глобальный режим отладки' });
+    const label = el('span', { class: 'form-check-label text-break', text: 'Глобальный режим отладки' });
     switchWrap.append(input, label);
 
-    const status = el('div', { class: 'text-secondary small', id: 'global-debug-status', text: '' });
+    const status = el('div', {
+      class: 'text-secondary small flex-grow-1 text-break',
+      id: 'global-debug-status',
+      style: 'min-width:0; white-space:normal;',
+      text: '',
+    });
 
     wrapper.append(switchWrap, status);
 

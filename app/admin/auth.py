@@ -51,7 +51,11 @@ def match_admin_or_demo(
 
 
 class AdminAuthProvider(AuthProvider):
-    """Логин/пароль из env: полный admin и опционально demo (роль в сессии)."""
+    """Логин/пароль из env: полный admin и опционально demo.
+
+    Роль и имя пишутся в ``request.session`` (см. ``SessionMiddleware``): сессия —
+    подписанная cookie у клиента, без общего серверного состояния по ``username``.
+    """
 
     async def login(  # type: ignore[override]
         self,

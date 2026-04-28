@@ -148,6 +148,24 @@
     margin-bottom: 4px;
   }
 
+  /* Секция «Сигналы»: 4 KPI, длинная подпись «TG ошибки 24 ч» — одна строка на типичной ширине */
+  .mp-dash-kpis--signals {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+  .mp-dash-kpis--signals .mp-dash-kpi label {
+    white-space: nowrap;
+    font-size: 10.5px;
+    letter-spacing: 0.035em;
+  }
+  @media (max-width: 480px) {
+    .mp-dash-kpis--signals {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .mp-dash-kpis--signals .mp-dash-kpi label {
+      white-space: normal;
+    }
+  }
+
   .mp-dash-kpi span.val {
     font-size: 22px;
     font-weight: 700;
@@ -287,7 +305,7 @@
         <h2 id="dash-sig-head">Сигналы</h2>
         <a class="more" href="/admin/signals">Подробнее →</a>
       </div>
-      <div class="mp-dash-kpis">
+      <div class="mp-dash-kpis mp-dash-kpis--signals">
         <div class="mp-dash-kpi">
           <label>В БД всего</label>
           <span class="val" id="dash-sig-total">0</span>

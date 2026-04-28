@@ -4,6 +4,18 @@
 
 ## [1.5.0] — в разработке
 
+### Документация
+
+- **Демо для публики / сессии:** в **`app/README.MD`** — блок про публичный sandbox (`ADMIN_DEMO_ENABLED`, плейсхолдеры из `.env.example`), предупреждение о общих кредах; уточнено в **`app/docs/README.md`** и **`app/docs/ARCHITECTURE.md`**: сессия Starlette — подписанная cookie (не общий server-side map по username), параллельные браузеры с одной парой demo допустимы; при нескольких инстансах важен **одинаковый `CYPHER_KEY`**. **`app/docs/troubleshooting.md`** — карточка про «вылет» при разных ключах на репликах.
+
+### Исправлено
+
+- **SSE / Signals:** **`ProductionAssetCacheMiddleware`** переведён с `BaseHTTPMiddleware` на прямой ASGI-обработчик заголовков `http.response.start` — исправляет ``RuntimeError: No response returned`` при потоковом **`GET /admin_api/signals/stream`** (старое поведение TaskGroup/async в BaseHTTPMiddleware + `StreamingResponse`).
+
+### Изменено
+
+- **CoinMarketCap rank cache:** инициализация перенесена из импорта модуля в **`lifespan`** FastAPI (`app/__main__.py`), чтобы не блокировать тесты и избежать параллельной работы фонового потока при моках HTTP. Для `GET /v1/cryptocurrency/listings/latest`: ретраи при **HTTP 429** с поддержкой **`Retry-After`** или экспоненциальным backoff (потолок **120 с**), пагинация с `CMC_LISTINGS_PAGE_SIZE`, пауза между страницами **`CMC_INTER_PAGE_SLEEP_SEC`**, переменные **`CMC_RETRY_MAX`**, **`CMC_RETRY_BACKOFF_BASE_SEC`**. Дефолтный интервал опроса (**`CMC_UPDATE_TIME`**) в коде — **90** минут и джиттер **±5%** между циклами. В **`CMC_PRO_API_KEY`** / **`X-CMC_PRO_API_KEY`** можно указать несколько ключей через **`|`**; перед каждым HTTP-запросом выбирается случайный (`secrets.choice`). Тесты: `tests/test_coinmarketcap_rank.py`.
+
 ### Добавлено
 
 - **Админка / демо-режим (восстановлено):** аутентификация по паролю (`app/admin/auth.py`), роль **`demo`** из env (`ADMIN_DEMO_ENABLED`, `DEMO_LOGIN`, `DEMO_PASSWORD`), ACL в `app/admin/roles.py`; `POST` запрещены для demo на `global-debug`, `scanner/runtime-settings`, `signals/purge`; `GET runtime-settings` в demo — фиксированный снимок (10 / 10 мин / 24 ч / JSONL). **Логи** недоступны в demo. `SessionMiddleware` на корневом FastAPI (`app/__main__.py`). Шаблон **`login.html`**, тесты **`tests/test_admin_demo_acl.py`**.

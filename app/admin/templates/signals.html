@@ -815,8 +815,11 @@
 
   /* ── Адаптив: очень узкий экран ── */
   @media (max-width: 600px) {
-    /* Скрываем боковую панель starlette-admin */
-    .navbar, .sidebar, nav.navbar { display: none !important; }
+    /* Боковая колонка Tabler — не трогаем горизонтальный topbar (#mp-admin-topbar, header без .navbar-vertical). */
+    aside.navbar.navbar-vertical,
+    .sidebar {
+      display: none !important;
+    }
     .main-content, .content-wrapper, main { margin-left: 0 !important; padding-left: 0 !important; }
 
     .signals-page { padding: 8px 4px 70px; }

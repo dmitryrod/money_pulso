@@ -75,7 +75,15 @@ async def lifespan(app: FastAPI):
                 await wait_for_internet(logger=logger, log_name="unicex_exchanges_info")
             else:
                 raise
-    
+
+    # CoinMarketCap rank cache (HTTP + фон; без ключа только warning в утилите)
+    try:
+        from .utils.coinmarketcap_rank import init_cmc_rank_cache
+
+        init_cmc_rank_cache()
+    except Exception as exc:
+        logger.exception("CoinMarketCap rank cache init failed: {}", exc)
+
     # Register admin routes
     register_admin_routes(app)
 

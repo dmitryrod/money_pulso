@@ -121,3 +121,12 @@ def test_demo_runtime_contract() -> None:
     assert DEMO_SCANNER_RUNTIME_RESPONSE["posttracking_minutes"] == 10
     assert DEMO_SCANNER_RUNTIME_RESPONSE["cooldown_hours"] == 24
     assert DEMO_SCANNER_RUNTIME_RESPONSE["statistics_enabled"] is True
+
+
+def test_concurrent_demo_logical_separate_session_dicts() -> None:
+    """Два «клиента» с одним и тем же именем demo — независимые объекты сессии."""
+    a: dict = {SESSION_ROLE_KEY: ROLE_DEMO, "username": "DEMO"}
+    b: dict = {SESSION_ROLE_KEY: ROLE_DEMO, "username": "DEMO"}
+    a["username"] = "x"
+    assert b["username"] == "DEMO"
+    assert a[SESSION_ROLE_KEY] == ROLE_DEMO

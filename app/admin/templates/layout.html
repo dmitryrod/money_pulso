@@ -358,6 +358,54 @@
     outline-offset: 2px;
   }
 
+  /*
+   * Toolbar списка (Screeners и др.): на узких экранах кнопки не налезают друг на друга.
+   * Только .dataTables_wrapper .dt-buttons — не div.dt-button-collection (меню экспорта).
+   */
+  .dataTables_wrapper .dt-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .dataTables_wrapper .dt-buttons > * {
+    min-width: 0;
+  }
+
+  @media (max-width: 768px) {
+    .dataTables_wrapper .row:has(.dt-buttons) {
+      flex-wrap: wrap;
+      row-gap: 0.5rem;
+    }
+
+    .page .card .dataTables_wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .dataTables_wrapper .dt-buttons .btn,
+    .dataTables_wrapper .dt-buttons .btn-group {
+      flex: 1 1 100%;
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .dataTables_wrapper .dt-buttons {
+      gap: 0.375rem;
+    }
+
+    .dataTables_wrapper .dt-buttons .btn,
+    .dataTables_wrapper .dt-buttons .btn-group {
+      flex: 1 1 100%;
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+
   /* ---- Поля ввода / переключатели ---- */
   .page .form-control:focus,
   .page .form-select:focus {

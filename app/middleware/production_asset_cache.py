@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.config import config
 from app.schemas import EnvironmentType
@@ -17,31 +16,49 @@ _CACHE_TIMEZONE_UI = "public, max-age=86400"
 
 
 def apply_production_asset_cache_headers(
-    *, environment: EnvironmentType, path: str, response: Response
+    *, environment: EnvironmentType, path: str, headers: MutableHeaders
 ) -> None:
     """Выставляет Cache-Control для путей статики в ``EnvironmentType.PRODUCTION``.
 
     Args:
         environment: Режим приложения.
         path: ``request.url.path`` без query string.
-        response: Исходящий ответ (заголовки мутируются in-place).
+        headers: Заголовки исходящего ответа (мутируются in-place).
     """
     if environment is not EnvironmentType.PRODUCTION:
         return
     if path.startswith("/admin/statics/"):
-        response.headers.setdefault("Cache-Control", _CACHE_STATIC)
+        headers.setdefault("cache-control", _CACHE_STATIC)
     elif path == "/admin_api/ui/timezone.js":
-        response.headers.setdefault("Cache-Control", _CACHE_TIMEZONE_UI)
+        headers.setdefault("cache-control", _CACHE_TIMEZONE_UI)
 
 
-class ProductionAssetCacheMiddleware(BaseHTTPMiddleware):
-    """Добавляет долгий кэш для ``/admin/statics/*`` и сутки для ``timezone.js`` в проде."""
+class ProductionAssetCacheMiddleware:
+    """Добавляет долгий кэш для ``/admin/statics/*`` и сутки для ``timezone.js`` в проде.
 
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        apply_production_asset_cache_headers(
-            environment=config.environment,
-            path=request.url.path,
-            response=response,
-        )
-        return response
+    Реализован как ASGI middleware (не ``BaseHTTPMiddleware``), чтобы не ломать
+    SSE/``StreamingResponse`` (``text/event-stream``) — см. RuntimeError «No response returned».
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path") or ""
+
+        async def send_wrapper(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                mh = MutableHeaders(raw=message["headers"])
+                apply_production_asset_cache_headers(
+                    environment=config.environment,
+                    path=path,
+                    headers=mh,
+                )
+                message["headers"] = mh.raw
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
