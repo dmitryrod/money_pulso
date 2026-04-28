@@ -17,7 +17,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card mp-screener-form">
                 <form
                     action="{{ request.url | safe }}"
                     method="POST"
@@ -89,9 +89,9 @@
                         "timeout_sec", "text_template_type", "chat_id", "bot_token", "debug"] } ] %} {% set
                         rendered = namespace(values=[]) %}
                         
-                        <div class="d-flex justify-content-end gap-2 mb-3">
+                        <div class="d-flex justify-content-end gap-2 mb-3 mp-screener-bulk-actions">
                             <button
-                                class="btn btn-outline-secondary btn-sm"
+                                class="btn btn-primary btn-sm"
                                 type="button"
                                 data-action="expand-all"
                             >
@@ -114,7 +114,7 @@
                                     id="heading-edit-{{ loop.index }}"
                                 >
                                     <button
-                                        class="accordion-button section-title text-dark"
+                                        class="accordion-button section-title"
                                         type="button"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#collapse-edit-{{ loop.index }}"
@@ -166,7 +166,6 @@
                                                     field.required %}
                                                     <span class="text-danger"
                                                         >*</span>
-                                                    >
                                                     {% endif %}
                                                 </label>
                                                 {% include field.form_template
@@ -186,7 +185,7 @@
                                     id="heading-edit-extra-{{ loop.index }}"
                                 >
                                     <button
-                                        class="accordion-button section-title text-dark"
+                                        class="accordion-button section-title"
                                         type="button"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#collapse-edit-extra-{{ loop.index }}"
@@ -260,15 +259,86 @@ model._additional_css_links(request, "EDIT" | ra) %}
 {% endfor %}
 <style>
     .is-invalid .select2-selection {
-        border-color: #d63939 !important;
+        border-color: var(--mp-form-invalid, #d63939) !important;
     }
 
-    .accordion-button.section-title {
-        font-size: 1.1rem;
-        font-weight: 500;
+    .mp-screener-form .form-select {
+        max-width: min(28rem, 100%);
+        width: auto;
+        min-width: 12rem;
+    }
+
+    .mp-screener-form .select2-container {
+        max-width: min(28rem, 100%);
+    }
+
+    .mp-screener-form .accordion-item {
+        background: transparent;
+        border: 1px solid var(--mp-border-soft, rgba(255, 255, 255, 0.12));
+        border-radius: var(--tblr-border-radius, 8px);
+        overflow: hidden;
+    }
+
+    html[data-bs-theme="light"] .mp-screener-form .accordion-item {
+        border-color: var(--mp-border, #2d3550);
+    }
+
+    .mp-screener-form .accordion-button.section-title {
+        font-size: 1.05rem;
+        font-weight: 600;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        background-color: var(--mp-surface, #1a1f2e);
+        color: var(--mp-text, #e0e6f0);
+        box-shadow: none;
+    }
+
+    .mp-screener-form .accordion-button.section-title:not(.collapsed) {
+        background-color: var(--mp-surface-raised, #232a3e);
+        color: var(--mp-text, #e0e6f0);
+    }
+
+    .mp-screener-form .accordion-button.section-title:hover {
+        background-color: var(--mp-surface-raised, #232a3e);
+        color: var(--mp-text, #e0e6f0);
+    }
+
+    .mp-screener-form .accordion-button.section-title:focus {
+        box-shadow: 0 0 0 0.2rem
+            color-mix(in srgb, var(--tblr-primary, #4299e1) 28%, transparent);
+        border-color: color-mix(
+            in srgb,
+            var(--tblr-primary, #4299e1) 55%,
+            white
+        );
+    }
+
+    html[data-bs-theme="light"] .mp-screener-form .accordion-button.section-title {
+        background-color: color-mix(in srgb, var(--mp-shell-bg, #f1f5f9) 92%, #cbd5e1);
+        color: var(--bs-body-color, #0f172a);
+    }
+
+    html[data-bs-theme="light"]
+        .mp-screener-form
+        .accordion-button.section-title:not(.collapsed),
+    html[data-bs-theme="light"] .mp-screener-form .accordion-button.section-title:hover {
+        background-color: color-mix(in srgb, var(--mp-shell-bg, #f1f5f9) 82%, #94a3b8);
+        color: var(--bs-body-color, #0f172a);
+    }
+
+    .mp-screener-form .accordion-body {
+        background-color: var(--mp-surface-muted, #171c28);
+        color: var(--bs-body-color, #e0e6f0);
+    }
+
+    html[data-bs-theme="light"] .mp-screener-form .accordion-body {
+        background-color: var(--bs-body-bg, #fff);
+    }
+
+    html[data-bs-theme="dark"] .mp-screener-form .accordion-button.section-title::after {
+        filter: brightness(0) invert(1);
+        opacity: 0.9;
     }
 
     .section-title-text {
@@ -279,15 +349,15 @@ model._additional_css_links(request, "EDIT" | ra) %}
         font-size: 0.9rem;
         font-weight: 500;
         white-space: nowrap;
-        color: #9aa0ac;
+        color: var(--mp-filter-muted, #9aa0ac);
     }
 
     .filter-status-badge[data-enabled="true"] {
-        color: #2fb344;
+        color: var(--mp-filter-enabled, #2fb344);
     }
 
     .filter-status-badge[data-enabled="false"] {
-        color: #d63939;
+        color: var(--mp-form-invalid, #d63939);
     }
 </style>
 {% endblock %} {% block script %} {{ super() }}
@@ -323,8 +393,61 @@ model._additional_css_links(request, "EDIT" | ra) %}
                 });
         };
 
-        expandBtn?.addEventListener("click", () => toggleAll(true));
-        collapseBtn?.addEventListener("click", () => toggleAll(false));
+        /**
+         * Кнопки «развернуть / свернуть все»: взаимоисключающее выделение.
+         * Если пользователь открыл часть секций вручную — обе кнопки в нейтральном outline (не active).
+         */
+        const applyBulkButtonVisual = (allExpanded) => {
+            if (!expandBtn || !collapseBtn) return;
+            if (allExpanded) {
+                expandBtn.classList.add("btn-primary");
+                expandBtn.classList.remove("btn-outline-secondary");
+                collapseBtn.classList.remove("btn-primary");
+                collapseBtn.classList.add("btn-outline-secondary");
+            } else {
+                collapseBtn.classList.add("btn-primary");
+                collapseBtn.classList.remove("btn-outline-secondary");
+                expandBtn.classList.remove("btn-primary");
+                expandBtn.classList.add("btn-outline-secondary");
+            }
+        };
+
+        const applyNeutralBulkButtons = () => {
+            if (!expandBtn || !collapseBtn) return;
+            expandBtn.classList.remove("btn-primary");
+            expandBtn.classList.add("btn-outline-secondary");
+            collapseBtn.classList.remove("btn-primary");
+            collapseBtn.classList.add("btn-outline-secondary");
+        };
+
+        const syncBulkButtonsFromAccordion = () => {
+            const collapses = accordion.querySelectorAll(".accordion-collapse");
+            const total = collapses.length;
+            if (!total) return;
+            let openCount = 0;
+            collapses.forEach((el) => {
+                if (el.classList.contains("show")) openCount++;
+            });
+            if (openCount === total) applyBulkButtonVisual(true);
+            else if (openCount === 0) applyBulkButtonVisual(false);
+            else applyNeutralBulkButtons();
+        };
+
+        expandBtn?.addEventListener("click", () => {
+            toggleAll(true);
+            applyBulkButtonVisual(true);
+        });
+        collapseBtn?.addEventListener("click", () => {
+            toggleAll(false);
+            applyBulkButtonVisual(false);
+        });
+
+        accordion.querySelectorAll(".accordion-collapse").forEach((el) => {
+            el.addEventListener("shown.bs.collapse", syncBulkButtonsFromAccordion);
+            el.addEventListener("hidden.bs.collapse", syncBulkButtonsFromAccordion);
+        });
+
+        applyBulkButtonVisual(true);
 
         function hasValue(el) {
             if (!el) return false;

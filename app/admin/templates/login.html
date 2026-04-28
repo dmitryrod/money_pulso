@@ -3,6 +3,14 @@
 {% block sidebar %}{% endblock %}
 {% block content %}
     <div class="container-tight py-4">
+<<<<<<< HEAD
+=======
+        <div class="d-flex justify-content-end mb-3">
+            <label class="form-check form-switch mb-0" title="Светлая тема">
+                <input class="form-check-input" type="checkbox" id="mp-admin-theme-switch" role="switch" aria-label="Светлая цветовая схема" />
+            </label>
+        </div>
+>>>>>>> dev
         <form class="card card-md mp-login-card" action="{{ request.url }}" method="POST"
               style="background: var(--mp-c-surface, #1a1f2e); border-color: var(--mp-c-border, #2d3550);">
             <div class="card-body">
@@ -25,19 +33,39 @@
                     <label class="form-label">{{ _("Username") }}</label>
                     <input type="text"
                            name="username"
+<<<<<<< HEAD
                            class="form-control{% if error %} is-invalid{% endif %}"
                            placeholder="{{ _('Username') }}"
                            autocomplete="username"
                            style="background: var(--mp-c-raised, #232a3e); color: var(--mp-c-text, #e0e6f0); border-color: var(--mp-c-border, #2d3550);"/>
+=======
+                           class="form-control {% if form_errors and form_errors.has('username') %}is-invalid{% endif %}"
+                           placeholder="{{ _('Username') }}"
+                           autocomplete="username"
+                           style="background: var(--mp-c-raised, #232a3e); color: var(--mp-c-text, #e0e6f0); border-color: var(--mp-c-border, #2d3550);"/>
+                    {% if form_errors and form_errors.has('username') %}
+                        <div class="invalid-feedback">{{ form_errors.msg('username') }}</div>
+                    {% endif %}
+>>>>>>> dev
                 </div>
                 <div class="mb-2">
                     <label class="form-label">{{ _("Password") }}</label>
                     <input type="password"
                            name="password"
+<<<<<<< HEAD
                            class="form-control{% if error %} is-invalid{% endif %}"
                            placeholder="{{ _('Password') }}"
                            autocomplete="current-password"
                            style="background: var(--mp-c-raised, #232a3e); color: var(--mp-c-text, #e0e6f0); border-color: var(--mp-c-border, #2d3550);"/>
+=======
+                           class="form-control {% if form_errors and form_errors.has('password') %}is-invalid{% endif %}"
+                           placeholder="{{ _('Password') }}"
+                           autocomplete="current-password"
+                           style="background: var(--mp-c-raised, #232a3e); color: var(--mp-c-text, #e0e6f0); border-color: var(--mp-c-border, #2d3550);"/>
+                    {% if form_errors and form_errors.has('password') %}
+                        <div class="invalid-feedback">{{ form_errors.msg('password') }}</div>
+                    {% endif %}
+>>>>>>> dev
                 </div>
                 <div class="mb-2">
                     <label class="form-check">

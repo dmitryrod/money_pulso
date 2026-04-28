@@ -66,6 +66,7 @@ Role: основной список sessions/samples.
 - Header: bg `#1a1f2e`, text `#8899bb`, font `12-13px`, sticky top inside scroll if feasible.
 - Rows: bg `#0f141f` or transparent over wrapper; hover `#1e2538`.
 - Links: current `#5b9cf6`, underline only on hover.
+- Переход на страницу stat: кнопка **«График»** (класс **`btn-analytics-chart`**), не подпись вида «Stat →».
 - Numeric cells: right aligned, tabular numbers.
 - Density: row height `approx. 36-44px`; padding `8px 10px`.
 

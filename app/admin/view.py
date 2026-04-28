@@ -29,8 +29,13 @@ from unicex import Exchange, MarketType
 
 from app.schemas import TextTemplateType
 from app.config import logger, config
+<<<<<<< HEAD
 from app.admin.dashboard_summary import build_dashboard_summary
 from .roles import is_demo_session
+=======
+from .roles import is_demo_session
+from app.admin.dashboard_summary import build_dashboard_summary
+>>>>>>> dev
 from app.admin.monitoring_metrics import get_template_context, record_snapshot
 
 # Хвост файла: полный app.log за ночь может быть десятки МБ — чтение + Jinja splitlines() блокируют ответ.

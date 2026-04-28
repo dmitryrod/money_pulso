@@ -31,6 +31,7 @@ def is_demo_session(request: Request) -> bool:
 
 
 def ensure_full_admin(request: Request) -> None:
+<<<<<<< HEAD
     """Разрешает только полную роль admin: без сессии / не admin — 401, demo — 403."""
     role = get_session_role(request)
     if role == ROLE_DEMO:
@@ -39,3 +40,8 @@ def ensure_full_admin(request: Request) -> None:
         raise HTTPException(
             status_code=401, detail="Требуется полный доступ администратора"
         )
+=======
+    """Запрещает мутации для demo-сессии (ответ 403)."""
+    if is_demo_session(request):
+        raise HTTPException(status_code=403, detail="Недоступно в демо-режиме")
+>>>>>>> dev

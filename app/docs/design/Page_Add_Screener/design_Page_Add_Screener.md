@@ -9,14 +9,14 @@
 | Источник | Путь |
 |----------|------|
 | Screenshot | [`../frontend/Page Add Screener.jpg`](../frontend/Page%20Add%20Screener.jpg) |
-| Frontend template | `app/admin/templates/create_screener.html` |
-| CSS/static | inline CSS в template + Tabler/Bootstrap классы через Starlette Admin |
-| Shared layout | `app/admin/templates/layout.html` extends `@starlette-admin/layout.html` |
-| Route/view | `GET /admin/screeners/create` (создание `SettingsModelView`, шаблон `create_screener.html`) |
+| Frontend templates | `app/admin/templates/create_screener.html`, `app/admin/templates/edit_screener.html` |
+| CSS/static | inline CSS в template + Tabler/Bootstrap классы через Starlette Admin; контейнер формы **`mp-screener-form`** |
+| Shared layout | `app/admin/templates/layout.html` → `base.html` (starlette-admin / Tabler) |
+| Route/view | `GET /admin/screeners/create` и `GET /admin/screeners/edit/{pk}` (`SettingsModelView`, шаблоны `create_screener.html` / `edit_screener.html`) |
 
 ## 3. Общий layout
 
-Viewport assumption: desktop `approx. 1440x900`. Текущий скриншот показывает тёмный левый sidebar, белый top header и светлую form/card область. Целевое состояние: единый dark trading shell с left sidebar, dark topbar и form canvas на `#0b0e11`.
+Viewport assumption: desktop `approx. 1440x900`. Глобально доступны **тёмная** и **светлая** темы (`data-bs-theme`, переключатель в шапке, `localStorage` **`mp_admin_color_scheme`**). Скриншоты могут показывать светлую карточку формы на тёмном сайдбаре; в светлой теме аккордеон и панели выровнены с токенами **`DESIGN.md`** и переопределениями `html[data-bs-theme="light"]` (см. `CHANGELOG.md`). Целевое состояние редизайна: единый dark trading shell с dark topbar и form canvas на `#0b0e11`.
 
 Структура:
 

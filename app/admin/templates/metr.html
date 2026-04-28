@@ -23,15 +23,15 @@
     .mp-metr-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #e0e6f0;
+        color: var(--mp-c-text, #e0e6f0);
         margin: 0;
     }
 
     .mp-metr-stale {
         font-size: 0.8rem;
-        color: #fdcb6e;
-        background: rgba(253, 203, 110, 0.12);
-        border: 1px solid rgba(253, 203, 110, 0.35);
+        color: var(--mp-metr-stale-fg, #fdcb6e);
+        background: color-mix(in srgb, var(--mp-metr-stale-fg, #fdcb6e) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--mp-metr-stale-fg, #fdcb6e) 35%, transparent);
         border-radius: 999px;
         padding: 4px 10px;
         display: none;
@@ -41,7 +41,7 @@
 
     .mp-metr-updated {
         font-size: 0.75rem;
-        color: #8899bb;
+        color: var(--mp-c-text-muted, #8899bb);
         width: 100%;
         text-align: right;
     }
@@ -60,19 +60,26 @@
     .metric {
         width: 100%;
         padding: 20px 22px;
-        background: linear-gradient(135deg, #1a1f2e 0%, #171c28 100%);
-        border: 1px solid #2d3550;
+        background: linear-gradient(135deg, var(--mp-c-surface, #1a1f2e) 0%, var(--mp-c-surface-2, #171c28) 100%);
+        border: 1px solid var(--mp-c-border, #2d3550);
         border-radius: 16px;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
-        color: #e0e6f0;
+        color: var(--mp-c-text, #e0e6f0);
         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         position: relative;
         overflow: hidden;
     }
 
+    [data-bs-theme="light"] .metric {
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+    [data-bs-theme="light"] .metric:hover {
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+    }
+
     .metric:hover {
         transform: translateY(-2px);
-        border-color: #3a5bbf;
+        border-color: var(--mp-c-border-focus, #3a5bbf);
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
     }
 
@@ -83,21 +90,21 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: #8899bb;
+        color: var(--mp-c-text-muted, #8899bb);
         margin-bottom: 8px;
     }
 
     .metric-value {
         font-size: 32px;
         font-weight: 700;
-        color: #e0e6f0;
+        color: var(--mp-c-text, #e0e6f0);
         margin-bottom: 6px;
         line-height: 1.1;
     }
 
     .metric-sub {
         font-size: 13px;
-        color: #8899bb;
+        color: var(--mp-c-text-muted, #8899bb);
         margin-bottom: 4px;
     }
 
@@ -107,12 +114,12 @@
         height: 40px;
         margin-top: 8px;
         border-radius: 4px;
-        background: rgba(35, 42, 62, 0.6);
+        background: color-mix(in srgb, var(--mp-c-raised, #232a3e) 60%, transparent);
     }
 
     .progress-bar {
         height: 6px;
-        background: #232a3e;
+        background: var(--mp-c-raised, #232a3e);
         border-radius: 999px;
         margin-top: 10px;
         overflow: hidden;
@@ -134,7 +141,7 @@
     }
 
     .mp-metr-err {
-        color: #ff7675;
+        color: var(--mp-err, #ff7675);
         font-size: 0.8rem;
         margin-top: 8px;
     }

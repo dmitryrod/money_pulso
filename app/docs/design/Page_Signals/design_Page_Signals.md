@@ -4,6 +4,8 @@
 
 Страница Signals показывает поток сигналов scanner feed: живые/последние события, результаты тестов фильтров, статусы stream connection и details по каждому сигналу. UX должен быть близок к market feed/trading terminal: плотные cards, мгновенная читаемость ok/fail, контроль reconnecting state.
 
+Три источника данных на выбор в тулбаре: **Scanner** (в API по-прежнему `source=test`), **БД**, **Лог-файл**. По умолчанию при открытии страницы включён **Scanner**; порядок кнопок: Scanner, БД, Лог-файл.
+
 ## 2. Использованные источники
 
 | Источник | Путь |
@@ -12,7 +14,7 @@
 | Frontend template | `app/admin/templates/signals.html` |
 | CSS/static | inline CSS в template |
 | Shared layout | `app/admin/templates/layout.html` |
-| Routes/API | `/admin/signals`, `/admin_api/signals`, `/admin_api/signals/stream` |
+| Routes/API | `/admin/signals`, `/admin_api/signals`, `/admin_api/signals/stream` (источник — query `source`, см. выше) |
 
 ## 3. Общий layout
 
