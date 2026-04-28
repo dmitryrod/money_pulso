@@ -1,5 +1,6 @@
 # Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
 .cursor/
+.cursorignore
 *backups/*
 backups/
 *.pyc
@@ -69,3 +70,6 @@ app/logs/signals_log.txt
 .cursor/memory/rag_fts.sqlite
 .cursor/memory/.ingest_state.json
 .cursor/active_memory.md
+
+# Сопутствующая документация приложения — только локально, не в git
+# app/docs/

@@ -22,9 +22,7 @@ docker compose up --build
 
 ## Документация
 
-Полное оглавление, архитектура, changelog, troubleshooting и гайд по скринеру: **[app/docs/README.md](docs/README.md)**.
-
-Правила ведения доков: [SYSTEM_PROMPT.MD](SYSTEM_PROMPT.MD).
+Каталог **`docs/`** в удалённом репозитории не отслеживается — файлы документации держите локально. Если каталог есть: оглавление и архитектура — **[docs/README.md](docs/README.md)**; правила сопровождения — **[docs/SYSTEM_PROMPT.MD](docs/SYSTEM_PROMPT.MD)**.
 
 ## Миграции БД
 
