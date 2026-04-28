@@ -106,11 +106,11 @@ class SettingsORM(Base):
     )
     """Тип шаблона текста."""
     
-    chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    """ID чата, в который нужно отправлять уведомления."""
+    chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    """ID чата для уведомлений; ``None`` — отправка в Telegram отключена."""
 
-    bot_token: Mapped[str] = mapped_column(nullable=False)
-    """Токен бота для отправки уведомлений."""
+    bot_token: Mapped[str | None] = mapped_column(nullable=True)
+    """Токен бота; ``None`` или пусто — отправка в Telegram отключена."""
 
     debug: Mapped[bool] = mapped_column(default=False, nullable=False)
     """Включен ли вывод отладочного текста в уведомлениях."""

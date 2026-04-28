@@ -3,6 +3,8 @@
 __all__ = [
     "register_admin_routes",
     "signal_orm_row_to_dict",
+    "parse_signals_log_line",
+    "dedupe_signal_log_items_newest_first",
 ]
 
 import asyncio
@@ -15,7 +17,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import delete, desc, func, select, text, update
+from sqlalchemy import delete, desc, func, select, update
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -38,9 +40,12 @@ from app.test_signal_broadcast import (
 from app.utils.coinmarketcap_rank import get_cmc_rank_for_symbol
 
 from .auth import AdminAuthProvider
+from .dashboard_summary import build_dashboard_summary
 from .monitoring_metrics import get_payload, record_snapshot
+from .pg_counts import signals_total_for_list_ui
 from .view import (
     AnalyticsCatalogView,
+    DashboardCustomView,
     LogsViewerView,
     MetrCustomView,
     SettingsModelView,
@@ -87,24 +92,98 @@ def signal_orm_row_to_dict(row: SignalORM) -> dict:
     }
 
 
+def dedupe_signal_log_items_newest_first(items: list[dict]) -> list[dict]:
+    """Убирает повторы одной Scanner-сессии в ленте лог-файла.
+
+    После ``items.reverse()`` в `_read_file_signals` порядок — от новых к старым.
+    Для строк с непустым ``tracking_id`` оставляем только первую (самую новую)
+    для пары (tracking_id, symbol, exchange, market_type). Без ``tracking_id``
+    каждая строка считается отдельным событием (как в legacy-логах).
+
+    Args:
+        items: Список dict из ``parse_signals_log_line`` (уже в порядке новые первые).
+
+    Returns:
+        Отфильтрованный список той же структуры.
+    """
+    seen: set[tuple[str, str, str, str]] = set()
+    out: list[dict] = []
+    for it in items:
+        tid = it.get("tracking_id")
+        if isinstance(tid, str) and tid.strip():
+            key = (
+                tid.strip(),
+                str(it.get("symbol") or ""),
+                str(it.get("exchange") or ""),
+                str(it.get("market_type") or ""),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(it)
+    return out
+
+
+def parse_signals_log_line(line: str) -> dict | None:
+    """Парсит строку из ``signals_log.txt``. Возвращает dict для API/SSE или ``None``.
+
+    Поля ``card_snapshot``, ``tracking_id``, ``stat_href``, ``render_as_scanner`` —
+    если в JSON записан снимок Scanner (паритет с ``signal_orm_row_to_dict`` для БД).
+    """
+    line = line.strip()
+    if not line:
+        return None
+    try:
+        tab_idx = line.index("\t")
+        ts = line[:tab_idx]
+        payload = json.loads(line[tab_idx + 1 :])
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if payload.get("kind") != "signal":
+        return None
+    symbol = payload.get("symbol", "")
+    live_rank = get_cmc_rank_for_symbol(symbol)
+    card_snapshot = None
+    raw_snap = payload.get("card_snapshot")
+    if raw_snap is not None:
+        if isinstance(raw_snap, str):
+            try:
+                card_snapshot = json.loads(raw_snap)
+            except (json.JSONDecodeError, TypeError):
+                card_snapshot = None
+        elif isinstance(raw_snap, dict):
+            card_snapshot = raw_snap
+    tid = payload.get("tracking_id")
+    if not tid or not isinstance(tid, str):
+        tid = None
+    stat_href = scanner_runtime.stat_url_path(symbol, tid) if tid else None
+    has_snap = bool(
+        card_snapshot
+        and isinstance(card_snapshot, dict)
+        and len(card_snapshot) > 0
+    )
+    return {
+        "id": ts,
+        "created_at": payload.get("ts_moscow") or ts,
+        "screener_name": payload.get("screener_name", ""),
+        "screener_id": payload.get("screener_id", 0),
+        "exchange": payload.get("exchange", ""),
+        "market_type": payload.get("market_type", ""),
+        "symbol": symbol,
+        "telegram_text": (payload.get("telegram_text") or "").replace("\\n", "\n"),
+        "telegram_ok": bool(payload.get("telegram_ok", False)),
+        "error": payload.get("error"),
+        "cmc_rank": live_rank,
+        "tracking_id": tid,
+        "stat_href": stat_href,
+        "card_snapshot": card_snapshot,
+        "render_as_scanner": has_snap,
+    }
+
+
 async def _signals_total_for_pagination(db: Database) -> int:
     """Число строк signals для UI пагинации: сначала быстрая оценка из pg_stat (PostgreSQL)."""
-    try:
-        res = await db.session.execute(
-            text(
-                "SELECT n_live_tup FROM pg_stat_user_tables "
-                "WHERE relname = 'signals' AND schemaname = current_schema()"
-            )
-        )
-        row = res.first()
-        if row and row[0] is not None and int(row[0]) > 0:
-            return int(row[0])
-    except Exception:
-        pass
-    total_scalar = await db.session.scalar(
-        select(func.count()).select_from(SignalORM)
-    )
-    return int(total_scalar or 0)
+    return await signals_total_for_list_ui(db.session)
 
 
 def register_admin_routes(app: FastAPI) -> None:
@@ -263,6 +342,12 @@ def register_admin_routes(app: FastAPI) -> None:
         await asyncio.to_thread(record_snapshot)
         return JSONResponse(get_payload())
 
+    @app.get("/admin_api/dashboard/summary")
+    async def _admin_dashboard_summary() -> JSONResponse:
+        """Сводка для главной админки и опционального автообновления виджетов."""
+        data = await build_dashboard_summary()
+        return JSONResponse(data)
+
     admin = Admin(
         engine=Database.engine,
         base_url="/admin",
@@ -271,6 +356,7 @@ def register_admin_routes(app: FastAPI) -> None:
         login_logo_url=config.admin.logo_url,
         i18n_config=I18nConfig(default_locale="ru"),
         middlewares=[Middleware(SessionMiddleware, secret_key=config.cypher_key)],
+        index_view=DashboardCustomView(),
     )
     # В production — noindex в шаблоне; в development Lighthouse не штрафует за «blocked from indexing».
     admin.templates.env.globals["admin_robots_noindex"] = (
@@ -281,35 +367,6 @@ def register_admin_routes(app: FastAPI) -> None:
     # Signals API
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _parse_log_line(line: str) -> dict | None:
-        """Парсит строку из signals_log.txt. Возвращает dict или None если не сигнал."""
-        line = line.strip()
-        if not line:
-            return None
-        try:
-            tab_idx = line.index("\t")
-            ts = line[:tab_idx]
-            payload = json.loads(line[tab_idx + 1:])
-        except (ValueError, json.JSONDecodeError):
-            return None
-        if payload.get("kind") != "signal":
-            return None
-        symbol = payload.get("symbol", "")
-        live_rank = get_cmc_rank_for_symbol(symbol)
-        return {
-            "id": ts,
-            "created_at": payload.get("ts_moscow") or ts,
-            "screener_name": payload.get("screener_name", ""),
-            "screener_id": payload.get("screener_id", 0),
-            "exchange": payload.get("exchange", ""),
-            "market_type": payload.get("market_type", ""),
-            "symbol": symbol,
-            "telegram_text": payload.get("telegram_text", "").replace("\\n", "\n"),
-            "telegram_ok": bool(payload.get("telegram_ok", False)),
-            "error": payload.get("error"),
-            "cmc_rank": live_rank,
-        }
-
     def _read_file_signals() -> list[dict]:
         """Читает все сигналы из signals_log.txt. Новые — в начале."""
         if not _SIGNALS_LOG_PATH.exists():
@@ -318,13 +375,13 @@ def register_admin_routes(app: FastAPI) -> None:
         try:
             with _SIGNALS_LOG_PATH.open("r", encoding="utf-8", errors="replace") as fh:
                 for line in fh:
-                    parsed = _parse_log_line(line)
+                    parsed = parse_signals_log_line(line)
                     if parsed:
                         items.append(parsed)
         except OSError:
             return []
         items.reverse()
-        return items
+        return dedupe_signal_log_items_newest_first(items)
 
     @app.get("/admin_api/signals")
     async def _get_signals(
@@ -491,7 +548,7 @@ def register_admin_routes(app: FastAPI) -> None:
                                 new_bytes = fh.read(current_size - file_pos)
                             file_pos = current_size
                             for raw_line in new_bytes.decode("utf-8", errors="replace").splitlines():
-                                parsed = _parse_log_line(raw_line)
+                                parsed = parse_signals_log_line(raw_line)
                                 if parsed:
                                     yield f"data: {json.dumps(parsed, ensure_ascii=False)}\n\n"
                         elif current_size < file_pos:
