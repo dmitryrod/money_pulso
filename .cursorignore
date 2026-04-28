@@ -1,0 +1,54 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+*backups/*
+*.pyc
+*.key
+*.pem
+__pycache__/
+*cache/
+
+
+# Node
+**/node_modules/
+node_modules/
+**/dist/
+dist/
+**/build/
+build/
+
+# Editor and IDE Settings
+**/.vscode/
+**/*.code-workspace
+**/*.swp
+**/*.swo
+**/.idea/
+
+# OS-specific
+**/Thumbs.db
+**/ehthumbs.db
+**/.Trashes
+**/.DS_Store
+
+# Logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
+**/*.log
+
+# Environment Variables and Configs
+*env
+.env
+.env.*
+*env.example
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+.venv/
+
+# npm / Yarn / pnpm Lock Files (if using one exclusively)
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
