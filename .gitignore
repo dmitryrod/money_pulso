@@ -72,4 +72,4 @@ app/logs/signals_log.txt
 .cursor/active_memory.md
 
 # Сопутствующая документация приложения — только локально, не в git
-# app/docs/
+app/docs/
