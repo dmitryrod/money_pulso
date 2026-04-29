@@ -1,40 +1,51 @@
 # Money Pulso
 
-**Скрининг крипторынка и настройка фильтров реагирования на торговые ситуации** — единая панель для правил отбора, потока сигналов и разбора контекста по инструментам.
+Единая **панель скрининга крипторынка**: правила отбора инструментов, поток сигналов и аналитика сессий Scanner — без отдельных скриптов для каждого сценария.
 
-## Фильтры
-Пампы и дампы
-Открытый интерес
-Ставка финансирования
-Множитель объема
-Ликвидации
-Объем за сутки
-Изменение цены за сутки
-
-## Интерфейс
-
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-framework-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-data-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Python 3.13+](https://img.shields.io/static/v1?label=Python&message=3.13%2B&color=3776AB&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/static/v1?label=FastAPI&message=framework&color=009688&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/static/v1?label=PostgreSQL&message=data&color=4169E1&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Starlette Admin](https://img.shields.io/static/v1?label=Starlette&message=Admin&color=5865F2)](https://jowilf.github.io/starlette-admin/)
+[![Docker](https://img.shields.io/static/v1?label=Docker&message=compose&color=2496ED&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
 ## Зачем это нужно
 
-- Отбор инструментов по настраиваемым условиям (в т.ч. деривативы: OI, фандинг, ликвидации — только для фьючерсов).
-- Доставка срабатываний в **Telegram** и журнал в БД (если настроены токен и id).
-- **Админка** для скринеров, просмотра сигналов и обзора состояния системы.
-- **Аналитика Scanner** — сессии и переход к детальной статистике по символу.
-- Фоновый сбор рыночных данных и проверка фильтров без ручного опроса API.
+- Отбор пар по настраиваемым фильтрам в скринерах (деривативы: открытый интерес, фандинг, ликвидации и др.).
+- Уведомления о срабатываниях в **Telegram** и журнал в **PostgreSQL**.
+- **Веб-админка**: скринеры, карточки сигналов в реальном времени, мониторинг и **аналитика Scanner** с переходом к статистике по символу.
+- Фоновые задачи без ручного опроса биржевых API в интерфейсе. Не требуются API ключи криптобирж.
 
-## Скриншоты
+## Скриншоты интерфейса
 
-| Обзор | Скринеры |
-|:---:|:---:|
-| ![Обзор панели](docs/assets/readme/overview.png) | ![Список скринеров](docs/assets/readme/screeners.png) |
+### Обзор
 
-| Сигналы | Аналитика Scanner |
-|:---:|:---:|
-| ![Карточки сигналов](docs/assets/readme/signals.png) | ![Аналитика сессий](docs/assets/readme/analytics.png) |
+![Обзор и метрики панели](assets/readme/overview.png)
+
+Дашборд со сводкой по системе, скринерам, сигналам и сессиям Scanner.
+
+### Скринеры
+
+![Список скринеров](assets/readme/screeners.jpg)
+
+Управление правилами и параметрами подключённых скринеров.
+
+### Сигналы
+
+![Карточки сигналов](assets/readme/signals.png)
+
+Поток срабатываний на основе активных фильтров.
+
+### Аналитика Scanner
+
+![Каталог tracking-сессий](assets/readme/analytics.png)
+
+Таблица сессий с переходом к подробному графику по символу.
+
+### Статистика по символу
+
+![График Score и фильтров по сессии](assets/readme/stat-symbol.jpg)
+
+Страница статистики: временные ряды score и фильтров поверх диапазона цены по минутным бакетам.
 
 ## Быстрый старт
 
@@ -44,18 +55,18 @@
 docker compose up --build
 ```
 
-Остановка: `docker compose down`. Все параметры окружения — в **`.env`**; перечень переменных и смысл полей — в **[`.env.example`](.env.example)**.
+Остановка: `docker compose down`. Переменные окружения — файл **`.env`** в `app/`; описание переменных — **[`.env.example`](.env.example)**.
 
-После запуска админка: **`http://localhost:<APP_PORT>/admin/`** (страница входа: `/admin/login`).
+После запуска: **`http://localhost:8000/admin/`**
 
 ## Безопасность
 
-- Секреты (боты, БД, ключи шифрования сессии) задаются только через **окружение**, не коммитьте реальные значения.
-- Публичный репозиторий не заменяет модель угроз для продакшена: ограничивайте доступ к админке и БД на сетевом уровне.
+- Секреты (боты, БД, ключ подписи сессии) задаются только через окружение; реальные значения не коммитить.
+- Публичный репозиторий не заменяет модель угроз продакшена: ограничивайте доступ к админке и БД на сетевом уровне.
 
 ## Отказ от ответственности
 
-Сигналы и данные в интерфейсе — **не инвестиционная рекомендация**, а техническое уведомление о выполнении ваших правил. Решения по рискам принимаете вы.
+Сигналы и данные в интерфейсе — **не инвестиционная рекомендация**, а техническое уведомление о выполнении настроенных вами правил. Решения по рискам принимаете вы.
 
 ## Лицензия
 
