@@ -19,31 +19,31 @@
 
 ### Обзор
 
-![Обзор и метрики панели](assets/readme/overview.png)
+![Обзор и метрики панели](app/assets/readme/overview.png)
 
 Дашборд со сводкой по системе, скринерам, сигналам и сессиям Scanner.
 
 ### Скринеры
 
-![Список скринеров](assets/readme/screeners.jpg)
+![Список скринеров](app/assets/readme/screeners.jpg)
 
 Управление правилами и параметрами подключённых скринеров.
 
 ### Сигналы
 
-![Карточки сигналов](assets/readme/signals.png)
+![Карточки сигналов](app/assets/readme/signals.png)
 
 Поток срабатываний на основе активных фильтров.
 
 ### Аналитика Scanner
 
-![Каталог tracking-сессий](assets/readme/analytics.png)
+![Каталог tracking-сессий](app/assets/readme/analytics.png)
 
 Таблица сессий с переходом к подробному графику по символу.
 
 ### Статистика по символу
 
-![График Score и фильтров по сессии](assets/readme/stat-symbol.jpg)
+![График Score и фильтров по сессии](app/assets/readme/stat-symbol.jpg)
 
 Страница статистики: временные ряды score и фильтров поверх диапазона цены по минутным бакетам.
 
@@ -55,7 +55,7 @@
 docker compose up --build
 ```
 
-Остановка: `docker compose down`. Переменные окружения — файл **`.env`** в `app/`; описание переменных — **[`.env.example`](.env.example)**.
+Остановка: `docker compose down`. Переменные окружения — файл **`.env`** в `app/`; описание переменных — **[`.env.example`](.env.example)**
 
 После запуска: **`http://localhost:8000/admin/`**
 
