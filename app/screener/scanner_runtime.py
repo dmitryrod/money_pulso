@@ -99,6 +99,12 @@ async def maybe_refresh_cache() -> None:
 
 
 def collection_enabled() -> bool:
+    """Запись JSONL на диск (алиас ``jsonl_persistence_enabled``)."""
+    return _cache.statistics_enabled
+
+
+def jsonl_persistence_enabled() -> bool:
+    """True — append-only сэмплы и события в ``app/statistics-data/``."""
     return _cache.statistics_enabled
 
 
@@ -114,8 +120,10 @@ def cooldown_seconds() -> float:
     return max(0.0, float(_cache.cooldown_hours) * 3600.0)
 
 
-def should_compute_scanner_snapshot(sse_active: bool) -> bool:
-    return sse_active or _cache.statistics_enabled
+def should_compute_scanner_snapshot(sse_active: bool = False) -> bool:
+    """Scanner snapshot и сессии всегда при работающем consumer (SSE не влияет)."""
+    del sse_active
+    return True
 
 
 def is_under_cooldown(screener_id: int, symbol: str) -> bool:
@@ -173,7 +181,8 @@ def _ensure_session(
             "scanner_source": "scanner",
             "statistics_file_path": rel,
         }
-        asyncio.create_task(_async_append(path, meta))
+        if jsonl_persistence_enabled():
+            asyncio.create_task(_async_append(path, meta))
         asyncio.create_task(
             _upsert_tracking_row(
                 tracking_id=tid,
@@ -191,6 +200,12 @@ def _ensure_session(
 
 async def _async_append(path: Any, obj: dict[str, Any]) -> None:
     await asyncio.to_thread(append_line, path, obj)
+
+
+def _schedule_jsonl_append(path: Any, obj: dict[str, Any]) -> None:
+    """Пишет строку JSONL только при включённом ``statistics_enabled``."""
+    if jsonl_persistence_enabled():
+        asyncio.create_task(_async_append(path, obj))
 
 
 async def _upsert_tracking_row(**kwargs: Any) -> None:
@@ -347,6 +362,8 @@ async def maybe_persist_sample(
     enriched_payload: dict[str, Any],
     force: bool = False,
 ) -> None:
+    if not jsonl_persistence_enabled():
+        return
     st = _ensure_session(screener_id, symbol, screener_name, exchange, market_type)
     if st is None:
         return
@@ -406,10 +423,6 @@ def mark_triggered(
         "ts": datetime.now(timezone.utc).isoformat(),
         "card_snapshot": snapshot,
     }
-    if not st.statistics_path:
-        return None, None
-    path = absolute_stat_path(st.statistics_path)
-    asyncio.create_task(_async_append(path, ev))
     asyncio.create_task(
         _upsert_tracking_row(
             tracking_id=tid,
@@ -423,6 +436,9 @@ def mark_triggered(
             triggered_at=datetime.now(timezone.utc),
         )
     )
+    if st.statistics_path:
+        path = absolute_stat_path(st.statistics_path)
+        _schedule_jsonl_append(path, ev)
     _pending_signal_snapshots[key] = (tid, snap)
     return tid, snap
 

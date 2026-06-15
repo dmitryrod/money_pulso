@@ -609,6 +609,7 @@ def register_admin_routes(app: FastAPI) -> None:
 
     @app.get("/admin_api/scanner/runtime-settings")
     async def _get_scanner_runtime_settings_api(request: Request) -> JSONResponse:
+        """``statistics_enabled`` — только запись JSONL; snapshot/сессии Scanner server-side всегда."""
         if is_demo_session(request):
             return JSONResponse(dict(DEMO_SCANNER_RUNTIME_RESPONSE))
         async with Database.session_context() as db:
@@ -641,6 +642,7 @@ def register_admin_routes(app: FastAPI) -> None:
         cooldown_hours: int | None = Query(None),
         statistics_enabled: bool | None = Query(None),
     ) -> JSONResponse:
+        """``statistics_enabled`` toggles JSONL disk writes only (not Scanner compute)."""
         ensure_full_admin(request)
         async with Database.session_context() as db:
             row = await db.session.get(ScannerRuntimeSettingsORM, 1)

@@ -230,6 +230,8 @@ class Consumer:
 
     async def start(self) -> None:
         """Запускает процесс прослушивания данных и проверки условий."""
+        scanner_runtime.bump_cache_refresh()
+        await scanner_runtime.maybe_refresh_cache()
         while self._is_running:
             try:
                 self._cycle_id += 1
@@ -321,9 +323,7 @@ class Consumer:
         tasks = []
         loop = asyncio.get_running_loop()
         await scanner_runtime.maybe_refresh_cache()
-        test_enabled = scanner_runtime.should_compute_scanner_snapshot(
-            test_stream_is_active()
-        )
+        test_enabled = scanner_runtime.should_compute_scanner_snapshot()
         blocked_timeout = 0
         blocked_day_limit = 0
         missing_klines = 0

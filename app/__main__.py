@@ -4,7 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import text
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -120,6 +120,12 @@ app = FastAPI(
 app.add_middleware(SessionMiddleware, secret_key=config.cypher_key)
 app.add_middleware(GZipMiddleware, minimum_size=512)
 app.add_middleware(ProductionAssetCacheMiddleware)
+
+
+@app.get("/")
+def _root_redirect() -> RedirectResponse:
+    """Корень домена — в админку (Traefik Host без path)."""
+    return RedirectResponse(url="/admin/", status_code=302)
 
 
 @app.get("/.well-known/appspecific/com.chrome.devtools.json")

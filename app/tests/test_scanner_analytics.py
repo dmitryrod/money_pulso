@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from datetime import datetime, timezone
@@ -221,6 +222,7 @@ async def test_maybe_persist_sample_uses_frozen_statistics_path(
         "_ensure_session",
         lambda *a, **k: st,
     )
+    monkeypatch.setattr(scanner_runtime, "_cache", scanner_runtime.ScannerRuntimeCache(statistics_enabled=True))
 
     await scanner_runtime.maybe_persist_sample(
         screener_id=1,
@@ -244,3 +246,115 @@ async def test_maybe_persist_sample_uses_frozen_statistics_path(
 
     assert len(written) == 1
     assert written[0] == absolute_stat_path(frozen_rel)
+
+
+def test_should_compute_scanner_snapshot_always_true() -> None:
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    assert scanner_runtime.should_compute_scanner_snapshot(False) is True
+    assert scanner_runtime.should_compute_scanner_snapshot(True) is True
+    scanner_runtime._cache.statistics_enabled = True  # noqa: SLF001
+
+
+def test_jsonl_persistence_enabled_alias() -> None:
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    assert scanner_runtime.jsonl_persistence_enabled() is False
+    assert scanner_runtime.collection_enabled() is False
+    scanner_runtime._cache.statistics_enabled = True  # noqa: SLF001
+    assert scanner_runtime.jsonl_persistence_enabled() is True
+
+
+@pytest.mark.asyncio
+async def test_ensure_session_upserts_db_without_jsonl_when_statistics_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    upsert_calls: list[dict] = []
+    append_calls: list[tuple] = []
+    pending: list[object] = []
+
+    async def _fake_upsert(**kwargs: object) -> None:
+        upsert_calls.append(dict(kwargs))
+
+    async def _fake_append(path: object, obj: dict) -> None:
+        append_calls.append((path, obj))
+
+    def _capture_task(coro: object) -> None:
+        pending.append(coro)
+
+    monkeypatch.setattr(scanner_runtime, "_upsert_tracking_row", _fake_upsert)
+    monkeypatch.setattr(scanner_runtime, "_async_append", _fake_append)
+    monkeypatch.setattr(scanner_runtime.asyncio, "create_task", _capture_task)
+
+    st = scanner_runtime._ensure_session(  # noqa: SLF001
+        9, "BTCUSDT", "Test", "bybit", "futures",
+    )
+    assert st is not None
+    for coro in pending:
+        await coro  # type: ignore[misc]
+    assert upsert_calls
+    assert upsert_calls[0]["symbol"] == "BTCUSDT"
+    assert upsert_calls[0]["status"] == "active"
+    assert append_calls == []
+
+
+@pytest.mark.asyncio
+async def test_maybe_persist_sample_skips_disk_when_statistics_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    st = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id="tid-nodisk",
+        entered_monotonic=time.monotonic(),
+        statistics_path="statistics-data/x.jsonl",
+    )
+    scanner_runtime._sessions[(2, "SOLUSDT")] = st  # noqa: SLF001
+    written: list[object] = []
+
+    async def _capture_append(path: object, obj: dict) -> None:
+        written.append(path)
+
+    monkeypatch.setattr(scanner_runtime, "_async_append", _capture_append)
+
+    await scanner_runtime.maybe_persist_sample(
+        screener_id=2,
+        symbol="SOLUSDT",
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        enriched_payload={"symbol": "SOLUSDT", "test_filters": []},
+        force=True,
+    )
+    assert written == []
+
+
+def test_symbol_check_pair_runs_test_eval_without_sse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Регрессия: evaluate_test_mode_snapshot вызывается при test_enabled=True без SSE."""
+    from app.screener.consumer import _symbol_check_pair
+
+    eval_called: list[bool] = []
+
+    class _FakeCounter:
+        def get(self, _symbol: str) -> int:
+            return 0
+
+    def _fake_eval(*_a: object, **_k: object) -> dict:
+        eval_called.append(True)
+        return {"score": 1.0, "test_filters": [{"id": "pd", "ok": True}]}
+
+    monkeypatch.setattr(
+        "app.screener.consumer.evaluate_test_mode_snapshot",
+        _fake_eval,
+    )
+    monkeypatch.setattr(
+        "app.screener.consumer.Consumer._check_filters_for_symbol",
+        lambda *_a, **_k: (None, None),
+    )
+
+    _symbol_check_pair(
+        _FakeCounter(),  # type: ignore[arg-type]
+        True,
+        ("ETHUSDT", "ETH", None, None, {}, [], [], 0.0, [], set(), set()),
+    )
+    assert eval_called == [True]
