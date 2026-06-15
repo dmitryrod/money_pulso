@@ -82,14 +82,135 @@
   }
   .analytics-empty { color: var(--mp-c-hint, #6677aa); padding: 16px; }
   .analytics-err { color: var(--mp-err, #e57373); padding: 8px 0; }
+  .analytics-status-filter {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    flex: 0 1 auto;
+    align-self: center;
+  }
+  .analytics-status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 160px;
+    background: var(--mp-c-raised, #232a3e);
+    color: var(--mp-c-text-soft, #c0ccdd);
+    border: 1px solid var(--mp-c-border, #2d3550);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .analytics-status-toggle::after {
+    content: '';
+    margin-left: auto;
+    border: 4px solid transparent;
+    border-top-color: var(--mp-c-text-muted, #8899bb);
+    transform: translateY(2px);
+  }
+  .analytics-status-toggle:hover {
+    border-color: color-mix(in srgb, var(--mp-c-border, #2d3550) 70%, var(--mp-c-link, #5b9cf6));
+  }
+  .analytics-status-toggle:focus-visible {
+    outline: 2px solid var(--mp-c-link, #5b9cf6);
+    outline-offset: 2px;
+    border-color: var(--mp-c-link, #5b9cf6);
+  }
+  .analytics-status-toggle[aria-expanded="true"]::after {
+    transform: translateY(-1px) rotate(180deg);
+  }
+  .analytics-status-panel {
+    display: none;
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    width: max-content;
+    min-width: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--mp-c-raised, #232a3e);
+    border: 1px solid var(--mp-c-border, #2d3550);
+    border-radius: 6px;
+    padding: 2px 0;
+    box-shadow: 0 8px 24px color-mix(in srgb, #000 35%, transparent);
+  }
+  .analytics-status-panel.is-open {
+    display: block;
+  }
+  .analytics-status-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .analytics-status-check {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.1;
+    color: var(--mp-c-text-soft, #c0ccdd);
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    padding: 3px 6px 3px 4px;
+    border-radius: 0;
+    white-space: nowrap;
+  }
+  .analytics-status-check:hover {
+    color: var(--mp-c-text, #e0e6f0);
+    background: var(--mp-c-surface-2, #1e2538);
+  }
+  .analytics-status-check input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    width: 11px;
+    height: 11px;
+    min-width: 11px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 11px;
+    border: 1px solid var(--mp-c-border, #2d3550);
+    border-radius: 2px;
+    background: var(--mp-c-surface, #1a1f2e);
+    accent-color: var(--mp-c-link, #5b9cf6);
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .analytics-status-check input[type="checkbox"]:checked {
+    background: var(--mp-c-link, #5b9cf6);
+    border-color: var(--mp-c-link, #5b9cf6);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2' d='M2 6l3 3 5-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 9px 9px;
+  }
+  .analytics-status-check input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--mp-c-link, #5b9cf6);
+    outline-offset: 2px;
+  }
 </style>
 
 <div class="analytics-page">
   <h1>Аналитика Scanner</h1>
   <div class="analytics-toolbar">
     <input type="search" id="analytics-filter" placeholder="Фильтр: символ, биржа, tracking_id…" autocomplete="off" />
+    <div class="analytics-status-filter" id="analytics-status-filter">
+      <button type="button" class="analytics-status-toggle" id="analytics-status-toggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Фильтр по статусам">
+        Все статусы
+      </button>
+      <div class="analytics-status-panel" id="analytics-status-panel" role="listbox" aria-multiselectable="true" aria-label="Фильтр по статусам">
+        <div class="analytics-status-checks" id="analytics-status-checks"></div>
+      </div>
+    </div>
     <button type="button" id="analytics-btn-purge" class="btn-analytics-purge" title="Удалить все сессии из БД и все JSONL в app/statistics-data">
-      Очистить
+      Очистить историю
     </button>
   </div>
   <div class="analytics-table-wrap">
@@ -117,8 +238,84 @@
   const tbody = document.getElementById('analytics-tbody');
   const errEl = document.getElementById('analytics-err');
   const filterEl = document.getElementById('analytics-filter');
+  const statusChecksEl = document.getElementById('analytics-status-checks');
+  const statusToggleEl = document.getElementById('analytics-status-toggle');
+  const statusPanelEl = document.getElementById('analytics-status-panel');
   const btnPurge = document.getElementById('analytics-btn-purge');
   let items = [];
+
+  const STATUS_FILTER_LABELS = [
+    'start', 'deleted', 'abandoned', 'active',
+    'triggered', 'posttracking', 'completed', 'closed',
+  ];
+
+  function updateStatusToggleLabel() {
+    if (!statusToggleEl) return;
+    const enabled = getEnabledStatusLabels();
+    const total = STATUS_FILTER_LABELS.length;
+    if (enabled.length === total) {
+      statusToggleEl.textContent = 'Все статусы';
+    } else if (!enabled.length) {
+      statusToggleEl.textContent = 'Нет статусов';
+    } else {
+      statusToggleEl.textContent = 'Статусы: ' + enabled.length + ' из ' + total;
+    }
+  }
+
+  function setStatusPanelOpen(open) {
+    if (!statusPanelEl || !statusToggleEl) return;
+    statusPanelEl.classList.toggle('is-open', open);
+    statusToggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function initStatusDropdown() {
+    if (!statusChecksEl) return;
+    statusChecksEl.innerHTML = '';
+    for (const label of STATUS_FILTER_LABELS) {
+      const id = 'analytics-status-' + label;
+      const wrap = document.createElement('label');
+      wrap.className = 'analytics-status-check';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = id;
+      input.name = 'analytics-status';
+      input.value = label;
+      input.checked = true;
+      input.setAttribute('role', 'option');
+      input.setAttribute('aria-selected', 'true');
+      wrap.append(input, document.createTextNode(label));
+      statusChecksEl.append(wrap);
+    }
+    statusChecksEl.addEventListener('change', function (e) {
+      const input = e.target;
+      if (input && input.type === 'checkbox') {
+        input.setAttribute('aria-selected', input.checked ? 'true' : 'false');
+      }
+      updateStatusToggleLabel();
+      applyFilter();
+    });
+
+    if (statusToggleEl) {
+      statusToggleEl.addEventListener('click', function () {
+        const open = !statusPanelEl.classList.contains('is-open');
+        setStatusPanelOpen(open);
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (!statusPanelEl || !statusPanelEl.classList.contains('is-open')) return;
+      const root = document.getElementById('analytics-status-filter');
+      if (root && !root.contains(e.target)) {
+        setStatusPanelOpen(false);
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') setStatusPanelOpen(false);
+    });
+
+    updateStatusToggleLabel();
+  }
 
   function loadSessions() {
     errEl.style.display = 'none';
@@ -130,7 +327,7 @@
       })
       .then((data) => {
         items = data.items || [];
-        render(items);
+        applyFilter();
       })
       .catch((e) => {
         errEl.style.display = '';
@@ -250,29 +447,46 @@
       .replace(/"/g,'&quot;');
   }
 
-  function applyFilter() {
-    const q = (filterEl.value || '').trim().toLowerCase();
-    if (!q) {
-      render(items);
-      return;
-    }
-    const filtered = items.filter((r) => {
-      const timelineLabels = (resolveTimeline(r) || []).map((e) => e.label).join(' ');
-      const blob = [
-        r.symbol, r.screener_name, r.exchange, r.market_type,
-        r.status, r.tracking_id, r.category, timelineLabels,
-      ].join(' ').toLowerCase();
-      return blob.includes(q);
+  function getEnabledStatusLabels() {
+    return STATUS_FILTER_LABELS.filter((label) => {
+      const el = document.getElementById('analytics-status-' + label);
+      return el && el.checked;
     });
+  }
+
+  function rowPassesStatusFilter(row, enabled) {
+    if (!enabled.length) return false;
+    const labels = (resolveTimeline(row) || []).map((e) => String(e.label || '').toLowerCase());
+    if (!labels.length) return true;
+    return labels.every((l) => enabled.includes(l));
+  }
+
+  function rowPassesTextFilter(row, q) {
+    if (!q) return true;
+    const timelineLabels = (resolveTimeline(row) || []).map((e) => e.label).join(' ');
+    const blob = [
+      row.symbol, row.screener_name, row.exchange, row.market_type,
+      row.status, row.tracking_id, row.category, timelineLabels,
+    ].join(' ').toLowerCase();
+    return blob.includes(q);
+  }
+
+  function applyFilter() {
+    const enabled = getEnabledStatusLabels();
+    const q = (filterEl.value || '').trim().toLowerCase();
+    const filtered = items.filter((r) => (
+      rowPassesStatusFilter(r, enabled) && rowPassesTextFilter(r, q)
+    ));
     render(filtered);
   }
 
+  initStatusDropdown();
   filterEl.addEventListener('input', applyFilter);
 
   window.addEventListener(
     window.MpAdminTime && window.MpAdminTime.EVENT_NAME ? window.MpAdminTime.EVENT_NAME : 'mp-admin-timezone-change',
     function () {
-      render(items);
+      applyFilter();
     }
   );
 
