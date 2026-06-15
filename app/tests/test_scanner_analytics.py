@@ -358,3 +358,130 @@ def test_symbol_check_pair_runs_test_eval_without_sse(
         ("ETHUSDT", "ETH", None, None, {}, [], [], 0.0, [], set(), set()),
     )
     assert eval_called == [True]
+
+
+def test_build_tracking_timeline_start_and_triggered() -> None:
+    from types import SimpleNamespace
+
+    from app.screener.tracking_timeline import build_tracking_timeline
+
+    t0 = datetime(2026, 6, 9, 17, 5, 6, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 9, 20, 10, 0, tzinfo=timezone.utc)
+    row = SimpleNamespace(
+        status="triggered",
+        entered_scanner_at=t0,
+        created_at=t0,
+        triggered_at=t1,
+        completed_at=None,
+        closed_at=None,
+        updated_at=t1,
+    )
+    tl = build_tracking_timeline(row)
+    assert len(tl) == 2
+    assert tl[0] == {"label": "start", "at": t0.isoformat()}
+    assert tl[1] == {"label": "triggered", "at": t1.isoformat()}
+
+
+def test_build_tracking_timeline_deleted() -> None:
+    from types import SimpleNamespace
+
+    from app.screener.tracking_timeline import analytics_category, build_tracking_timeline
+
+    t0 = datetime(2026, 6, 9, 17, 5, 6, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 9, 18, 0, 0, tzinfo=timezone.utc)
+    row = SimpleNamespace(
+        status="deleted",
+        entered_scanner_at=t0,
+        created_at=t0,
+        triggered_at=None,
+        completed_at=None,
+        closed_at=t1,
+        updated_at=t1,
+    )
+    tl = build_tracking_timeline(row)
+    assert tl == [
+        {"label": "start", "at": t0.isoformat()},
+        {"label": "deleted", "at": t1.isoformat()},
+    ]
+    assert analytics_category("deleted") == "other"
+
+
+def test_analytics_category_mapping() -> None:
+    from app.screener.tracking_timeline import analytics_category
+
+    assert analytics_category("active") == "active"
+    assert analytics_category("triggered") == "active"
+    assert analytics_category("completed") == "completed"
+    assert analytics_category("closed") == "completed"
+    assert analytics_category("deleted") == "other"
+
+
+@pytest.mark.asyncio
+async def test_tombstone_untriggered_keeps_db_row(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """Untriggered tombstone: JSONL removed, DB row kept with status=deleted."""
+    from app.database.models import TrackingSessionORM
+    from app.screener.statistics_store import relative_stat_path
+
+    t0 = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
+    jsonl = tmp_path / "sess.jsonl"
+    jsonl.write_text('{"kind":"session_meta"}\n', encoding="utf-8")
+    rel = relative_stat_path(jsonl)
+
+    row = TrackingSessionORM(
+        tracking_id="tid-tomb-1",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="BTCUSDT",
+        status="active",
+        statistics_file_path=rel,
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t0,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, tid: str) -> TrackingSessionORM | None:
+            return row if tid == "tid-tomb-1" else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    logged: list[dict] = []
+
+    def _log(payload: dict) -> None:
+        logged.append(payload)
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.absolute_stat_path",
+        lambda _rel: jsonl,
+    )
+    monkeypatch.setattr("app.screener.scanner_runtime.log_signals_event", _log)
+
+    await scanner_runtime._async_tombstone_untriggered_session(  # noqa: SLF001
+        "tid-tomb-1", rel,
+    )
+
+    assert not jsonl.is_file()
+    assert row.status == "deleted"
+    assert row.statistics_file_path is None
+    assert row.closed_at is not None
+    assert logged and logged[0]["action"] == "tombstone_deleted"
+    assert logged[0]["tracking_id"] == "tid-tomb-1"

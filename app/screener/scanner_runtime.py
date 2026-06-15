@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from app.config.signals_log import log_signals_event
 from app.database import Database
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener.statistics_store import (
@@ -269,38 +270,56 @@ def prune_sessions_not_in_set(screener_id: int, keep_symbols: set[str]) -> None:
                 _sample_seq.pop(st.tracking_id, None)
                 if not st.triggered:
                     asyncio.create_task(
-                        _async_delete_session_artifacts(
+                        _async_tombstone_untriggered_session(
                             st.tracking_id, st.statistics_path
                         )
                     )
 
 
-async def _async_delete_session_artifacts(
+async def _async_tombstone_untriggered_session(
     tracking_id: str, statistics_path_rel: str | None
 ) -> None:
-    """Удаляет строку ``tracking_sessions`` и JSONL-файл сессии (если был)."""
+    """Tombstone untriggered session: unlink JSONL, retain minimal ``tracking_sessions`` row."""
+    now = datetime.now(timezone.utc)
+    entered_at_iso: str | None = None
+    symbol: str | None = None
     try:
         async with Database.session_context() as db:
             row = await db.session.get(TrackingSessionORM, tracking_id)
             if row is not None:
-                await db.session.delete(row)
+                if row.entered_scanner_at is not None:
+                    entered_at_iso = row.entered_scanner_at.isoformat()
+                symbol = row.symbol
+                row.status = "deleted"
+                row.closed_at = now
+                row.statistics_file_path = None
+                row.updated_at = now
                 await db.commit()
     except Exception:
         pass
-    if not statistics_path_rel:
-        return
-    path = absolute_stat_path(statistics_path_rel)
-    try:
-        if path.is_file():
-            path.unlink()
-    except OSError:
-        pass
+    if statistics_path_rel:
+        path = absolute_stat_path(statistics_path_rel)
+        try:
+            if path.is_file():
+                path.unlink()
+        except OSError:
+            pass
+    log_signals_event(
+        {
+            "kind": "scanner_tracking",
+            "action": "tombstone_deleted",
+            "tracking_id": tracking_id,
+            "symbol": symbol,
+            "entered_scanner_at": entered_at_iso,
+            "deleted_at": now.isoformat(),
+        }
+    )
 
 
 def remove_untriggered_session_and_artifacts(
     screener_id: int, symbol: str,
 ) -> bool:
-    """Удаляет сессию без trigger: память, JSONL, ``tracking_sessions``.
+    """Tombstone сессию без trigger: память, JSONL; строка ``tracking_sessions`` → ``deleted``.
 
     Returns:
         True если сессия была и была без trigger.
@@ -314,7 +333,7 @@ def remove_untriggered_session_and_artifacts(
     _sample_seq.pop(st.tracking_id, None)
     _manual_close_ids.discard(st.tracking_id)
     asyncio.create_task(
-        _async_delete_session_artifacts(st.tracking_id, st.statistics_path)
+        _async_tombstone_untriggered_session(st.tracking_id, st.statistics_path)
     )
     return True
 

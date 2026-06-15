@@ -27,7 +27,7 @@ class TrackingSessionORM(Base):
     symbol: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(
         String(32), default="active", nullable=False
-    )  # active | triggered | posttracking | completed | closed | abandoned
+    )  # active | triggered | posttracking | completed | closed | abandoned | deleted
     statistics_file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     entered_scanner_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -40,7 +40,7 @@ class TrackingSessionORM(Base):
     )
     closed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
-    )
+    )  # manual close (status=closed) or tombstone deleted_at (status=deleted)
     cooldown_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

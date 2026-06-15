@@ -30,6 +30,7 @@ from app.database import Database, SettingsORM, SignalORM
 from app.schemas import EnvironmentType
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener import scanner_runtime
+from app.screener.tracking_timeline import analytics_category, build_tracking_timeline
 from app.screener.statistics_store import (
     purge_statistics_data_files,
     resolve_statistics_jsonl,
@@ -719,12 +720,7 @@ def register_admin_routes(app: FastAPI) -> None:
             ).scalars().all()
         items = []
         for r in rows:
-            if r.status in ("triggered", "active", "posttracking"):
-                cat = "active"
-            elif r.status in ("completed", "closed"):
-                cat = "completed"
-            else:
-                cat = "other"
+            cat = analytics_category(r.status)
             items.append(
                 {
                     "tracking_id": r.tracking_id,
@@ -736,6 +732,10 @@ def register_admin_routes(app: FastAPI) -> None:
                     "status": r.status,
                     "category": cat,
                     "triggered_at": r.triggered_at.isoformat() if r.triggered_at else None,
+                    "entered_scanner_at": (
+                        r.entered_scanner_at.isoformat() if r.entered_scanner_at else None
+                    ),
+                    "timeline": build_tracking_timeline(r),
                     "statistics_file_path": r.statistics_file_path,
                 }
             )

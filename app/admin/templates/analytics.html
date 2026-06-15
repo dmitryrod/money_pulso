@@ -72,6 +72,14 @@
   .cat-active { background: var(--mp-cat-active-bg, #2e4a2e); color: var(--mp-cat-active-fg, #8fdf8f); }
   .cat-done { background: var(--mp-cat-done-bg, #2d3550); color: var(--mp-cat-done-fg, #aab8d0); }
   .cat-other { background: var(--mp-cat-err-bg, #3d2a2a); color: var(--mp-cat-err-fg, #e0a0a0); }
+  .cat-neutral { background: var(--mp-c-surface-2, #1e2538); color: var(--mp-c-text-muted, #8899bb); }
+  .analytics-timeline-cell { display: flex; flex-direction: column; gap: 6px; }
+  .analytics-timeline-row { display: flex; align-items: center; min-height: 1.25rem; }
+  .analytics-trigger-cell {
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--mp-c-text-muted, #8899bb);
+  }
   .analytics-empty { color: var(--mp-c-hint, #6677aa); padding: 16px; }
   .analytics-err { color: var(--mp-err, #e57373); padding: 8px 0; }
 </style>
@@ -160,10 +168,51 @@
     });
   }
 
-  function catClass(cat) {
-    if (cat === 'active') return 'cat-pill cat-active';
-    if (cat === 'completed') return 'cat-pill cat-done';
-    return 'cat-pill cat-other';
+  function timelineLabelClass(label) {
+    const l = String(label || '').toLowerCase();
+    if (l === 'start') return 'cat-pill cat-neutral';
+    if (l === 'deleted' || l === 'abandoned') return 'cat-pill cat-other';
+    if (l === 'active' || l === 'triggered' || l === 'posttracking') return 'cat-pill cat-active';
+    if (l === 'completed' || l === 'closed') return 'cat-pill cat-done';
+    return 'cat-pill cat-neutral';
+  }
+
+  function formatTimelineAt(iso) {
+    if (!iso) return '—';
+    if (window.MpAdminTime && typeof window.MpAdminTime.formatTriggerCompact === 'function') {
+      return window.MpAdminTime.formatTriggerCompact(iso);
+    }
+    return String(iso).replace('T', ' ').replace('Z', '');
+  }
+
+  function resolveTimeline(row) {
+    if (Array.isArray(row.timeline) && row.timeline.length) return row.timeline;
+    const fallback = [];
+    if (row.entered_scanner_at) {
+      fallback.push({ label: 'start', at: row.entered_scanner_at });
+    }
+    if (row.status && row.status !== 'start') {
+      const at = row.triggered_at || row.entered_scanner_at;
+      if (at) fallback.push({ label: row.status, at: at });
+    }
+    return fallback;
+  }
+
+  function renderTimelineStatus(row) {
+    const entries = resolveTimeline(row);
+    if (!entries.length) return '<span class="cat-pill cat-neutral">—</span>';
+    return '<div class="analytics-timeline-cell">' + entries.map((e) => (
+      '<div class="analytics-timeline-row"><span class="' + timelineLabelClass(e.label) + '">'
+      + esc(e.label || '') + '</span></div>'
+    )).join('') + '</div>';
+  }
+
+  function renderTimelineTrigger(row) {
+    const entries = resolveTimeline(row);
+    if (!entries.length) return '—';
+    return '<div class="analytics-timeline-cell analytics-trigger-cell">' + entries.map((e) => (
+      '<div class="analytics-timeline-row">' + esc(formatTimelineAt(e.at)) + '</div>'
+    )).join('') + '</div>';
   }
 
   function statPath(sym, tid) {
@@ -182,17 +231,12 @@
     for (const r of rows) {
       const tr = document.createElement('tr');
       const href = statPath(r.symbol, r.tracking_id);
-      const trig = r.triggered_at
-        ? (window.MpAdminTime && typeof window.MpAdminTime.formatTriggerCompact === 'function'
-          ? window.MpAdminTime.formatTriggerCompact(r.triggered_at)
-          : r.triggered_at.replace('T', ' ').replace('Z', ''))
-        : '—';
       tr.innerHTML = `
         <td><strong>${esc(r.symbol)}</strong></td>
         <td>${esc(r.screener_name || '')}</td>
         <td>${esc((r.exchange || '') + ' ' + (r.market_type || ''))}</td>
-        <td><span class="${catClass(r.category)}">${esc(r.status || '')}</span></td>
-        <td style="font-variant-numeric:tabular-nums;font-size:12px;color:var(--mp-c-text-muted, #8899bb)">${esc(trig)}</td>
+        <td>${renderTimelineStatus(r)}</td>
+        <td>${renderTimelineTrigger(r)}</td>
         <td><a class="btn-analytics-chart" href="${href}">График</a></td>`;
       tbody.appendChild(tr);
     }
@@ -213,9 +257,10 @@
       return;
     }
     const filtered = items.filter((r) => {
+      const timelineLabels = (resolveTimeline(r) || []).map((e) => e.label).join(' ');
       const blob = [
         r.symbol, r.screener_name, r.exchange, r.market_type,
-        r.status, r.tracking_id, r.category,
+        r.status, r.tracking_id, r.category, timelineLabels,
       ].join(' ').toLowerCase();
       return blob.includes(q);
     });
