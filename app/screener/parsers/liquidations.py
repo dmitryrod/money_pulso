@@ -41,14 +41,19 @@ class LiquidationsParser(Parser):
     async def start(self) -> None:
         """Запускает парсер данных."""
         self._logger.info("Parser started")
+        self._is_running = True
         try:
             async with self._client_context() as client:
                 futures_tickers_batched = await self._fetch_batched_futures_tickers_list(client)
                 self._liquidation_websockets = self._create_websockets(futures_tickers_batched)
                 tasks = await self._start_websockets()
                 await asyncio.gather(*tasks)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self._logger.exception(f"Error fetching data: {e}")
+        finally:
+            await self._stop_websocket_list(self._liquidation_websockets)
 
     async def _fetch_batched_futures_tickers_list(self, client:IUniClient) -> list[list[str]]:
         """Fetches a batched list of futures tickers."""
@@ -91,13 +96,8 @@ class LiquidationsParser(Parser):
     async def stop(self) -> None:
         """Останавливает парсер данных."""
         self._logger.info("Parser stopped")
-        gather_results = await asyncio.gather(
-            *[ws.stop() for ws in self._liquidation_websockets], return_exceptions=True
-        )
-        for result in gather_results:
-            if isinstance(result, Exception):
-                self._logger.error(f"Error while stopping websocket: {result}")
         self._is_running = False
+        await self._stop_websocket_list(self._liquidation_websockets)
 
     async def fetch_collected_data(self) -> dict[str, list[LiquidationDict]]:
         """Возвращает накопленные данные. Возвращает ссылку на объект в котором хранятся данные."""

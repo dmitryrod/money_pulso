@@ -13,6 +13,7 @@ from app.config import get_logger, log_debug_event, log_signals_event
 from app.database import Database
 from app.schemas import SettingsDTO
 from app.utils.connectivity import is_transient_network_error, wait_for_internet
+from app.utils.fd_guard import get_fd_pressure_snapshot, should_trigger_fd_recycle
 
 from .consumer import Consumer
 from .parsers import (
@@ -93,6 +94,7 @@ class Operator:
                 )
                 self._ws_periodic_recycle_sec = self._WS_PERIODIC_RECYCLE_DEFAULT_SEC
         self._last_ws_periodic_recycle_ts: dict[tuple[Exchange, MarketType], float] = {}
+        self._last_fd_pressure_recycle_ts: float = 0.0
 
     async def start(self) -> None:
         """Запускает цикл обновления настроек и управление процессами."""
@@ -155,6 +157,11 @@ class Operator:
                 await self._maybe_periodic_recycle_websocket_parsers(settings_list)
             except Exception as exc:
                 self._logger.exception(f"Error in websocket periodic recycle: {exc}")
+
+            try:
+                await self._maybe_fd_pressure_recycle_websocket_parsers(settings_list)
+            except Exception as exc:
+                self._logger.exception(f"Error in fd pressure websocket recycle: {exc}")
 
             try:
                 await self._update_consumers(settings_list)
@@ -284,6 +291,49 @@ class Operator:
                 "run_id": self._run_id,
             }
         )
+
+    async def _maybe_fd_pressure_recycle_websocket_parsers(
+        self, settings_list: list[SettingsDTO]
+    ) -> None:
+        """Принудительный recycle WS при приближении к soft ulimit (см. FD_PRESSURE_*)."""
+        now = time.time()
+        snapshot = get_fd_pressure_snapshot()
+        if not should_trigger_fd_recycle(
+            snapshot, self._last_fd_pressure_recycle_ts, now=now
+        ):
+            return
+
+        self._last_fd_pressure_recycle_ts = now
+        self._logger.warning(
+            "FD pressure recycle: open_fds={} limit={} ratio={:.1%} threshold={:.0%}",
+            snapshot.open_fds,
+            snapshot.soft_limit,
+            snapshot.ratio or 0.0,
+            snapshot.recycle_threshold,
+        )
+        log_signals_event(
+            {
+                "kind": "lifecycle",
+                "action": "fd_pressure_ws_recycle",
+                "open_fds": snapshot.open_fds,
+                "soft_limit": snapshot.soft_limit,
+                "ratio": snapshot.ratio,
+                "run_id": self._run_id,
+            }
+        )
+        required_pairs = {(s.exchange, s.market_type) for s in settings_list}
+        for pair_key in list(self._parsers.keys()):
+            if pair_key not in required_pairs:
+                continue
+            exchange, market_type = pair_key
+            parsers = self._parsers[pair_key]
+            await self._restart_websocket_parser_task(
+                pair_key, "agg_trades", restart_reason="fd_pressure"
+            )
+            if market_type == MarketType.FUTURES and parsers.liquidations:
+                await self._restart_websocket_parser_task(
+                    pair_key, "liquidations", restart_reason="fd_pressure"
+                )
 
     async def _maybe_periodic_recycle_websocket_parsers(
         self, settings_list: list[SettingsDTO]

@@ -1485,8 +1485,29 @@
     );
   }
 
+  function isGateTestFilter(r) {
+    return r.id === 'dv' || r.is_gate === true;
+  }
+
+  function orderTestFilterRows(rows) {
+    const scoring = [];
+    const gates = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (isGateTestFilter(rows[i])) gates.push(rows[i]);
+      else scoring.push(rows[i]);
+    }
+    return scoring.concat(gates);
+  }
+
+  function gateStatusLineHtml(r) {
+    const sym = r.ok ? '\u2713' : '\u2717';
+    const label = r.ok ? 'pass' : 'fail';
+    return `<div class="stf-line"><span class="stf-k">Гейт:</span> ${sym} ${label}</div>`;
+  }
+
   function renderTestFiltersHtml(rows, layoutHorizontal) {
     if (!rows || !rows.length) return '';
+    rows = orderTestFilterRows(rows);
     function filterTitleHtml(r) {
       const st = r.ok ? 'ok' : 'fail';
       return `<span class="stf-title-name ${st}">${escHtml(r.title)}</span>`;
@@ -1494,7 +1515,9 @@
     function oneFilterBlockHorizontal(r) {
       let b = '<div class="stf-block">';
       b += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
-      if (r.filter_score != null && r.filter_score !== undefined) {
+      if (isGateTestFilter(r)) {
+        b += gateStatusLineHtml(r);
+      } else if (r.filter_score != null && r.filter_score !== undefined) {
         b += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
       }
       b += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
@@ -1518,7 +1541,9 @@
     for (const r of rows) {
       h += '<div class="stf-row">';
       h += `<div class="stf-title">${filterTitleHtml(r)}</div>`;
-      if (r.filter_score != null && r.filter_score !== undefined) {
+      if (isGateTestFilter(r)) {
+        h += gateStatusLineHtml(r);
+      } else if (r.filter_score != null && r.filter_score !== undefined) {
         h += `<div class="stf-line"><span class="stf-k">Вклад:</span> ${escHtml(fmtTestFilterScalar(r.filter_score))}</div>`;
       }
       h += '<div class="stf-line"><span class="stf-k">Текущее:</span></div>';
@@ -1747,7 +1772,7 @@
       let oc = item.ok_count;
       let ts = item.tie_break_score;
       if (oc == null && item.test_filters) {
-        oc = item.test_filters.filter(r => r.ok).length;
+        oc = item.test_filters.filter(r => r.ok && !isGateTestFilter(r)).length;
       }
       if (ts == null || ts === undefined || Number.isNaN(Number(ts))) {
         ts = 0;

@@ -49,25 +49,25 @@ class AggTradesParser(Parser):
     async def start(self) -> None:
         """Запускает парсер данных."""
         self._logger.info ("Parser started")
+        self._is_running = True
         try:
             async with self._client_context() as client:
                 tickers_batched = await self._fetch_tickers_list_batched(client)
                 self._websockets = self._init_websockets(tickers_batched)
                 tasks = await self._start_websockets()
                 await asyncio.gather(*tasks)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self._logger.exception(f"Error fetching data:{e}")
+        finally:
+            await self._stop_websocket_list(self._websockets)
 
     async def stop(self) -> None:
         """Останавливает парсер данных."""
         self._logger.info ("Parser stopped")
-        gather_results = await asyncio.gather(
-            *[ws.stop() for ws in self._websockets], return_exceptions=True
-        )
-        for result in gather_results:
-            if isinstance(result, Exception):
-                self._logger.error(f"Error while stopping websocket: {result}")
         self._is_running = False
+        await self._stop_websocket_list(self._websockets)
 
     async def fetch_collected_data(self) -> dict[str, list[KlineDict]]:
         """Возвращает накопленные данные. Возвращает ссылку на объект в котором данные."""

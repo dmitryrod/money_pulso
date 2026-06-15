@@ -57,10 +57,41 @@ def append_line(path: Path, obj: dict[str, Any]) -> None:
         fh.write(line)
 
 
+def app_root_dir() -> Path:
+    """Корень каталога ``app/``."""
+    return Path(__file__).resolve().parents[1]
+
+
 def relative_stat_path(path: Path) -> str:
     """Путь относительно каталога app/."""
     try:
-        app_root = Path(__file__).resolve().parents[1]
-        return str(path.relative_to(app_root)).replace(os.sep, "/")
+        return str(path.relative_to(app_root_dir())).replace(os.sep, "/")
     except ValueError:
         return str(path)
+
+
+def absolute_stat_path(rel_path: str) -> Path:
+    """Относительный путь из БД/session_meta → абсолютный Path под ``app/``."""
+    return app_root_dir() / rel_path.replace("/", os.sep)
+
+
+def resolve_statistics_jsonl(
+    rel_path: str,
+    *,
+    tracking_id: str | None = None,
+) -> Path | None:
+    """Ищет JSONL сессии: сначала ``rel_path``, иначе ``*{tracking_id}.jsonl`` в ``statistics-data``."""
+    primary = absolute_stat_path(rel_path)
+    if primary.is_file():
+        return primary
+    if not tracking_id:
+        return None
+    stat_root = app_root_dir() / "statistics-data"
+    if not stat_root.is_dir():
+        return None
+    matches = list(stat_root.rglob(f"*{tracking_id}.jsonl"))
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+    return max(matches, key=lambda p: p.stat().st_mtime)

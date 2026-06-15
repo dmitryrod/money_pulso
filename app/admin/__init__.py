@@ -30,7 +30,10 @@ from app.database import Database, SettingsORM, SignalORM
 from app.schemas import EnvironmentType
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener import scanner_runtime
-from app.screener.statistics_store import purge_statistics_data_files
+from app.screener.statistics_store import (
+    purge_statistics_data_files,
+    resolve_statistics_jsonl,
+)
 from app.test_signal_broadcast import (
     register_test_stream_subscriber,
     unregister_test_stream_subscriber,
@@ -683,9 +686,9 @@ def register_admin_routes(app: FastAPI) -> None:
             await db.commit()
         return JSONResponse({"ok": True})
 
-    def _read_jsonl_file(rel_path: str) -> list[dict]:
-        path = _APP_DIR / rel_path.replace("/", os.sep)
-        if not path.exists():
+    def _read_jsonl_file(rel_path: str, *, tracking_id: str | None = None) -> list[dict]:
+        path = resolve_statistics_jsonl(rel_path, tracking_id=tracking_id)
+        if path is None:
             return []
         out: list[dict] = []
         try:
@@ -774,7 +777,10 @@ def register_admin_routes(app: FastAPI) -> None:
                 )
             samples: list[dict] = []
             if row.statistics_file_path:
-                samples = _read_jsonl_file(row.statistics_file_path)
+                samples = _read_jsonl_file(
+                    row.statistics_file_path,
+                    tracking_id=tracking_id,
+                )
         return JSONResponse(
             {
                 "session": {

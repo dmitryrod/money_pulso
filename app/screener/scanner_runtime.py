@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from app.database import Database
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
-from app.screener.statistics_store import append_line, relative_stat_path, session_file_path
+from app.screener.statistics_store import (
+    absolute_stat_path,
+    append_line,
+    relative_stat_path,
+    session_file_path,
+)
 
 
 @dataclass
@@ -271,8 +274,7 @@ async def _async_delete_session_artifacts(
         pass
     if not statistics_path_rel:
         return
-    app_root = Path(__file__).resolve().parents[1]
-    path = app_root / statistics_path_rel.replace("/", os.sep)
+    path = absolute_stat_path(statistics_path_rel)
     try:
         if path.is_file():
             path.unlink()
@@ -370,12 +372,9 @@ async def maybe_persist_sample(
         seq=seq,
         reason="changed" if force else "heartbeat",
     )
-    path = session_file_path(
-        exchange=exchange,
-        market_type=market_type,
-        symbol=symbol,
-        tracking_id=tid,
-    )
+    if not st.statistics_path:
+        return
+    path = absolute_stat_path(st.statistics_path)
     await _async_append(path, line)
     if (
         phase == "completed"
@@ -407,12 +406,9 @@ def mark_triggered(
         "ts": datetime.now(timezone.utc).isoformat(),
         "card_snapshot": snapshot,
     }
-    path = session_file_path(
-        exchange=str(snapshot.get("exchange", "")),
-        market_type=str(snapshot.get("market_type", "")),
-        symbol=str(snapshot.get("symbol", symbol)),
-        tracking_id=tid,
-    )
+    if not st.statistics_path:
+        return None, None
+    path = absolute_stat_path(st.statistics_path)
     asyncio.create_task(_async_append(path, ev))
     asyncio.create_task(
         _upsert_tracking_row(

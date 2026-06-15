@@ -11,12 +11,12 @@ from app.screener.test_mode_eval import (
 
 def test_ok_count_two_filters() -> None:
     rows = [
-        {"id": "dv", "ok": True, "current": {"daily_volume_usd": 2e6}, "thresholds": {"dv_min_usd": 1e6}},
+        {"id": "dv", "ok": True, "is_gate": True, "current": {"daily_volume_usd": 2e6}, "thresholds": {"dv_min_usd": 1e6}},
         {"id": "dp", "ok": False, "current": {"daily_price_change_pct": 1.0}, "thresholds": {}},
         {"id": "vl", "ok": True, "current": {"multiplier": 3.0}, "thresholds": {"vl_min_multiplier": 2.0}},
     ]
     oc, ts = compute_ok_count_and_tie_score(rows)
-    assert oc == 2
+    assert oc == 1
     assert ts >= 0
 
 
@@ -48,6 +48,7 @@ def test_enrich_filter_score_signed_average() -> None:
         {
             "id": "dv",
             "ok": False,
+            "is_gate": True,
             "current": {"daily_volume_usd": 500_000.0},
             "thresholds": {"dv_min_usd": 1_000_000.0, "dv_max_usd": None},
         },
@@ -59,9 +60,31 @@ def test_enrich_filter_score_signed_average() -> None:
         },
     ]
     score = enrich_fulfillment_and_score(rows)
-    assert rows[0]["filter_score"] == -0.5
+    assert "filter_score" not in rows[0]
     assert rows[1]["filter_score"] == 0.0
-    assert score == -0.25
+    assert score == 0.0
+
+
+def test_enrich_gate_filter_no_filter_score() -> None:
+    rows = [
+        {
+            "id": "dv",
+            "ok": True,
+            "is_gate": True,
+            "current": {"daily_volume_usd": 5_000_000.0},
+            "thresholds": {"dv_min_usd": 1_000_000.0},
+        },
+        {
+            "id": "pd",
+            "ok": True,
+            "current": {"price_change_pct": 5.0},
+            "thresholds": {"pd_min_change_pct": 2.0},
+        },
+    ]
+    score = enrich_fulfillment_and_score(rows)
+    assert "filter_score" not in rows[0]
+    assert rows[1]["filter_score"] == 1.5
+    assert score == 1.5
 
 
 def test_enrich_vl_strong_exceed_single_filter() -> None:

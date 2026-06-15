@@ -20,6 +20,9 @@ class Websocket:
     MAX_QUEUE_SIZE: int = 500
     """Максимальная длина очереди."""
 
+    _RECV_TIMEOUT_SEC: float = 5.0
+    """Таймаут recv: stop() не ждёт вечного блока на сокете."""
+
     class _DecoderProtocol(Protocol):
         """Протокол декодирования сообщений."""
 
@@ -76,6 +79,8 @@ class Websocket:
         self._tasks: list[asyncio.Task] = []
         self._queue = asyncio.Queue()
         self._running = False
+        self._conn: ClientConnection | None = None
+        """Активное соединение; явно закрываем при stop(), иначе recv() держит FD."""
 
     async def start(self) -> None:
         """Запускает вебсокет и рабочие задачи."""
@@ -96,6 +101,15 @@ class Websocket:
         """Останавливает вебсокет и рабочие задачи."""
         self._running = False
         await self._after_disconnect()
+
+    async def _restart_guarded(self) -> None:
+        """Перезапуск вне healthcheck-task (иначе stop() отменяет вызывающую задачу)."""
+        if not self._running:
+            return
+        try:
+            await self.restart()
+        except Exception as exc:
+            self._logger.error(f"Guarded websocket restart failed: {exc}")
 
     async def restart(self) -> None:
         """Перезапускает вебсокет.
@@ -130,7 +144,12 @@ class Websocket:
 
                         # Цикл получения сообщений
                         while self._running:
-                            message = await conn.recv()
+                            try:
+                                message = await asyncio.wait_for(
+                                    conn.recv(), timeout=self._RECV_TIMEOUT_SEC
+                                )
+                            except asyncio.TimeoutError:
+                                continue
                             await self._handle_message(message, conn)
 
                     except websockets.exceptions.ConnectionClosed as e:
@@ -147,7 +166,8 @@ class Websocket:
                             await asyncio.sleep(self._reconnect_timeout)
                             await self._after_disconnect()
                         else:
-                            return  # Выходим из итератора, если вебсокет уже выключен
+                            await self._after_disconnect()
+                            return
 
             except websockets.exceptions.InvalidStatus as e:  # type: ignore[attr-defined]
                 # Специальный бэкофф для 403 Too Many Requests от CloudFront/биржи
@@ -225,6 +245,7 @@ class Websocket:
 
     async def _after_connect(self, conn: ClientConnection) -> None:
         """Вызывается после установки соединения."""
+        self._conn = conn
         # Подписываемся на топики
         await self._send_subscribe_messages(conn)
 
@@ -246,6 +267,14 @@ class Websocket:
 
     async def _after_disconnect(self) -> None:
         """Вызывается после отключения от вебсокета."""
+        conn = self._conn
+        self._conn = None
+        if conn is not None:
+            try:
+                await conn.close()
+            except Exception as exc:
+                self._logger.debug("Error closing websocket connection: {}", exc)
+
         current_task = asyncio.current_task()
 
         # Останавливаем воркеров, исключая задачу, которая уже выполняет остановку
@@ -319,7 +348,7 @@ class Websocket:
         while self._running:
             if time.monotonic() - self._last_message_time > self._no_message_reconnect_timeout:
                 self._logger.error("Websocket is not responding, restarting...")
-                await self.restart()
+                asyncio.create_task(self._restart_guarded())
                 return
             await asyncio.sleep(1)
 

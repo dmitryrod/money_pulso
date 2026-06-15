@@ -29,6 +29,19 @@ from .filters import (
 
 _EPS = 1e-9
 
+GATE_FILTER_IDS = frozenset({"dv"})
+
+
+def _is_gate_filter(fid: str | None) -> bool:
+    return fid in GATE_FILTER_IDS
+
+
+def _order_scanner_test_filters(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Гейты (DV) — в конце списка; порядок внутри групп сохраняется."""
+    scoring = [r for r in rows if not _is_gate_filter(r.get("id")) and not r.get("is_gate")]
+    gates = [r for r in rows if _is_gate_filter(r.get("id")) or r.get("is_gate")]
+    return scoring + gates
+
 
 def _f(x: Any) -> float | None:
     if x is None:
@@ -50,21 +63,8 @@ def _tie_margin_for_row(row: dict[str, Any]) -> float | None:
     thr = row.get("thresholds") or {}
     fid = row.get("id")
 
-    if fid == "dv":
-        vol = _f(cur.get("daily_volume_usd"))
-        mn = _f(thr.get("dv_min_usd"))
-        mx = _f(thr.get("dv_max_usd"))
-        if vol is None:
-            return None
-        if mn is not None and mx is not None:
-            slack = min(vol - mn, mx - vol)
-        elif mn is not None:
-            slack = vol - mn
-        elif mx is not None:
-            slack = mx - vol
-        else:
-            return 0.0
-        return max(0.0, slack) / max(vol, _EPS)
+    if _is_gate_filter(fid) or row.get("is_gate"):
+        return None
 
     if fid == "dp":
         p = _f(cur.get("daily_price_change_pct"))
@@ -171,31 +171,8 @@ def _filter_score_contribution_for_row(row: dict[str, Any]) -> float:
     fid = row.get("id")
     ok = bool(row.get("ok"))
 
-    if fid == "dv":
-        vol = _f(cur.get("daily_volume_usd"))
-        mn = _f(thr.get("dv_min_usd"))
-        mx = _f(thr.get("dv_max_usd"))
-        if vol is None:
-            return 0.0
-        if mn is not None and mx is not None and mx > mn + _EPS:
-            if vol < mn and mn > _EPS:
-                return _finite_contribution(vol / mn - 1.0)
-            if vol > mx and vol > _EPS:
-                return _finite_contribution(mx / vol - 1.0)
-            if mn <= vol <= mx:
-                r_lo = vol / mn - 1.0 if mn > _EPS else 0.0
-                r_hi = mx / vol - 1.0 if vol > _EPS else 0.0
-                return _finite_contribution(min(r_lo, r_hi))
-            return 0.0
-        if mn is not None:
-            if mn <= _EPS:
-                return 0.0
-            return _finite_contribution(vol / mn - 1.0)
-        if mx is not None:
-            if vol <= _EPS:
-                return -1.0 if ok else 0.0
-            return _finite_contribution(mx / vol - 1.0)
-        return 0.0 if ok else -1.0
+    if _is_gate_filter(fid) or row.get("is_gate"):
+        return 0.0
 
     if fid == "dp":
         p = _f(cur.get("daily_price_change_pct"))
@@ -310,22 +287,35 @@ def _filter_score_contribution_for_row(row: dict[str, Any]) -> float:
 
 
 def enrich_fulfillment_and_score(test_rows: list[dict[str, Any]]) -> float:
-    """Добавляет в каждую строку filter_score (signed-вклад); возвращает среднее (Score)."""
+    """Добавляет в каждую строку filter_score (signed-вклад); возвращает среднее (Score).
+
+    Гейты (DV) не участвуют в Score и не получают filter_score.
+    """
     if not test_rows:
         return 0.0
     acc: list[float] = []
     for row in test_rows:
+        if _is_gate_filter(row.get("id")) or row.get("is_gate"):
+            continue
         fs = round(_filter_score_contribution_for_row(row), 4)
         row["filter_score"] = fs
         acc.append(fs)
+    if not acc:
+        return 0.0
     return round(sum(acc) / len(acc), 3)
 
 
 def compute_ok_count_and_tie_score(test_rows: list[dict[str, Any]]) -> tuple[int, float]:
-    """Число сработавших фильтров и средний нормализованный запас (для сортировки)."""
-    ok_count = sum(1 for r in test_rows if r.get("ok"))
+    """Число сработавших фильтров и средний нормализованный запас (для сортировки).
+
+    Гейты (DV) не учитываются.
+    """
+    scoring_rows = [
+        r for r in test_rows if not _is_gate_filter(r.get("id")) and not r.get("is_gate")
+    ]
+    ok_count = sum(1 for r in scoring_rows if r.get("ok"))
     margins: list[float] = []
-    for row in test_rows:
+    for row in scoring_rows:
         m = _tie_margin_for_row(row)
         if m is not None:
             margins.append(m)
@@ -477,6 +467,7 @@ def evaluate_test_mode_snapshot(
     last_price = float(klines[-1]["c"])
     test_rows: list[dict[str, Any]] = []
     any_content_ok = False
+    dv_gate_row: dict[str, Any] | None = None
 
     pump_dump_result = None
     volume_multiplier_result = None
@@ -485,26 +476,25 @@ def evaluate_test_mode_snapshot(
     liquidations_result = None
 
     if settings.dv_status:
-        r = DailyVolumeFilter.process(
+        dv_r = DailyVolumeFilter.process(
             ticker_daily=ticker_daily,
             dv_min_usd=settings.dv_min_usd,
             dv_max_usd=settings.dv_max_usd,
         )
-        if r.ok:
-            any_content_ok = True
-        test_rows.append(
-            {
-                "id": "dv",
-                "title": "Суточный объём (DV)",
-                "enabled": True,
-                "ok": r.ok,
-                "current": _json_safe(r.metadata),
-                "thresholds": {
-                    "dv_min_usd": settings.dv_min_usd,
-                    "dv_max_usd": settings.dv_max_usd,
-                },
-            }
-        )
+        if not dv_r.ok:
+            return None
+        dv_gate_row = {
+            "id": "dv",
+            "title": "Суточный объём (DV)",
+            "enabled": True,
+            "ok": True,
+            "is_gate": True,
+            "current": _json_safe(dv_r.metadata),
+            "thresholds": {
+                "dv_min_usd": settings.dv_min_usd,
+                "dv_max_usd": settings.dv_max_usd,
+            },
+        }
 
     if settings.dp_status:
         r = DailyPriceFilter.process(
@@ -669,6 +659,10 @@ def evaluate_test_mode_snapshot(
 
     if not any_content_ok:
         return None
+
+    if dv_gate_row is not None:
+        test_rows.append(dv_gate_row)
+    test_rows = _order_scanner_test_filters(test_rows)
 
     screening = ScreeningResult(
         symbol=symbol,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from unicex import Exchange, MarketType
 
@@ -132,3 +134,100 @@ def test_no_enabled_filters_ok_ignores_disabled_for_all_off_check() -> None:
         )
         is True
     )
+
+
+def _klines_pd_pass(interval_sec: int = 120, *, margin_sec: int = 5) -> list[dict[str, float | int]]:
+    """Свечи в окне PD относительно time.time() (как PumpDumpFilter).
+
+    margin_sec — запас внутри окна, чтобы повторные вызовы evaluate в одном тесте
+    не выкидывали первую свечу из окна.
+    """
+    now_ms = int(time.time() * 1000)
+    margin_ms = margin_sec * 1000
+    return [
+        {"t": now_ms - interval_sec * 1000 + margin_ms, "o": 1.0, "c": 1.0, "q": 1.0},
+        {"t": now_ms, "o": 1.0, "c": 1.05, "q": 1.0},
+    ]
+
+
+def test_dv_gate_fail_pd_ok_returns_none() -> None:
+    """DV gate fail — пара не попадает в Scanner, даже если PD ok."""
+    s = _settings(
+        dv_min_usd=1e15,
+        dv_max_usd=None,
+        pd_interval_sec=120,
+        pd_min_change_pct=1.0,
+    )
+    out = evaluate_test_mode_snapshot(
+        "BTCUSDT",
+        "BTC",
+        MarketType.FUTURES,
+        s,
+        {"q": 1_000_000.0, "p": 2.5},
+        _klines_pd_pass(),
+        [],
+        0.0,
+        [],
+        set(),
+        set(),
+        daily_signal_count=1,
+    )
+    assert out is None
+
+
+def test_dv_pass_does_not_affect_score() -> None:
+    """DV gate pass — объём не влияет на Score (только PD в расчёте)."""
+    s = _settings(
+        dv_min_usd=1e6,
+        dv_max_usd=None,
+        pd_interval_sec=120,
+        pd_min_change_pct=1.0,
+        dp_min_pct=None,
+        dp_max_pct=None,
+    )
+    common = dict(
+        symbol="BTCUSDT",
+        ticker="BTC",
+        market_type=MarketType.FUTURES,
+        settings=s,
+        klines=_klines_pd_pass(),
+        open_interest=[],
+        funding_rate=0.0,
+        liquidations=[],
+        blacklist=set(),
+        whitelist=set(),
+        daily_signal_count=1,
+    )
+    out_low = evaluate_test_mode_snapshot(**common, ticker_daily={"q": 2_000_000.0, "p": 2.5})
+    out_high = evaluate_test_mode_snapshot(**common, ticker_daily={"q": 9_000_000_000.0, "p": 2.5})
+    assert out_low is not None
+    assert out_high is not None
+    assert out_low["score"] == out_high["score"]
+
+
+def test_dv_gate_row_last_when_enabled() -> None:
+    """При включённом DV строка гейта — последняя в test_filters."""
+    s = _settings(
+        dv_min_usd=1e6,
+        dv_max_usd=None,
+        pd_interval_sec=120,
+        pd_min_change_pct=1.0,
+    )
+    out = evaluate_test_mode_snapshot(
+        "BTCUSDT",
+        "BTC",
+        MarketType.FUTURES,
+        s,
+        {"q": 5_000_000.0, "p": 2.5},
+        _klines_pd_pass(),
+        [],
+        0.0,
+        [],
+        set(),
+        set(),
+        daily_signal_count=1,
+    )
+    assert out is not None
+    ids = [r["id"] for r in out["test_filters"]]
+    assert ids[-1] == "dv"
+    assert out["test_filters"][-1].get("is_gate") is True

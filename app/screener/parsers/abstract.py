@@ -7,7 +7,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from unicex import Exchange, IUniClient, MarketType, get_uni_client
+from loguru import logger as _logger
+
+from unicex import Exchange, IUniClient, MarketType, Websocket, get_uni_client
 
 
 class Parser(ABC):
@@ -73,6 +75,18 @@ class Parser(ABC):
             if not self._is_running:
                 return
             await asyncio.sleep(1)
+
+    async def _stop_websocket_list(self, websockets: list[Websocket]) -> None:
+        """Останавливает все WS в списке и очищает его (идемпотентно)."""
+        if not websockets:
+            return
+        results = await asyncio.gather(
+            *(ws.stop() for ws in list(websockets)), return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                _logger.warning("websocket stop failed: {}", result)
+        websockets.clear()
 
     @asynccontextmanager
     async def _client_context(self, **kwargs: Any) -> AsyncIterator[IUniClient]:

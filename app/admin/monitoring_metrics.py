@@ -13,6 +13,7 @@ from typing import Any
 import psutil
 
 from app.config import logger
+from app.utils.fd_guard import fd_pressure_payload, get_fd_pressure_snapshot
 
 # ~5 мин при опросе 1 Гц
 _SERIES_MAXLEN = 300
@@ -51,6 +52,7 @@ def reset_state_for_tests() -> None:
         _SnapshotState.last_boot_time = ""
         _SnapshotState.last_ok_time = 0.0
         _SnapshotState.last_error = None
+        _SnapshotState.fd_pressure = {}
 
 
 def get_monitored_dir() -> Path:
@@ -111,6 +113,7 @@ class _SnapshotState:
     last_boot_time: str = ""
     last_ok_time: float = 0.0
     last_error: str | None = None
+    fd_pressure: dict[str, object] = {}
 
 
 def _series_to_json(deq: deque[tuple[float, float]]) -> list[dict[str, float]]:
@@ -150,6 +153,7 @@ def record_snapshot(*, scan_app_directory: bool = True) -> None:
             _SnapshotState.disk_series.append((now, float(disk.percent)))
             _SnapshotState.last_ok_time = now
             _SnapshotState.last_error = None
+            _SnapshotState.fd_pressure = fd_pressure_payload(get_fd_pressure_snapshot())
         except Exception as exc:  # noqa: BLE001 — хотим last good values
             err = f"{type(exc).__name__}: {exc}"
             _SnapshotState.last_error = err
@@ -199,6 +203,7 @@ def get_payload() -> dict[str, Any]:
             "disk_series": _series_to_json(_SnapshotState.disk_series),
             "app_dir_bytes": _SnapshotState.app_dir_bytes,
             "app_dir_series": _series_to_json(_SnapshotState.dir_series),
+            **_SnapshotState.fd_pressure,
         }
         if err:
             payload["error"] = err

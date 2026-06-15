@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import time
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
 from app.screener import scanner_runtime
+from app.screener.statistics_store import (
+    absolute_stat_path,
+    append_line,
+    relative_stat_path,
+    resolve_statistics_jsonl,
+    session_file_path,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -131,7 +141,106 @@ def test_attach_tracking_meta_adds_ids(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_analytics_stat_template_path_not_cwd_relative() -> None:
     """Регрессия: Admin с templates_dir=app/admin/templates ломался при cwd внутри app/."""
-    from pathlib import Path
-
     tpl_dir = Path(__file__).resolve().parents[1] / "admin" / "templates"
     assert (tpl_dir / "analytics_stat.html").is_file()
+
+
+def test_resolve_statistics_jsonl_finds_file_by_tracking_id_suffix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Регрессия: API читает JSONL по tracking_id, если путь в БД указывает на другой день."""
+    stat_root = tmp_path / "statistics-data"
+    monkeypatch.setattr(
+        "app.screener.statistics_store._STAT_ROOT",
+        stat_root,
+    )
+    monkeypatch.setattr(
+        "app.screener.statistics_store.app_root_dir",
+        lambda: tmp_path,
+    )
+
+    day_old = datetime(2026, 6, 8, tzinfo=timezone.utc)
+    day_new = datetime(2026, 6, 9, tzinfo=timezone.utc)
+    tid = "b94c28b5fe3141399b45"
+    stale_rel = relative_stat_path(
+        session_file_path(
+            exchange="bybit",
+            market_type="futures",
+            symbol="DYDXUSDT",
+            tracking_id=tid,
+            day=day_old,
+        )
+    )
+    actual = session_file_path(
+        exchange="bybit",
+        market_type="futures",
+        symbol="DYDXUSDT",
+        tracking_id=tid,
+        day=day_new,
+    )
+    append_line(actual, {"kind": "sample", "tracking_id": tid, "seq": 1})
+
+    resolved = resolve_statistics_jsonl(stale_rel, tracking_id=tid)
+    assert resolved is not None
+    assert resolved == actual
+    first_line = resolved.read_text(encoding="utf-8").strip().splitlines()[0]
+    lines = json.loads(first_line)
+    assert lines["tracking_id"] == tid
+
+
+@pytest.mark.asyncio
+async def test_maybe_persist_sample_uses_frozen_statistics_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Регрессия: samples пишутся в st.statistics_path, а не в session_file_path() с текущей датой."""
+    frozen_day = datetime(2026, 6, 8, 12, 0, tzinfo=timezone.utc)
+    tid = "frozenpath0000000001"
+    frozen_path = session_file_path(
+        exchange="bybit",
+        market_type="futures",
+        symbol="ETHUSDT",
+        tracking_id=tid,
+        day=frozen_day,
+    )
+    frozen_rel = relative_stat_path(frozen_path)
+    st = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        statistics_path=frozen_rel,
+    )
+    scanner_runtime._sessions[(1, "ETHUSDT")] = st  # noqa: SLF001
+
+    written: list[Path] = []
+
+    async def _capture_append(path: Path, obj: dict) -> None:
+        written.append(path)
+
+    monkeypatch.setattr(scanner_runtime, "_async_append", _capture_append)
+    monkeypatch.setattr(
+        scanner_runtime,
+        "_ensure_session",
+        lambda *a, **k: st,
+    )
+
+    await scanner_runtime.maybe_persist_sample(
+        screener_id=1,
+        symbol="ETHUSDT",
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        enriched_payload={
+            "symbol": "ETHUSDT",
+            "exchange": "bybit",
+            "market_type": "futures",
+            "screener_id": 1,
+            "screener_name": "S",
+            "score": 1.0,
+            "last_price": 100.0,
+            "ok_count": 1,
+            "test_filters": [],
+        },
+        force=True,
+    )
+
+    assert len(written) == 1
+    assert written[0] == absolute_stat_path(frozen_rel)
