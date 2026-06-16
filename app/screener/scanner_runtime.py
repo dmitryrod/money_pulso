@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from sqlalchemy import select
+
 from app.config.signals_log import log_signals_event
 from app.database import Database
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
@@ -42,11 +44,56 @@ def bump_cache_refresh() -> None:
 
 def reset_statistics_runtime_state() -> None:
     """Сбрасывает in-memory сессии Scanner после полной очистки статистики (БД + JSONL)."""
+    global _startup_reconcile_done
+    _startup_reconcile_done = False
     _sessions.clear()
     _pending_signal_snapshots.clear()
     _manual_close_ids.clear()
     _cooldown_until.clear()
     _sample_seq.clear()
+
+
+_startup_reconcile_done = False
+
+
+async def reconcile_stale_tracking_sessions_on_startup() -> int:
+    """Закрывает в БД сессии без in-memory пары после restart consumer.
+
+    Returns:
+        Число строк, переведённых в ``status=closed``.
+    """
+    global _startup_reconcile_done
+    if _startup_reconcile_done:
+        return 0
+    _startup_reconcile_done = True
+    live_pairs = set(_sessions.keys())
+    live_ids = {st.tracking_id for st in _sessions.values()}
+    closed = 0
+    now = datetime.now(timezone.utc)
+    try:
+        async with Database.session_context() as db:
+            rows = (
+                await db.session.execute(
+                    select(TrackingSessionORM).where(
+                        TrackingSessionORM.status.in_(
+                            ("active", "triggered", "posttracking")
+                        )
+                    )
+                )
+            ).scalars().all()
+            for row in rows:
+                key = (row.screener_id, row.symbol)
+                if key in live_pairs and row.tracking_id in live_ids:
+                    continue
+                row.status = "closed"
+                row.closed_at = now
+                row.updated_at = now
+                closed += 1
+            if closed:
+                await db.commit()
+    except Exception:
+        pass
+    return closed
 
 # (screener_id, symbol) -> session
 @dataclass
@@ -371,6 +418,28 @@ def build_sample_line(
 _sample_seq: dict[str, int] = {}
 
 
+def maybe_emit_completion_if_due(screener_id: int, symbol: str) -> None:
+    """Завершает посттрек в БД (и JSONL при включённом persistence), не требуя sample."""
+    st = _sessions.get((screener_id, symbol))
+    if st is not None:
+        _maybe_emit_completion(st, screener_id, symbol)
+
+
+def _maybe_emit_completion(
+    st: _SessionState, screener_id: int, symbol: str,
+) -> None:
+    if not st.triggered or st.posttracking_until is None:
+        return
+    if time.time() < st.posttracking_until:
+        return
+    if st.completion_emitted:
+        return
+    st.completion_emitted = True
+    tid = st.tracking_id
+    path = absolute_stat_path(st.statistics_path) if st.statistics_path else None
+    asyncio.create_task(_finalize_completed_session(tid, path, screener_id, symbol))
+
+
 async def maybe_persist_sample(
     *,
     screener_id: int,
@@ -381,12 +450,13 @@ async def maybe_persist_sample(
     enriched_payload: dict[str, Any],
     force: bool = False,
 ) -> None:
-    if not jsonl_persistence_enabled():
-        return
     st = _ensure_session(screener_id, symbol, screener_name, exchange, market_type)
     if st is None:
         return
     if st.tracking_id in _manual_close_ids:
+        return
+    _maybe_emit_completion(st, screener_id, symbol)
+    if not jsonl_persistence_enabled():
         return
     now_wall = time.time()
     if not force and now_wall - st.last_sample_wall < 5.0:
@@ -412,13 +482,6 @@ async def maybe_persist_sample(
         return
     path = absolute_stat_path(st.statistics_path)
     await _async_append(path, line)
-    if (
-        phase == "completed"
-        and st.triggered
-        and not st.completion_emitted
-    ):
-        st.completion_emitted = True
-        asyncio.create_task(_finalize_completed_session(tid, path, screener_id, symbol))
 
 
 def mark_triggered(
@@ -519,7 +582,7 @@ def parse_stat_page_path(page: str) -> tuple[str, str] | None:
 
 
 async def _finalize_completed_session(
-    tracking_id: str, path: Any, screener_id: int, symbol: str
+    tracking_id: str, path: Any | None, screener_id: int, symbol: str
 ) -> None:
     ev = {
         "kind": "event",
@@ -527,7 +590,8 @@ async def _finalize_completed_session(
         "event": "completed",
         "ts": datetime.now(timezone.utc).isoformat(),
     }
-    await _async_append(path, ev)
+    if path is not None:
+        _schedule_jsonl_append(path, ev)
     try:
         async with Database.session_context() as db:
             row = await db.session.get(TrackingSessionORM, tracking_id)

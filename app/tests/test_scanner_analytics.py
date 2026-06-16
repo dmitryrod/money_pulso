@@ -27,6 +27,7 @@ def _reset_scanner_runtime_state():
     scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
     scanner_runtime._manual_close_ids.clear()  # noqa: SLF001
     scanner_runtime._cooldown_until.clear()  # noqa: SLF001
+    scanner_runtime._startup_reconcile_done = False  # noqa: SLF001
     yield
     scanner_runtime._sessions.clear()  # noqa: SLF001
     scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
@@ -485,3 +486,190 @@ async def test_tombstone_untriggered_keeps_db_row(
     assert row.closed_at is not None
     assert logged and logged[0]["action"] == "tombstone_deleted"
     assert logged[0]["tracking_id"] == "tid-tomb-1"
+
+
+def test_resolve_statistics_jsonl_empty_path_uses_tracking_id(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Регрессия API: пустой statistics_file_path — fallback по tracking_id."""
+    stat_root = tmp_path / "statistics-data"
+    monkeypatch.setattr("app.screener.statistics_store._STAT_ROOT", stat_root)
+    monkeypatch.setattr(
+        "app.screener.statistics_store.app_root_dir",
+        lambda: tmp_path,
+    )
+    tid = "apifallback000000001"
+    actual = session_file_path(
+        exchange="bybit",
+        market_type="futures",
+        symbol="BTCUSDT",
+        tracking_id=tid,
+    )
+    append_line(actual, {"kind": "sample", "tracking_id": tid, "seq": 1})
+    assert resolve_statistics_jsonl("", tracking_id=tid) == actual
+
+
+@pytest.mark.asyncio
+async def test_maybe_emit_completion_scheduled_without_jsonl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Посттрек завершается без statistics_enabled (без записи sample)."""
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    finalized: list[tuple[str, object | None]] = []
+
+    async def _capture_finalize(
+        tid: str, path: object | None, _sc: int, _sym: str,
+    ) -> None:
+        finalized.append((tid, path))
+
+    monkeypatch.setattr(
+        scanner_runtime, "_finalize_completed_session", _capture_finalize,
+    )
+    tid = "tid-comp-no-jsonl"
+    st = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        triggered=True,
+        posttracking_until=time.time() - 1.0,
+        statistics_path="statistics-data/x.jsonl",
+    )
+    scanner_runtime._sessions[(4, "SOLUSDT")] = st  # noqa: SLF001
+
+    scanner_runtime.maybe_emit_completion_if_due(4, "SOLUSDT")
+    await asyncio.sleep(0.05)
+
+    assert len(finalized) == 1
+    assert finalized[0][0] == tid
+
+
+@pytest.mark.asyncio
+async def test_finalize_completed_updates_db_when_jsonl_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """completed в БД пишется даже если JSONL persistence выключен."""
+    from app.database.models import TrackingSessionORM
+
+    scanner_runtime._cache.statistics_enabled = False  # noqa: SLF001
+    t0 = datetime(2026, 6, 16, 8, 0, 0, tzinfo=timezone.utc)
+    row = TrackingSessionORM(
+        tracking_id="tid-finalize-db",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="BTCUSDT",
+        status="triggered",
+        triggered_at=t0,
+        created_at=t0,
+        updated_at=t0,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, tid: str) -> TrackingSessionORM | None:
+            return row if tid == "tid-finalize-db" else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    append_calls: list[object] = []
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime._schedule_jsonl_append",
+        lambda path, obj: append_calls.append((path, obj)),
+    )
+
+    await scanner_runtime._finalize_completed_session(  # noqa: SLF001
+        "tid-finalize-db", None, 1, "BTCUSDT",
+    )
+
+    assert append_calls == []
+    assert row.status == "completed"
+    assert row.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_reconcile_stale_tracking_sessions_on_startup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """После restart orphan active/triggered в БД → closed."""
+    from app.database.models import TrackingSessionORM
+
+    scanner_runtime.reset_statistics_runtime_state()
+    t0 = datetime(2026, 6, 16, 7, 0, 0, tzinfo=timezone.utc)
+    orphan = TrackingSessionORM(
+        tracking_id="tid-orphan",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="OLDUSDT",
+        status="active",
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t0,
+    )
+    live_row = TrackingSessionORM(
+        tracking_id="tid-live",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="LIVEUSDT",
+        status="active",
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t0,
+    )
+    scanner_runtime._sessions[(1, "LIVEUSDT")] = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id="tid-live",
+        entered_monotonic=time.monotonic(),
+    )
+
+    class _FakeSession:
+        async def execute(self, _stmt: object) -> object:
+            class _R:
+                def scalars(self) -> object:
+                    class _S:
+                        def all(self) -> list[TrackingSessionORM]:
+                            return [orphan, live_row]
+
+                    return _S()
+
+            return _R()
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+
+    closed_n = await scanner_runtime.reconcile_stale_tracking_sessions_on_startup()
+    assert closed_n == 1
+    assert orphan.status == "closed"
+    assert orphan.closed_at is not None
+    assert live_row.status == "active"

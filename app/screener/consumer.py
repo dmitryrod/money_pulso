@@ -232,6 +232,7 @@ class Consumer:
         """Запускает процесс прослушивания данных и проверки условий."""
         scanner_runtime.bump_cache_refresh()
         await scanner_runtime.maybe_refresh_cache()
+        await scanner_runtime.reconcile_stale_tracking_sessions_on_startup()
         while self._is_running:
             try:
                 self._cycle_id += 1
@@ -601,6 +602,9 @@ class Consumer:
                             )
                             if tid and snap:
                                 pending_snap[task_symbol] = (tid, snap)
+                        scanner_runtime.maybe_emit_completion_if_due(
+                            self.settings.id, task_symbol
+                        )
                         await scanner_runtime.maybe_persist_sample(
                             screener_id=self.settings.id,
                             symbol=task_symbol,

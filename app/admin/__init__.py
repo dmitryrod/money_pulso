@@ -777,12 +777,10 @@ def register_admin_routes(app: FastAPI) -> None:
                 return JSONResponse(
                     {"samples": [], "session": None}, status_code=404
                 )
-            samples: list[dict] = []
-            if row.statistics_file_path:
-                samples = _read_jsonl_file(
-                    row.statistics_file_path,
-                    tracking_id=tracking_id,
-                )
+            samples = _read_jsonl_file(
+                row.statistics_file_path or "",
+                tracking_id=tracking_id,
+            )
         return JSONResponse(
             {
                 "session": {
