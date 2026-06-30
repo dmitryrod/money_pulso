@@ -81,6 +81,12 @@
     color: var(--mp-c-text-muted, #8899bb);
   }
   .analytics-empty { color: var(--mp-c-hint, #6677aa); padding: 16px; }
+  .analytics-count {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--mp-c-text-muted, #8899bb);
+    font-variant-numeric: tabular-nums;
+  }
   .analytics-err { color: var(--mp-err, #e57373); padding: 8px 0; }
   .analytics-status-filter {
     position: relative;
@@ -199,6 +205,7 @@
 
 <div class="analytics-page">
   <h1>Аналитика Scanner</h1>
+  <p class="analytics-count" id="analytics-count" aria-live="polite">Загрузка…</p>
   <div class="analytics-toolbar">
     <input type="search" id="analytics-filter" placeholder="Фильтр: символ, биржа, tracking_id…" autocomplete="off" />
     <div class="analytics-status-filter" id="analytics-status-filter">
@@ -242,7 +249,9 @@
   const statusToggleEl = document.getElementById('analytics-status-toggle');
   const statusPanelEl = document.getElementById('analytics-status-panel');
   const btnPurge = document.getElementById('analytics-btn-purge');
+  const countEl = document.getElementById('analytics-count');
   let items = [];
+  let loadedTotal = 0;
 
   const STATUS_FILTER_LABELS = [
     'start', 'deleted', 'abandoned', 'active',
@@ -280,9 +289,10 @@
       input.id = id;
       input.name = 'analytics-status';
       input.value = label;
-      input.checked = true;
+      const checked = label !== 'deleted';
+      input.checked = checked;
       input.setAttribute('role', 'option');
-      input.setAttribute('aria-selected', 'true');
+      input.setAttribute('aria-selected', checked ? 'true' : 'false');
       wrap.append(input, document.createTextNode(label));
       statusChecksEl.append(wrap);
     }
@@ -327,6 +337,7 @@
       })
       .then((data) => {
         items = data.items || [];
+        loadedTotal = typeof data.total === 'number' ? data.total : items.length;
         applyFilter();
       })
       .catch((e) => {
@@ -346,11 +357,16 @@
       )) return;
       btnPurge.disabled = true;
       try {
-        const r = await fetch('/admin_api/analytics/purge', { method: 'POST', credentials: 'same-origin' });
+        const r = await fetch(
+          '/admin_api/analytics/purge?confirm=purge-all-statistics',
+          { method: 'POST', credentials: 'same-origin' }
+        );
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.detail || data.error || ('HTTP ' + r.status));
         items = [];
+        loadedTotal = 0;
         render([]);
+        updateCount(0);
         errEl.style.display = '';
         errEl.style.color = 'var(--mp-cat-active-fg, #8fdf8f)';
         errEl.textContent = 'Очищено: строк БД ' + (data.tracking_sessions_deleted ?? '—')
@@ -471,6 +487,20 @@
     return blob.includes(q);
   }
 
+  function updateCount(filteredLen) {
+    if (!countEl) return;
+    const total = loadedTotal || items.length;
+    if (!total) {
+      countEl.textContent = 'Строк: 0';
+      return;
+    }
+    if (filteredLen === total) {
+      countEl.textContent = 'Строк: ' + total;
+    } else {
+      countEl.textContent = 'Показано: ' + filteredLen + ' из ' + total;
+    }
+  }
+
   function applyFilter() {
     const enabled = getEnabledStatusLabels();
     const q = (filterEl.value || '').trim().toLowerCase();
@@ -478,6 +508,7 @@
       rowPassesStatusFilter(r, enabled) && rowPassesTextFilter(r, q)
     ));
     render(filtered);
+    updateCount(filtered.length);
   }
 
   initStatusDropdown();

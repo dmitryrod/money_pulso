@@ -27,12 +27,14 @@ def _reset_scanner_runtime_state():
     scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
     scanner_runtime._manual_close_ids.clear()  # noqa: SLF001
     scanner_runtime._cooldown_until.clear()  # noqa: SLF001
+    scanner_runtime._triggered_tracking_ids.clear()  # noqa: SLF001
     scanner_runtime._startup_reconcile_done = False  # noqa: SLF001
     yield
     scanner_runtime._sessions.clear()  # noqa: SLF001
     scanner_runtime._pending_signal_snapshots.clear()  # noqa: SLF001
     scanner_runtime._manual_close_ids.clear()  # noqa: SLF001
     scanner_runtime._cooldown_until.clear()  # noqa: SLF001
+    scanner_runtime._triggered_tracking_ids.clear()  # noqa: SLF001
 
 
 def test_stat_url_path_slug_and_tracking() -> None:
@@ -298,6 +300,96 @@ async def test_ensure_session_upserts_db_without_jsonl_when_statistics_disabled(
     assert append_calls == []
 
 
+def test_merge_tracking_kwargs_does_not_downgrade_triggered() -> None:
+    from app.database.models import TrackingSessionORM
+
+    t1 = datetime(2026, 6, 20, 12, 0, 0, tzinfo=timezone.utc)
+    row = TrackingSessionORM(
+        tracking_id="tid-merge",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="BTCUSDT",
+        status="triggered",
+        triggered_at=t1,
+    )
+    merged = scanner_runtime._merge_tracking_kwargs(  # noqa: SLF001
+        row,
+        {"tracking_id": "tid-merge", "status": "active"},
+    )
+    assert "status" not in merged
+
+
+@pytest.mark.asyncio
+async def test_concurrent_active_and_triggered_upsert_preserves_trigger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Гонка ensure_session(active) vs mark_triggered не должна терять triggered_at."""
+    from app.database.models import TrackingSessionORM
+
+    rows: dict[str, TrackingSessionORM] = {}
+    t_trig = datetime(2026, 6, 29, 12, 0, 0, tzinfo=timezone.utc)
+
+    class _FakeSession:
+        async def get(self, _model: type, tid: str) -> TrackingSessionORM | None:
+            return rows.get(tid)
+
+        def add(self, row: TrackingSessionORM) -> None:
+            rows[row.tracking_id] = row
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.log_signals_event",
+        lambda _payload: None,
+    )
+
+    tid = "tid-race-1"
+    await asyncio.gather(
+        scanner_runtime._upsert_tracking_row(  # noqa: SLF001
+            tracking_id=tid,
+            screener_id=1,
+            screener_name="S",
+            exchange="bybit",
+            market_type="futures",
+            symbol="ETHUSDT",
+            status="active",
+            statistics_file_path="statistics-data/x.jsonl",
+        ),
+        scanner_runtime._upsert_tracking_row(  # noqa: SLF001
+            tracking_id=tid,
+            screener_id=1,
+            screener_name="S",
+            exchange="bybit",
+            market_type="futures",
+            symbol="ETHUSDT",
+            status="triggered",
+            statistics_file_path="statistics-data/x.jsonl",
+            triggered_at=t_trig,
+        ),
+    )
+
+    row = rows[tid]
+    assert row.triggered_at == t_trig
+    assert row.status == "triggered"
+
+
 @pytest.mark.asyncio
 async def test_maybe_persist_sample_skips_disk_when_statistics_disabled(
     monkeypatch: pytest.MonkeyPatch,
@@ -417,6 +509,96 @@ def test_analytics_category_mapping() -> None:
     assert analytics_category("deleted") == "other"
 
 
+def test_build_session_events_jsonl_chronology() -> None:
+    from types import SimpleNamespace
+
+    from app.screener.tracking_timeline import build_session_events
+
+    t0 = "2026-06-16T08:00:00+00:00"
+    t1 = "2026-06-16T08:10:00+00:00"
+    t2 = "2026-06-16T08:11:00+00:00"
+    t3 = "2026-06-16T08:40:00+00:00"
+    rows = [
+        {"kind": "session_meta", "entered_scanner_at": t0},
+        {"kind": "event", "event": "start", "ts": t0},
+        {"kind": "event", "event": "triggered", "ts": t1},
+        {"kind": "event", "event": "triggered", "ts": t2, "refire": True},
+        {"kind": "event", "event": "completed", "ts": t3},
+    ]
+    events = build_session_events(rows, None)
+    assert [e["event"] for e in events] == [
+        "start",
+        "triggered",
+        "triggered",
+        "completed",
+    ]
+    assert events[0]["ts"] == t0
+    assert events[2]["ts"] == t2
+
+
+def test_build_session_events_db_backfill_legacy() -> None:
+    from types import SimpleNamespace
+
+    from app.screener.tracking_timeline import build_session_events
+
+    t0 = datetime(2026, 6, 16, 8, 0, 0, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 16, 8, 27, 50, tzinfo=timezone.utc)
+    t2 = datetime(2026, 6, 16, 8, 57, 51, tzinfo=timezone.utc)
+    row = SimpleNamespace(
+        status="completed",
+        entered_scanner_at=t0,
+        created_at=t0,
+        triggered_at=t1,
+        completed_at=t2,
+        closed_at=None,
+    )
+    rows = [
+        {"kind": "session_meta", "entered_scanner_at": t0.isoformat()},
+        {"kind": "event", "event": "triggered", "ts": t1.isoformat()},
+        {"kind": "event", "event": "completed", "ts": t2.isoformat()},
+    ]
+    events = build_session_events(rows, row)
+    assert events[0] == {"ts": t0.isoformat(), "event": "start"}
+    assert len(events) == 3
+
+
+def test_record_trigger_refire_appends_event(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from app.screener.statistics_store import relative_stat_path
+
+    appended: list[dict] = []
+
+    def _capture_append(path: object, obj: dict) -> None:
+        appended.append(obj)
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.jsonl_persistence_enabled", lambda: True,
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime._schedule_jsonl_append", _capture_append,
+    )
+    jsonl = tmp_path / "s.jsonl"
+    rel = relative_stat_path(jsonl)
+    tid = "tid-refire"
+    scanner_runtime._sessions[(1, "HUSDT")] = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        triggered=True,
+        statistics_path=rel,
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.absolute_stat_path", lambda _r: jsonl,
+    )
+
+    scanner_runtime.record_trigger_refire(1, "HUSDT", {"symbol": "HUSDT"})
+
+    assert len(appended) == 1
+    assert appended[0]["event"] == "triggered"
+    assert appended[0]["refire"] is True
+    scanner_runtime._sessions.clear()
+
+
 @pytest.mark.asyncio
 async def test_tombstone_untriggered_keeps_db_row(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
@@ -486,6 +668,348 @@ async def test_tombstone_untriggered_keeps_db_row(
     assert row.closed_at is not None
     assert logged and logged[0]["action"] == "tombstone_deleted"
     assert logged[0]["tracking_id"] == "tid-tomb-1"
+
+
+@pytest.mark.asyncio
+async def test_tombstone_skips_when_triggered_at_in_db(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """Triggered session must not be tombstoned even if called directly."""
+    from app.database.models import TrackingSessionORM
+    from app.screener.statistics_store import relative_stat_path
+
+    t0 = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 9, 12, 5, 0, tzinfo=timezone.utc)
+    jsonl = tmp_path / "sess-triggered.jsonl"
+    jsonl.write_text('{"kind":"session_meta"}\n', encoding="utf-8")
+    rel = relative_stat_path(jsonl)
+
+    row = TrackingSessionORM(
+        tracking_id="tid-triggered-guard",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="ETHUSDT",
+        status="triggered",
+        statistics_file_path=rel,
+        triggered_at=t1,
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t1,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, tid: str) -> TrackingSessionORM | None:
+            return row if tid == "tid-triggered-guard" else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    logged: list[dict] = []
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.absolute_stat_path",
+        lambda _rel: jsonl,
+    )
+    monkeypatch.setattr("app.screener.scanner_runtime.log_signals_event", logged.append)
+
+    await scanner_runtime._async_tombstone_untriggered_session(  # noqa: SLF001
+        "tid-triggered-guard", rel,
+    )
+
+    assert jsonl.is_file()
+    assert row.status == "triggered"
+    assert row.statistics_file_path == rel
+    assert row.triggered_at == t1
+    assert logged == []
+
+
+@pytest.mark.asyncio
+async def test_tombstone_skips_when_jsonl_has_triggered_event(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """JSONL with triggered event blocks tombstone when DB row still active."""
+    from app.database.models import TrackingSessionORM
+    from app.screener.statistics_store import append_line, relative_stat_path, session_file_path
+
+    monkeypatch.setattr(
+        "app.screener.statistics_store._STAT_ROOT",
+        tmp_path / "statistics-data",
+    )
+    monkeypatch.setattr(
+        "app.screener.statistics_store.app_root_dir",
+        lambda: tmp_path,
+    )
+
+    t0 = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
+    tid = "tidjsonltrigger00001"
+    jsonl = session_file_path(
+        exchange="bybit",
+        market_type="futures",
+        symbol="SOLUSDT",
+        tracking_id=tid,
+        day=t0,
+    )
+    append_line(jsonl, {"kind": "session_meta", "tracking_id": tid})
+    append_line(
+        jsonl,
+        {
+            "kind": "event",
+            "tracking_id": tid,
+            "event": "triggered",
+            "ts": t0.isoformat(),
+        },
+    )
+    rel = relative_stat_path(jsonl)
+
+    row = TrackingSessionORM(
+        tracking_id=tid,
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="SOLUSDT",
+        status="active",
+        statistics_file_path=rel,
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t0,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, key: str) -> TrackingSessionORM | None:
+            return row if key == tid else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr("app.screener.scanner_runtime.log_signals_event", lambda _p: None)
+
+    await scanner_runtime._async_tombstone_untriggered_session(tid, rel)  # noqa: SLF001
+
+    assert jsonl.is_file()
+    assert row.status == "active"
+    assert row.statistics_file_path == rel
+
+
+def test_prune_triggered_session_schedules_finalize_not_tombstone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Triggered session evicted from top-N after posttrack → finalize, not tombstone."""
+    finalized: list[str] = []
+    tombstones: list[str] = []
+
+    def _capture_completion(st: object, sc: int, sym: str) -> None:
+        finalized.append(getattr(st, "tracking_id", ""))
+
+    async def _fake_tombstone(tid: str, _rel: str | None) -> None:
+        tombstones.append(tid)
+
+    monkeypatch.setattr(scanner_runtime, "_maybe_emit_completion", _capture_completion)
+    monkeypatch.setattr(
+        scanner_runtime, "_async_tombstone_untriggered_session", _fake_tombstone,
+    )
+
+    tid = "tid-prune-triggered"
+    st = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        triggered=True,
+        posttracking_until=time.time() - 1.0,
+        statistics_path="statistics-data/x.jsonl",
+    )
+    scanner_runtime._sessions[(2, "XRPUSDT")] = st  # noqa: SLF001
+    scanner_runtime._triggered_tracking_ids.add(tid)
+
+    scanner_runtime.prune_sessions_not_in_set(2, set())
+
+    assert tid in finalized
+    assert tombstones == []
+    assert (2, "XRPUSDT") not in scanner_runtime._sessions
+
+
+@pytest.mark.asyncio
+async def test_session_is_triggered_async_heals_from_db(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """session_is_triggered_async reads triggered_at when memory flag is stale."""
+    from app.database.models import TrackingSessionORM
+
+    t0 = datetime(2026, 6, 16, 10, 0, 0, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 16, 10, 1, 0, tzinfo=timezone.utc)
+    tid = "tid-async-heal"
+    row = TrackingSessionORM(
+        tracking_id=tid,
+        screener_id=5,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="LINKUSDT",
+        status="triggered",
+        triggered_at=t1,
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t1,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, key: str) -> TrackingSessionORM | None:
+            return row if key == tid else None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime._jsonl_contains_triggered_event",
+        lambda *_a, **_k: False,
+    )
+
+    scanner_runtime._sessions[(5, "LINKUSDT")] = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        triggered=False,
+        statistics_path="statistics-data/link.jsonl",
+    )
+
+    assert await scanner_runtime.session_is_triggered_async(5, "LINKUSDT") is True
+    st = scanner_runtime._sessions[(5, "LINKUSDT")]
+    assert st.triggered is True
+    assert tid in scanner_runtime._triggered_tracking_ids
+
+
+@pytest.mark.asyncio
+async def test_session_is_triggered_async_backfills_triggered_at_from_jsonl(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """JSONL event triggered без triggered_at в БД — backfill для каталога analytics."""
+    from app.database.models import TrackingSessionORM
+
+    t0 = datetime(2026, 6, 16, 10, 0, 0, tzinfo=timezone.utc)
+    tid = "tid-jsonl-backfill"
+    rel = "statistics-data/backfill.jsonl"
+    row = TrackingSessionORM(
+        tracking_id=tid,
+        screener_id=5,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="XRPUSDT",
+        status="active",
+        triggered_at=None,
+        entered_scanner_at=t0,
+        created_at=t0,
+        updated_at=t0,
+        statistics_file_path=rel,
+    )
+    jsonl = tmp_path / "statistics-data" / "backfill.jsonl"
+    jsonl.parent.mkdir(parents=True)
+    jsonl.write_text(
+        json.dumps(
+            {
+                "kind": "event",
+                "tracking_id": tid,
+                "event": "triggered",
+                "ts": t0.isoformat(),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "app.screener.statistics_store._STAT_ROOT",
+        tmp_path / "statistics-data",
+    )
+    monkeypatch.setattr(
+        "app.screener.statistics_store.app_root_dir",
+        lambda: tmp_path,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, key: str) -> TrackingSessionORM | None:
+            return row if key == tid else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    upsert_calls: list[dict] = []
+
+    async def _capture_upsert(**kwargs: object) -> None:
+        upsert_calls.append(dict(kwargs))
+        if kwargs.get("triggered_at") is not None:
+            row.triggered_at = kwargs["triggered_at"]  # type: ignore[assignment]
+            row.status = str(kwargs.get("status", row.status))
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime._upsert_tracking_row",
+        _capture_upsert,
+    )
+
+    scanner_runtime._sessions[(5, "XRPUSDT")] = scanner_runtime._SessionState(  # noqa: SLF001
+        tracking_id=tid,
+        entered_monotonic=time.monotonic(),
+        triggered=False,
+        statistics_path=rel,
+    )
+
+    assert await scanner_runtime.session_is_triggered_async(5, "XRPUSDT") is True
+    assert upsert_calls
+    assert upsert_calls[-1].get("triggered_at") is not None
+    assert upsert_calls[-1].get("status") == "triggered"
 
 
 def test_resolve_statistics_jsonl_empty_path_uses_tracking_id(
@@ -601,6 +1125,58 @@ async def test_finalize_completed_updates_db_when_jsonl_disabled(
 
 
 @pytest.mark.asyncio
+async def test_finalize_completed_backfills_missing_triggered_at(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """completed с пустым triggered_at — backfill для каталога analytics."""
+    from app.database.models import TrackingSessionORM
+
+    t0 = datetime(2026, 6, 16, 8, 0, 0, tzinfo=timezone.utc)
+    row = TrackingSessionORM(
+        tracking_id="tid-finalize-backfill",
+        screener_id=1,
+        screener_name="S",
+        exchange="bybit",
+        market_type="futures",
+        symbol="ETHUSDT",
+        status="active",
+        triggered_at=None,
+        created_at=t0,
+        updated_at=t0,
+    )
+
+    class _FakeSession:
+        async def get(self, _model: type, tid: str) -> TrackingSessionORM | None:
+            return row if tid == "tid-finalize-backfill" else None
+
+        async def commit(self) -> None:
+            return None
+
+    class _FakeDb:
+        session = _FakeSession()
+
+    class _FakeCtx:
+        async def __aenter__(self) -> _FakeDb:
+            return _FakeDb()
+
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.screener.scanner_runtime.Database.session_context",
+        lambda: _FakeCtx(),
+    )
+
+    await scanner_runtime._finalize_completed_session(  # noqa: SLF001
+        "tid-finalize-backfill", None, 1, "ETHUSDT",
+    )
+
+    assert row.status == "completed"
+    assert row.triggered_at is not None
+    assert row.completed_at is not None
+
+
+@pytest.mark.asyncio
 async def test_reconcile_stale_tracking_sessions_on_startup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -673,3 +1249,153 @@ async def test_reconcile_stale_tracking_sessions_on_startup(
     assert orphan.status == "closed"
     assert orphan.closed_at is not None
     assert live_row.status == "active"
+
+
+def _make_session_row(
+    *,
+    tracking_id: str,
+    symbol: str,
+    created_at: datetime,
+    triggered_at: datetime | None = None,
+    completed_at: datetime | None = None,
+    closed_at: datetime | None = None,
+    status: str = "active",
+) -> object:
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        tracking_id=tracking_id,
+        symbol=symbol,
+        screener_name="S",
+        screener_id=1,
+        exchange="bybit",
+        market_type="futures",
+        status=status,
+        triggered_at=triggered_at,
+        completed_at=completed_at,
+        closed_at=closed_at,
+        entered_scanner_at=created_at,
+        created_at=created_at,
+        updated_at=closed_at or completed_at or triggered_at or created_at,
+        statistics_file_path=None,
+    )
+
+
+def test_merge_analytics_session_catalog_includes_old_triggered_outside_tail() -> None:
+    """Регрессия PORTALUSDT: triggered вне top-1000 по created_at остаётся в каталоге."""
+    from app.screener.tracking_timeline import (
+        ANALYTICS_RECENT_TAIL_LIMIT,
+        merge_analytics_session_catalog,
+    )
+
+    t_old = datetime(2026, 6, 16, 20, 50, 48, tzinfo=timezone.utc)
+    t_trig = datetime(2026, 6, 16, 21, 5, 23, tzinfo=timezone.utc)
+    t_done = datetime(2026, 6, 16, 21, 35, 23, tzinfo=timezone.utc)
+    portal = _make_session_row(
+        tracking_id="43faeb01a30c480086f9",
+        symbol="PORTALUSDT",
+        created_at=t_old,
+        triggered_at=t_trig,
+        completed_at=t_done,
+        status="completed",
+    )
+    recent_tail = [
+        _make_session_row(
+            tracking_id=f"recent-{i:04d}",
+            symbol=f"SYM{i}",
+            created_at=datetime(2026, 6, 17, 12, 0, i % 60, tzinfo=timezone.utc),
+        )
+        for i in range(ANALYTICS_RECENT_TAIL_LIMIT + 1)
+    ]
+    merged = merge_analytics_session_catalog([portal], recent_tail[:ANALYTICS_RECENT_TAIL_LIMIT])
+    ids = {r.tracking_id for r in merged}
+    assert "43faeb01a30c480086f9" in ids
+    assert len(merged) == ANALYTICS_RECENT_TAIL_LIMIT + 1
+
+
+def test_merge_analytics_session_catalog_dedupes_triggered_in_tail() -> None:
+    from app.screener.tracking_timeline import merge_analytics_session_catalog
+
+    t0 = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+    t1 = datetime(2026, 6, 17, 10, 5, 0, tzinfo=timezone.utc)
+    row = _make_session_row(
+        tracking_id="dup-tid",
+        symbol="BTCUSDT",
+        created_at=t0,
+        triggered_at=t1,
+        status="triggered",
+    )
+    merged = merge_analytics_session_catalog([row], [row])
+    assert len(merged) == 1
+    assert merged[0].tracking_id == "dup-tid"
+
+
+def test_merge_analytics_session_catalog_sorts_by_latest_activity() -> None:
+    from app.screener.tracking_timeline import merge_analytics_session_catalog
+
+    older = _make_session_row(
+        tracking_id="old-triggered",
+        symbol="AAAUSDT",
+        created_at=datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc),
+        triggered_at=datetime(2026, 6, 15, 9, 0, 0, tzinfo=timezone.utc),
+        status="triggered",
+    )
+    newer = _make_session_row(
+        tracking_id="new-active",
+        symbol="BBBUSDT",
+        created_at=datetime(2026, 6, 17, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    merged = merge_analytics_session_catalog([older], [newer])
+    assert merged[0].tracking_id == "new-active"
+    assert merged[1].tracking_id == "old-triggered"
+
+
+def test_merge_analytics_session_catalog_keeps_only_newest_deleted_tail() -> None:
+    from app.screener.tracking_timeline import (
+        ANALYTICS_DELETED_RETENTION,
+        merge_analytics_session_catalog,
+    )
+
+    base = datetime(2026, 6, 17, 10, 0, 0, tzinfo=timezone.utc)
+    deleted_tail = [
+        _make_session_row(
+            tracking_id=f"deleted-{i:03d}",
+            symbol=f"DEL{i}",
+            created_at=base,
+            closed_at=datetime(2026, 6, 17, 10, i % 60, 0, tzinfo=timezone.utc),
+            status="deleted",
+        )
+        for i in range(ANALYTICS_DELETED_RETENTION)
+    ]
+    older_deleted = _make_session_row(
+        tracking_id="deleted-old",
+        symbol="OLD",
+        created_at=datetime(2026, 6, 10, 8, 0, 0, tzinfo=timezone.utc),
+        closed_at=datetime(2026, 6, 10, 8, 5, 0, tzinfo=timezone.utc),
+        status="deleted",
+    )
+    merged = merge_analytics_session_catalog([], [], deleted_tail)
+    ids = {r.tracking_id for r in merged}
+    assert len(ids) == ANALYTICS_DELETED_RETENTION
+    assert "deleted-old" not in ids
+    assert older_deleted.tracking_id not in ids
+
+
+def test_build_tracking_timeline_completed_passes_default_status_labels() -> None:
+    from app.screener.tracking_timeline import build_tracking_timeline
+
+    t0 = datetime(2026, 6, 16, 20, 50, 48, tzinfo=timezone.utc)
+    t_done = datetime(2026, 6, 16, 21, 35, 23, tzinfo=timezone.utc)
+    row = _make_session_row(
+        tracking_id="43faeb01a30c480086f9",
+        symbol="PORTALUSDT",
+        created_at=t0,
+        triggered_at=datetime(2026, 6, 16, 21, 5, 23, tzinfo=timezone.utc),
+        completed_at=t_done,
+        status="completed",
+    )
+    labels = {e["label"] for e in build_tracking_timeline(row)}  # type: ignore[arg-type]
+    default_enabled = {
+        "start", "abandoned", "active", "triggered", "posttracking", "completed", "closed",
+    }
+    assert labels <= default_enabled

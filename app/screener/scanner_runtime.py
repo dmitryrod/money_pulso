@@ -19,6 +19,7 @@ from app.screener.statistics_store import (
     absolute_stat_path,
     append_line,
     relative_stat_path,
+    resolve_statistics_jsonl,
     session_file_path,
 )
 
@@ -51,6 +52,7 @@ def reset_statistics_runtime_state() -> None:
     _manual_close_ids.clear()
     _cooldown_until.clear()
     _sample_seq.clear()
+    _triggered_tracking_ids.clear()
 
 
 _startup_reconcile_done = False
@@ -112,6 +114,144 @@ _sessions: dict[tuple[int, str], _SessionState] = {}
 _pending_signal_snapshots: dict[tuple[int, str], tuple[str, str]] = {}
 _manual_close_ids: set[str] = set()
 _cooldown_until: dict[tuple[int, str], float] = {}
+# tracking_id с хотя бы одним trigger в текущем процессе (до admin purge).
+_triggered_tracking_ids: set[str] = set()
+_upsert_locks: dict[str, asyncio.Lock] = {}
+_STATUS_RANK: dict[str, int] = {
+    "active": 0,
+    "triggered": 1,
+    "posttracking": 2,
+    "abandoned": 2,
+    "completed": 3,
+    "closed": 4,
+}
+
+
+def _upsert_lock(tracking_id: str) -> asyncio.Lock:
+    lock = _upsert_locks.get(tracking_id)
+    if lock is None:
+        lock = asyncio.Lock()
+        _upsert_locks[tracking_id] = lock
+    return lock
+
+
+def _merge_tracking_kwargs(
+    row: TrackingSessionORM | None,
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Не откатывать lifecycle-статус и ``triggered_at`` при гонке active/triggered."""
+    if row is None:
+        return kwargs
+    merged = dict(kwargs)
+    new_status = merged.get("status")
+    old_status = row.status
+    if isinstance(new_status, str) and isinstance(old_status, str):
+        new_rank = _STATUS_RANK.get(new_status, -2)
+        old_rank = _STATUS_RANK.get(old_status, -2)
+        if new_rank < old_rank:
+            merged.pop("status", None)
+    if row.triggered_at is not None and merged.get("triggered_at") is None:
+        merged.pop("triggered_at", None)
+    if row.triggered_at is not None and merged.get("status") == "active":
+        merged.pop("status", None)
+    return merged
+
+
+def _jsonl_contains_triggered_event(
+    statistics_path_rel: str | None,
+    tracking_id: str,
+) -> bool:
+    """True если в JSONL сессии есть event ``triggered``."""
+    path = resolve_statistics_jsonl(statistics_path_rel or "", tracking_id=tracking_id)
+    if path is None:
+        return False
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(obj, dict) and obj.get("kind") == "event":
+                    if str(obj.get("event") or "").strip() == "triggered":
+                        return True
+    except OSError:
+        return False
+    return False
+
+
+async def _tracking_id_has_trigger_history(
+    tracking_id: str,
+    statistics_path_rel: str | None,
+) -> bool:
+    """True если trigger зафиксирован в памяти, БД или JSONL."""
+    if tracking_id in _triggered_tracking_ids:
+        return True
+    try:
+        async with Database.session_context() as db:
+            row = await db.session.get(TrackingSessionORM, tracking_id)
+            if row is not None and row.triggered_at is not None:
+                return True
+    except Exception:
+        pass
+    return _jsonl_contains_triggered_event(statistics_path_rel, tracking_id)
+
+
+async def _backfill_triggered_at_in_db(
+    *,
+    tracking_id: str,
+    screener_id: int,
+    symbol: str,
+    statistics_path: str | None,
+    snapshot: dict[str, Any] | None = None,
+) -> None:
+    """Записать ``triggered_at`` в БД, если trigger есть в памяти/JSONL, а в строке нет.
+
+    Каталог ``/admin_api/analytics/sessions`` включает только строки с
+    ``triggered_at IS NOT NULL``; без backfill сессии остаются в хвосте ``active``.
+    """
+    has_history = tracking_id in _triggered_tracking_ids or _jsonl_contains_triggered_event(
+        statistics_path, tracking_id
+    )
+    if not has_history:
+        return
+    try:
+        async with Database.session_context() as db:
+            row = await db.session.get(TrackingSessionORM, tracking_id)
+            if row is not None and row.triggered_at is not None:
+                return
+    except Exception:
+        return
+    snap = snapshot or {}
+    screener_name = str(snap.get("screener_name", ""))
+    exchange = str(snap.get("exchange", ""))
+    market_type = str(snap.get("market_type", ""))
+    sym = str(snap.get("symbol", symbol))
+    if not screener_name:
+        try:
+            async with Database.session_context() as db:
+                row = await db.session.get(TrackingSessionORM, tracking_id)
+                if row is not None:
+                    screener_name = row.screener_name
+                    exchange = row.exchange
+                    market_type = row.market_type
+                    sym = row.symbol
+        except Exception:
+            pass
+    await _upsert_tracking_row(
+        tracking_id=tracking_id,
+        screener_id=screener_id,
+        screener_name=screener_name,
+        exchange=exchange,
+        market_type=market_type,
+        symbol=sym,
+        status="triggered",
+        statistics_file_path=statistics_path,
+        triggered_at=datetime.now(timezone.utc),
+    )
 
 
 async def maybe_refresh_cache() -> None:
@@ -231,6 +371,7 @@ def _ensure_session(
         }
         if jsonl_persistence_enabled():
             asyncio.create_task(_async_append(path, meta))
+            _schedule_status_event(path, tid, "start")
         asyncio.create_task(
             _upsert_tracking_row(
                 tracking_id=tid,
@@ -250,6 +391,37 @@ async def _async_append(path: Any, obj: dict[str, Any]) -> None:
     await asyncio.to_thread(append_line, path, obj)
 
 
+def _make_status_event(tracking_id: str, event: str, **extra: Any) -> dict[str, Any]:
+    """Build a JSONL status line for the Stat page events list."""
+    line: dict[str, Any] = {
+        "kind": "event",
+        "tracking_id": tracking_id,
+        "event": event,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
+    if extra:
+        line.update(extra)
+    return line
+
+
+def _schedule_status_event(path: Any, tracking_id: str, event: str, **extra: Any) -> None:
+    """Append status event to JSONL when persistence is enabled."""
+    _schedule_jsonl_append(path, _make_status_event(tracking_id, event, **extra))
+
+
+async def append_status_event_for_path(
+    statistics_path_rel: str | None,
+    tracking_id: str,
+    event: str,
+    **extra: Any,
+) -> None:
+    """Append one status event to the session JSONL (awaitable, for admin close)."""
+    if not statistics_path_rel or not jsonl_persistence_enabled():
+        return
+    path = absolute_stat_path(statistics_path_rel)
+    await _async_append(path, _make_status_event(tracking_id, event, **extra))
+
+
 def _schedule_jsonl_append(path: Any, obj: dict[str, Any]) -> None:
     """Пишет строку JSONL только при включённом ``statistics_enabled``."""
     if jsonl_persistence_enabled():
@@ -257,20 +429,32 @@ def _schedule_jsonl_append(path: Any, obj: dict[str, Any]) -> None:
 
 
 async def _upsert_tracking_row(**kwargs: Any) -> None:
-    try:
-        async with Database.session_context() as db:
-            row = await db.session.get(TrackingSessionORM, kwargs["tracking_id"])
-            if row is None:
-                row = TrackingSessionORM(**kwargs)
-                if row.entered_scanner_at is None:
-                    row.entered_scanner_at = datetime.now(timezone.utc)
-                db.session.add(row)
-            else:
-                for k, v in kwargs.items():
-                    setattr(row, k, v)
-            await db.commit()
-    except Exception:
-        pass
+    tracking_id = kwargs.get("tracking_id")
+    if not tracking_id:
+        return
+    async with _upsert_lock(str(tracking_id)):
+        try:
+            async with Database.session_context() as db:
+                row = await db.session.get(TrackingSessionORM, str(tracking_id))
+                merge_kwargs = _merge_tracking_kwargs(row, kwargs)
+                if row is None:
+                    row = TrackingSessionORM(**merge_kwargs)
+                    if row.entered_scanner_at is None:
+                        row.entered_scanner_at = datetime.now(timezone.utc)
+                    db.session.add(row)
+                else:
+                    for k, v in merge_kwargs.items():
+                        setattr(row, k, v)
+                await db.commit()
+        except Exception as exc:
+            log_signals_event(
+                {
+                    "kind": "scanner_tracking",
+                    "action": "upsert_failed",
+                    "tracking_id": str(tracking_id),
+                    "error": str(exc),
+                }
+            )
 
 
 def is_posttracking(screener_id: int, symbol: str) -> bool:
@@ -315,7 +499,9 @@ def prune_sessions_not_in_set(screener_id: int, keep_symbols: set[str]) -> None:
             _pending_signal_snapshots.pop(key, None)
             if st:
                 _sample_seq.pop(st.tracking_id, None)
-                if not st.triggered:
+                if st.triggered:
+                    _maybe_emit_completion(st, screener_id, sym)
+                else:
                     asyncio.create_task(
                         _async_tombstone_untriggered_session(
                             st.tracking_id, st.statistics_path
@@ -327,6 +513,8 @@ async def _async_tombstone_untriggered_session(
     tracking_id: str, statistics_path_rel: str | None
 ) -> None:
     """Tombstone untriggered session: unlink JSONL, retain minimal ``tracking_sessions`` row."""
+    if await _tracking_id_has_trigger_history(tracking_id, statistics_path_rel):
+        return
     now = datetime.now(timezone.utc)
     entered_at_iso: str | None = None
     symbol: str | None = None
@@ -373,7 +561,7 @@ def remove_untriggered_session_and_artifacts(
     """
     key = (screener_id, symbol)
     st = _sessions.get(key)
-    if st is None or st.triggered:
+    if st is None or st.triggered or st.tracking_id in _triggered_tracking_ids:
         return False
     _sessions.pop(key, None)
     _pending_signal_snapshots.pop(key, None)
@@ -484,7 +672,7 @@ async def maybe_persist_sample(
     await _async_append(path, line)
 
 
-def mark_triggered(
+async def mark_triggered(
     screener_id: int,
     symbol: str,
     snapshot: dict[str, Any],
@@ -492,37 +680,59 @@ def mark_triggered(
     """Помечает сессию как triggered, включает posttracking. Возвращает (tracking_id, json snapshot)."""
     key = (screener_id, symbol)
     st = _sessions.get(key)
-    if st is None or st.triggered:
+    if st is None:
+        return None, None
+    if st.triggered:
+        await _backfill_triggered_at_in_db(
+            tracking_id=st.tracking_id,
+            screener_id=screener_id,
+            symbol=symbol,
+            statistics_path=st.statistics_path,
+            snapshot=snapshot,
+        )
         return None, None
     st.triggered = True
     st.posttracking_until = time.time() + posttracking_seconds()
     tid = st.tracking_id
+    _triggered_tracking_ids.add(tid)
     snap = json.dumps(snapshot, ensure_ascii=False, default=str)
-    ev = {
-        "kind": "event",
-        "tracking_id": tid,
-        "event": "triggered",
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "card_snapshot": snapshot,
-    }
-    asyncio.create_task(
-        _upsert_tracking_row(
-            tracking_id=tid,
-            screener_id=screener_id,
-            screener_name=str(snapshot.get("screener_name", "")),
-            exchange=str(snapshot.get("exchange", "")),
-            market_type=str(snapshot.get("market_type", "")),
-            symbol=str(snapshot.get("symbol", symbol)),
-            status="triggered",
-            statistics_file_path=st.statistics_path,
-            triggered_at=datetime.now(timezone.utc),
-        )
+    await _upsert_tracking_row(
+        tracking_id=tid,
+        screener_id=screener_id,
+        screener_name=str(snapshot.get("screener_name", "")),
+        exchange=str(snapshot.get("exchange", "")),
+        market_type=str(snapshot.get("market_type", "")),
+        symbol=str(snapshot.get("symbol", symbol)),
+        status="triggered",
+        statistics_file_path=st.statistics_path,
+        triggered_at=datetime.now(timezone.utc),
     )
     if st.statistics_path:
         path = absolute_stat_path(st.statistics_path)
-        _schedule_jsonl_append(path, ev)
+        _schedule_status_event(
+            path, tid, "triggered", card_snapshot=snapshot,
+        )
     _pending_signal_snapshots[key] = (tid, snap)
     return tid, snap
+
+
+def record_trigger_refire(
+    screener_id: int,
+    symbol: str,
+    snapshot: dict[str, Any],
+) -> None:
+    """Log another ``triggered`` event when all filters pass again after first trigger."""
+    st = _sessions.get((screener_id, symbol))
+    if st is None or not st.triggered or not st.statistics_path:
+        return
+    path = absolute_stat_path(st.statistics_path)
+    _schedule_status_event(
+        path,
+        st.tracking_id,
+        "triggered",
+        refire=True,
+        card_snapshot=snapshot,
+    )
 
 
 def get_card_snapshot_for_signal_row(
@@ -538,9 +748,39 @@ def get_tracking_id_for_symbol(screener_id: int, symbol: str) -> str | None:
 
 
 def session_is_triggered(screener_id: int, symbol: str) -> bool:
-    """True, если сессия Scanner ещё в памяти и уже прошла фаза trigger (снимок в БД уже был или будет из кэша)."""
+    """True, если in-memory сессия уже прошла фазу trigger."""
     st = _sessions.get((screener_id, symbol))
-    return bool(st and st.triggered)
+    if st is None:
+        return False
+    if st.triggered or st.tracking_id in _triggered_tracking_ids:
+        return True
+    return False
+
+
+async def session_is_triggered_async(screener_id: int, symbol: str) -> bool:
+    """Как ``session_is_triggered``, плюс проверка ``triggered_at`` / JSONL в БД."""
+    st = _sessions.get((screener_id, symbol))
+    if st is None:
+        return False
+    if st.triggered or st.tracking_id in _triggered_tracking_ids:
+        await _backfill_triggered_at_in_db(
+            tracking_id=st.tracking_id,
+            screener_id=screener_id,
+            symbol=symbol,
+            statistics_path=st.statistics_path,
+        )
+        return True
+    if await _tracking_id_has_trigger_history(st.tracking_id, st.statistics_path):
+        st.triggered = True
+        _triggered_tracking_ids.add(st.tracking_id)
+        await _backfill_triggered_at_in_db(
+            tracking_id=st.tracking_id,
+            screener_id=screener_id,
+            symbol=symbol,
+            statistics_path=st.statistics_path,
+        )
+        return True
+    return False
 
 
 def attach_tracking_meta(
@@ -584,21 +824,18 @@ def parse_stat_page_path(page: str) -> tuple[str, str] | None:
 async def _finalize_completed_session(
     tracking_id: str, path: Any | None, screener_id: int, symbol: str
 ) -> None:
-    ev = {
-        "kind": "event",
-        "tracking_id": tracking_id,
-        "event": "completed",
-        "ts": datetime.now(timezone.utc).isoformat(),
-    }
     if path is not None:
-        _schedule_jsonl_append(path, ev)
+        _schedule_status_event(path, tracking_id, "completed")
     try:
         async with Database.session_context() as db:
             row = await db.session.get(TrackingSessionORM, tracking_id)
             if row:
+                now = datetime.now(timezone.utc)
+                if row.triggered_at is None:
+                    row.triggered_at = now
                 row.status = "completed"
-                row.completed_at = datetime.now(timezone.utc)
-                row.updated_at = datetime.now(timezone.utc)
+                row.completed_at = now
+                row.updated_at = now
                 await db.commit()
     except Exception:
         pass

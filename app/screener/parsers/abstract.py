@@ -15,7 +15,7 @@ from unicex import Exchange, IUniClient, MarketType, Websocket, get_uni_client
 class Parser(ABC):
     """Базовый класс для парсеров данных."""
 
-    _MAX_HISTORY_LEN = 60 * 15
+    _MAX_HISTORY_LEN = 60 * 65
     """Максимальная длина истории в секундах для всех парсеров."""
 
     _MARK_UPDATED_THROTTLE_SEC: float = 10.0

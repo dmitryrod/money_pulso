@@ -25,12 +25,19 @@ from starlette.routing import Route
 from starlette_admin import I18nConfig
 from starlette_admin.contrib.sqla import Admin
 
-from app.config import config
+from app.config import config, log_signals_event
 from app.database import Database, SettingsORM, SignalORM
 from app.schemas import EnvironmentType
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM
 from app.screener import scanner_runtime
-from app.screener.tracking_timeline import analytics_category, build_tracking_timeline
+from app.screener.tracking_timeline import (
+    ANALYTICS_DELETED_RETENTION,
+    ANALYTICS_RECENT_TAIL_LIMIT,
+    analytics_category,
+    build_session_events,
+    build_tracking_timeline,
+    merge_analytics_session_catalog,
+)
 from app.screener.statistics_store import (
     purge_statistics_data_files,
     resolve_statistics_jsonl,
@@ -56,7 +63,7 @@ from .view import (
     UiSettingsView,
 )
 
-_SIGNALS_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "signals_log.txt"
+_ANALYTICS_PURGE_CONFIRM = "purge-all-statistics"
 _APP_DIR = Path(__file__).resolve().parents[1]
 # Абсолютный путь: относительный "app/admin/templates" ломается при cwd внутри app/ (TemplateNotFound).
 _ADMIN_TEMPLATES_DIR = str(Path(__file__).resolve().parent / "templates")
@@ -682,6 +689,11 @@ def register_admin_routes(app: FastAPI) -> None:
             row = await db.session.get(TrackingSessionORM, tracking_id)
             if row is None:
                 return JSONResponse({"ok": False, "error": "not_found"}, status_code=404)
+            await scanner_runtime.append_status_event_for_path(
+                row.statistics_file_path,
+                tracking_id,
+                "closed",
+            )
             scanner_runtime.request_manual_close(tracking_id, row.screener_id, row.symbol)
             row.status = "closed"
             row.closed_at = datetime.now(timezone.utc)
@@ -711,13 +723,45 @@ def register_admin_routes(app: FastAPI) -> None:
     @app.get("/admin_api/analytics/sessions")
     async def _analytics_sessions_api() -> JSONResponse:
         async with Database.session_context() as db:
-            rows = (
+            triggered_rows = (
                 await db.session.execute(
-                    select(TrackingSessionORM).order_by(
-                        desc(TrackingSessionORM.created_at)
-                    ).limit(500)
+                    select(TrackingSessionORM).where(
+                        TrackingSessionORM.triggered_at.is_not(None)
+                    )
                 )
             ).scalars().all()
+            active_tail = (
+                await db.session.execute(
+                    select(TrackingSessionORM)
+                    .where(
+                        TrackingSessionORM.triggered_at.is_(None),
+                        TrackingSessionORM.status != "deleted",
+                    )
+                    .order_by(desc(TrackingSessionORM.created_at))
+                    .limit(ANALYTICS_RECENT_TAIL_LIMIT)
+                )
+            ).scalars().all()
+            deleted_tail = (
+                await db.session.execute(
+                    select(TrackingSessionORM)
+                    .where(
+                        TrackingSessionORM.triggered_at.is_(None),
+                        TrackingSessionORM.status == "deleted",
+                    )
+                    .order_by(
+                        desc(
+                            func.coalesce(
+                                TrackingSessionORM.closed_at,
+                                TrackingSessionORM.created_at,
+                            )
+                        )
+                    )
+                    .limit(ANALYTICS_DELETED_RETENTION)
+                )
+            ).scalars().all()
+            rows = merge_analytics_session_catalog(
+                triggered_rows, active_tail, deleted_tail,
+            )
         items = []
         for r in rows:
             cat = analytics_category(r.status)
@@ -739,11 +783,29 @@ def register_admin_routes(app: FastAPI) -> None:
                     "statistics_file_path": r.statistics_file_path,
                 }
             )
-        return JSONResponse({"items": items})
+        return JSONResponse(
+            {
+                "items": items,
+                "total": len(items),
+                "limits": {
+                    "active_tail": ANALYTICS_RECENT_TAIL_LIMIT,
+                    "deleted_retention": ANALYTICS_DELETED_RETENTION,
+                },
+            }
+        )
 
     @app.post("/admin_api/analytics/purge")
-    async def _analytics_purge_all() -> JSONResponse:
+    async def _analytics_purge_all(
+        request: Request,
+        confirm: str = Query(
+            ...,
+            description="Подтверждение: purge-all-statistics",
+        ),
+    ) -> JSONResponse:
         """Полная очистка аналитики Scanner: таблица ``tracking_sessions`` и файлы ``statistics-data``."""
+        ensure_full_admin(request)
+        if confirm.strip() != _ANALYTICS_PURGE_CONFIRM:
+            raise HTTPException(status_code=400, detail="Invalid confirm token")
         deleted_rows = 0
         try:
             async with Database.session_context() as db:
@@ -761,6 +823,15 @@ def register_admin_routes(app: FastAPI) -> None:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         scanner_runtime.reset_statistics_runtime_state()
         scanner_runtime.bump_cache_refresh()
+        log_signals_event(
+            {
+                "kind": "admin_audit",
+                "action": "analytics_purge",
+                "username": request.session.get("username"),
+                "tracking_sessions_deleted": deleted_rows,
+                "files_deleted": files_n,
+            }
+        )
         return JSONResponse(
             {
                 "ok": True,
@@ -781,6 +852,7 @@ def register_admin_routes(app: FastAPI) -> None:
                 row.statistics_file_path or "",
                 tracking_id=tracking_id,
             )
+            events = build_session_events(samples, row)
         return JSONResponse(
             {
                 "session": {
@@ -790,6 +862,7 @@ def register_admin_routes(app: FastAPI) -> None:
                     "exchange": row.exchange,
                 },
                 "samples": samples,
+                "events": events,
             }
         )
 

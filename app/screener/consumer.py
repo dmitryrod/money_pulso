@@ -575,12 +575,11 @@ class Consumer:
                             self._scanner_filter_prev_ok.pop(task_symbol, None)
                             self._scanner_filter_fire.pop(task_symbol, None)
 
-                    skip_scanner_tail = removed_untriggered or (
-                        no_enabled_filters_ok(tf)
-                        and not scanner_runtime.session_is_triggered(
+                    skip_scanner_tail = removed_untriggered
+                    if not skip_scanner_tail and no_enabled_filters_ok(tf):
+                        skip_scanner_tail = not await scanner_runtime.session_is_triggered_async(
                             self.settings.id, task_symbol
                         )
-                    )
 
                     if not skip_scanner_tail:
                         scanner_runtime.attach_tracking_meta(
@@ -597,11 +596,18 @@ class Consumer:
                             snap_copy = json.loads(json.dumps(test_payload, default=str))
                             snap_copy["scanner_duration_at_trigger_ms"] = elapsed_ms
                             snap_copy["scanner_snapshot_frozen"] = True
-                            tid, snap = scanner_runtime.mark_triggered(
-                                self.settings.id, task_symbol, snap_copy
-                            )
-                            if tid and snap:
-                                pending_snap[task_symbol] = (tid, snap)
+                            if await scanner_runtime.session_is_triggered_async(
+                                self.settings.id, task_symbol
+                            ):
+                                scanner_runtime.record_trigger_refire(
+                                    self.settings.id, task_symbol, snap_copy
+                                )
+                            else:
+                                tid, snap = await scanner_runtime.mark_triggered(
+                                    self.settings.id, task_symbol, snap_copy
+                                )
+                                if tid and snap:
+                                    pending_snap[task_symbol] = (tid, snap)
                         scanner_runtime.maybe_emit_completion_if_due(
                             self.settings.id, task_symbol
                         )
