@@ -26,6 +26,7 @@ from starlette_admin import I18nConfig
 from starlette_admin.contrib.sqla import Admin
 
 from app.config import config, log_signals_event
+from app.config.signals_log import SIGNALS_LOG_PATH as _SIGNALS_LOG_PATH
 from app.database import Database, SettingsORM, SignalORM
 from app.schemas import EnvironmentType
 from app.database.models import ScannerRuntimeSettingsORM, TrackingSessionORM

@@ -166,3 +166,26 @@ def test_parse_signals_log_line_legacy_no_snapshot() -> None:
     assert d["card_snapshot"] is None
     assert d["tracking_id"] is None
     assert d["stat_href"] is None
+
+
+def test_signals_api_source_file_returns_200(tmp_path, monkeypatch) -> None:
+    """Регрессия: ``_SIGNALS_LOG_PATH`` импортирован — GET source=file не даёт 500."""
+    from starlette.testclient import TestClient
+
+    from app.__main__ import app
+    from app.admin import roles as admin_roles
+
+    log_path = tmp_path / "signals_log.txt"
+    log_path.write_text("", encoding="utf-8")
+    monkeypatch.setattr("app.admin.__init__._SIGNALS_LOG_PATH", log_path)
+
+    client = TestClient(app)
+    with client.session_transaction() as sess:
+        sess[admin_roles.SESSION_ROLE_KEY] = admin_roles.ROLE_ADMIN
+        sess["username"] = "root"
+
+    r = client.get("/admin_api/signals?source=file&page=1&per_page=100")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "file"
+    assert body["items"] == []

@@ -262,3 +262,118 @@ def test_merge_klines_trims_beyond_max_history_len() -> None:
     klines = parser._klines["BELUSDT"]
     assert len(klines) == 1
     assert klines[0]["t"] == now_ms - 60_000
+
+
+
+@pytest.mark.asyncio
+async def test_clear_klines_empties_buffer_after_stop_like_recycle() -> None:
+    """После stop()/clear_klines буфер пуст — bootstrap не skip по len>=2."""
+    parser = AggTradesParser(Exchange.BYBIT, MarketType.FUTURES)
+    now_ms = int(time.time() * 1000)
+    parser._klines["BELUSDT"] = [
+        _rest_kline("BELUSDT", now_ms - 3_600_000, 0.090),
+        _rest_kline("BELUSDT", now_ms - 180_000, 0.091),
+    ]
+    assert len(parser._klines["BELUSDT"]) >= 2
+
+    await parser.clear_klines()
+
+    assert len(parser._klines) == 0
+    assert parser._klines_need_rest_bootstrap("BELUSDT") is True
+
+
+def test_klines_need_rest_bootstrap_true_when_newest_stale() -> None:
+    """Stale-aware: len>=2 но newest старше KLINES_BOOTSTRAP_STALE_SEC → REST нужен."""
+    parser = AggTradesParser(Exchange.BYBIT, MarketType.FUTURES)
+    now_ms = int(time.time() * 1000)
+    stale_sec = AggTradesParser.KLINES_BOOTSTRAP_STALE_SEC + 30
+    parser._klines["BELUSDT"] = [
+        _rest_kline("BELUSDT", now_ms - 600_000, 0.090),
+        _rest_kline("BELUSDT", now_ms - stale_sec * 1000, 0.091),
+    ]
+    assert parser._klines_need_rest_bootstrap("BELUSDT", now_ms=now_ms) is True
+
+
+def test_klines_need_rest_bootstrap_false_when_fresh() -> None:
+    """Свежий буфер >=2 — REST bootstrap не нужен."""
+    parser = AggTradesParser(Exchange.BYBIT, MarketType.FUTURES)
+    now_ms = int(time.time() * 1000)
+    parser._klines["BELUSDT"] = [
+        _rest_kline("BELUSDT", now_ms - 120_000, 0.090),
+        _rest_kline("BELUSDT", now_ms - 30_000, 0.092),
+    ]
+    assert parser._klines_need_rest_bootstrap("BELUSDT", now_ms=now_ms) is False
+
+
+@pytest.mark.asyncio
+async def test_stale_klines_after_recycle_bootstrap_refills_for_pd(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Симптом RCA: stale >=2 после recycle → bootstrap merge → PD не not_enough_klines."""
+    from contextlib import asynccontextmanager
+
+    parser = AggTradesParser(Exchange.BYBIT, MarketType.FUTURES)
+    now_ms = int(time.time() * 1000)
+    stale_open = now_ms - (AggTradesParser.KLINES_BOOTSTRAP_STALE_SEC + 60) * 1000
+    # Устаревшие 2 свечи: старый skip по len>=2 блокировал REST.
+    parser._klines["BELUSDT"] = [
+        _rest_kline("BELUSDT", stale_open - 60_000, 0.090),
+        _rest_kline("BELUSDT", stale_open, 0.091),
+    ]
+    assert parser._klines_need_rest_bootstrap("BELUSDT", now_ms=now_ms) is True
+
+    rest_incoming = [
+        _rest_kline("BELUSDT", now_ms - 3_600_000, 0.090),
+        _rest_kline("BELUSDT", now_ms - 60_000, 0.092),
+    ]
+
+    @asynccontextmanager
+    async def fake_client_context(self, **kwargs):  # noqa: ANN001, ANN003
+        yield object()
+
+    async def fake_fetch(self, client, symbol):  # noqa: ANN001
+        assert symbol == "BELUSDT"
+        return list(rest_incoming)
+
+    monkeypatch.setattr(AggTradesParser, "_client_context", fake_client_context)
+    monkeypatch.setattr(AggTradesParser, "_fetch_futures_klines", fake_fetch)
+    parser._is_running = True
+    # Ускоряем sleep между батчами
+    monkeypatch.setattr(AggTradesParser, "KLINES_BOOTSTRAP_DELAY_SEC", 0)
+
+    await parser._bootstrap_klines_from_rest([["BELUSDT"]])
+
+    klines = parser._klines["BELUSDT"]
+    assert len(klines) >= 2
+    # newest из REST должен быть свежим
+    assert max(int(k["t"]) for k in klines) == now_ms - 60_000
+    result = PumpDumpFilter.process(
+        klines=klines,
+        pd_interval_sec=3600,
+        pd_min_change_pct=1.0,
+    )
+    assert result.metadata.get("reason") != "not_enough_klines"
+    assert result.price_change_pct is not None
+
+
+@pytest.mark.asyncio
+async def test_stop_clears_klines_so_pd_not_stuck_on_stale_buffer() -> None:
+    """stop() очищает _klines — контракт recycle/restart."""
+    parser = AggTradesParser(Exchange.BYBIT, MarketType.FUTURES)
+    now_ms = int(time.time() * 1000)
+    parser._klines["BELUSDT"] = [
+        _rest_kline("BELUSDT", now_ms - 200_000, 0.09),
+        _rest_kline("BELUSDT", now_ms - 150_000, 0.091),
+    ]
+    parser._websockets = []
+
+    await parser.stop()
+
+    assert len(parser._klines) == 0
+    # Пустой буфер → PD no_klines до REST bootstrap (не stuck на stale not_enough).
+    result = PumpDumpFilter.process(
+        klines=[],
+        pd_interval_sec=3600,
+        pd_min_change_pct=1.0,
+    )
+    assert result.metadata.get("reason") == "no_klines"

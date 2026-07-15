@@ -474,7 +474,9 @@
     if (!enabled.length) return false;
     const labels = (resolveTimeline(row) || []).map((e) => String(e.label || '').toLowerCase());
     if (!labels.length) return true;
-    return labels.every((l) => enabled.includes(l));
+    const significant = labels.filter((l) => l !== 'start');
+    if (!significant.length) return enabled.includes('start');
+    return significant.every((l) => enabled.includes(l));
   }
 
   function rowPassesTextFilter(row, q) {

@@ -29,7 +29,8 @@ services:
       - WS_PERIODIC_RECYCLE_SEC=${WS_PERIODIC_RECYCLE_SEC:-14400}
     volumes:
       - .:/app/app
-      - ./logs:/app/logs
+      - ./logs:/app/app/logs
+      - ./statistics-data:/app/app/statistics-data
     depends_on:
       postgres:
         condition: service_healthy

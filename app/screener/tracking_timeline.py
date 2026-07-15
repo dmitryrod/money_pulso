@@ -34,7 +34,7 @@ def _final_timestamp(row: TrackingSessionORM) -> datetime | None:
 
 
 def build_tracking_timeline(row: TrackingSessionORM) -> list[dict[str, str]]:
-    """Build timeline: ``start`` plus current/final status (max 2 rows).
+    """Build timeline for analytics table: ``start``, optional ``triggered``, final status.
 
     Args:
         row: ORM row from ``tracking_sessions``.
@@ -54,9 +54,14 @@ def build_tracking_timeline(row: TrackingSessionORM) -> list[dict[str, str]]:
             items.append({"label": "deleted", "at": deleted_iso})
         return items
 
+    trigger_iso = _iso(row.triggered_at)
+    if trigger_iso and row.status != "triggered":
+        items.append({"label": "triggered", "at": trigger_iso})
+
     final_iso = _iso(_final_timestamp(row))
     if final_iso and row.status:
-        items.append({"label": row.status, "at": final_iso})
+        if not (row.status == "triggered" and trigger_iso):
+            items.append({"label": row.status, "at": final_iso})
 
     return items
 
@@ -118,7 +123,12 @@ def merge_analytics_session_catalog(
             continue
         seen.add(tid)
         merged.append(row)
-    merged.sort(key=analytics_session_activity_at, reverse=True)
+    merged.sort(
+        key=lambda row: (
+            0 if row.triggered_at is not None else 1,
+            -analytics_session_activity_at(row).timestamp(),
+        ),
+    )
     return merged
 
 

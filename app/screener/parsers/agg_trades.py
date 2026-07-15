@@ -1,6 +1,7 @@
 __all__ = ["AggTradesParser"]
 
 import asyncio
+import time
 from collections import defaultdict
 
 from unicex import (
@@ -41,6 +42,9 @@ class AggTradesParser(Parser):
 
     KLINES_BOOTSTRAP_DELAY_SEC = 0.2
     """Пауза между батчами REST bootstrap."""
+
+    KLINES_BOOTSTRAP_STALE_SEC = 120
+    """Если newest open_time старше N сек — REST merge даже при len>=2."""
 
     def __init__(self, exchange: Exchange, market_type: MarketType) -> None:
         """Инициализирует парсер агрегированных сделок.
@@ -84,10 +88,20 @@ class AggTradesParser(Parser):
             await self._stop_websocket_list(self._websockets)
 
     async def stop(self) -> None:
-        """Останавливает парсер данных."""
+        """Останавливает парсер данных и очищает буфер klines."""
         self._logger.info("Parser stopped")
         self._is_running = False
         await self._stop_websocket_list(self._websockets)
+        await self.clear_klines()
+
+    async def clear_klines(self) -> None:
+        """Очищает буфер klines (stop / WS recycle).
+
+        После recycle устаревшие >=2 свечи иначе блокируют REST bootstrap
+        (skip по len>=2) и PD получает not_enough_klines в окне фильтра.
+        """
+        async with self._klines_lock:
+            self._klines.clear()
 
     async def fetch_collected_data(self) -> dict[str, list[KlineDict]]:
         """Возвращает накопленные данные. Возвращает ссылку на объект в котором данные."""
@@ -125,6 +139,24 @@ class AggTradesParser(Parser):
             case _:
                 raise ValueError(f"Unsupported market type: {self._market_type}")
 
+    def _klines_need_rest_bootstrap(self, symbol: str, *, now_ms: int | None = None) -> bool:
+        """True если буфер пуст/короткий или newest open_time stale.
+
+        Args:
+            symbol: Тикер.
+            now_ms: Якорь времени (мс); по умолчанию wall clock.
+
+        Returns:
+            Нужен ли REST merge для символа.
+        """
+        klines = self._klines[symbol]
+        if len(klines) < 2:
+            return True
+        newest_t = max(int(k["t"]) for k in klines)
+        anchor_ms = now_ms if now_ms is not None else int(time.time() * 1000)
+        age_sec = (anchor_ms - newest_t) / 1000.0
+        return age_sec > self.KLINES_BOOTSTRAP_STALE_SEC
+
     async def _bootstrap_klines_from_rest(self, tickers_batched: list[list[str]]) -> None:
         """Подгружает 1m-свечи REST до/параллельно WS, чтобы PD/LQ имели >=2 точек."""
         symbols = [symbol for batch in tickers_batched for symbol in batch]
@@ -147,7 +179,7 @@ class AggTradesParser(Parser):
                         if not self._is_running:
                             return
                         async with self._klines_lock:
-                            if len(self._klines[symbol]) >= 2:
+                            if not self._klines_need_rest_bootstrap(symbol):
                                 continue
                         try:
                             incoming = await klines_fn(client, symbol)
@@ -156,8 +188,11 @@ class AggTradesParser(Parser):
                                 "klines bootstrap failed for {}: {}", symbol, exc
                             )
                             continue
+                        if not self._is_running:
+                            return
                         async with self._klines_lock:
-                            if len(self._klines[symbol]) >= 2:
+                            # Свежий WS (>=2 и не stale) — не затираем merge'ем REST.
+                            if not self._klines_need_rest_bootstrap(symbol):
                                 continue
                             self._merge_klines(symbol, incoming)
                     await asyncio.sleep(self.KLINES_BOOTSTRAP_DELAY_SEC)

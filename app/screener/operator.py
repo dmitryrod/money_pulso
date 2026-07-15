@@ -261,6 +261,9 @@ class Operator:
         old_task = task_map.get(name)
 
         await parser.stop()
+        if name == "agg_trades" and isinstance(parser, AggTradesParser):
+            # Defense in depth: stop() уже clear_klines; явный повтор + reason в логе.
+            await parser.clear_klines()
         if old_task is not None and not old_task.done():
             old_task.cancel()
             await asyncio.gather(old_task, return_exceptions=True)
@@ -275,10 +278,11 @@ class Operator:
             name=f"parser:{name}:{pair_key[0].value}:{pair_key[1].value}",
         )
         self._logger.warning(
-            "Watchdog: restarted websocket parser '{}' for {}:{}",
+            "Watchdog: restarted websocket parser '{}' for {}:{} restart_reason={}",
             name,
             pair_key[0].value,
             pair_key[1].value,
+            restart_reason,
         )
         log_signals_event(
             {

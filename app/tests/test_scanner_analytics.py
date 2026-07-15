@@ -1346,8 +1346,8 @@ def test_merge_analytics_session_catalog_sorts_by_latest_activity() -> None:
         created_at=datetime(2026, 6, 17, 12, 0, 0, tzinfo=timezone.utc),
     )
     merged = merge_analytics_session_catalog([older], [newer])
-    assert merged[0].tracking_id == "new-active"
-    assert merged[1].tracking_id == "old-triggered"
+    assert merged[0].tracking_id == "old-triggered"
+    assert merged[1].tracking_id == "new-active"
 
 
 def test_merge_analytics_session_catalog_keeps_only_newest_deleted_tail() -> None:
@@ -1399,3 +1399,5 @@ def test_build_tracking_timeline_completed_passes_default_status_labels() -> Non
         "start", "abandoned", "active", "triggered", "posttracking", "completed", "closed",
     }
     assert labels <= default_enabled
+    assert "triggered" in labels
+    assert "completed" in labels
