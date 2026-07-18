@@ -58,8 +58,8 @@ services:
     networks:
       internal:
       apps_network:
-        ipv4_address: 172.20.0.8   # опционально; можно убрать строку — тогда IP динамический
     labels:
+      # Маршрутизация только по labels (без static IP) — IP на apps_network динамический, после reboot не конфликтует.
       - "traefik.enable=true"
       - "traefik.docker.network=apps_network"
       - "traefik.http.routers.money-pulso.rule=Host(`screener.dmitryrod.ru`)"

@@ -1,0 +1,1284 @@
+=== META ===
+Thu Jul 16 17:36:44 UTC 2026
+MSK stamp: 2026-07-16 20:36:44 MSK
+AUDIT dir: /home/dmitrydevops/server-audit-2026-07-16-203644
+Script dir: /home/dmitrydevops
+SSH_PORT env: 22222
+ADMIN_USER env: 
+=== SYSTEM ===
+noticeably.splendid.slug
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+Linux noticeably.splendid.slug 6.8.0-134-generic #134-Ubuntu SMP PREEMPT_DYNAMIC Fri Jun 26 18:43:11 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+ 17:36:44 up  2:43,  3 users,  load average: 0.30, 0.18, 0.10
+               Local time: Thu 2026-07-16 17:36:44 UTC
+           Universal time: Thu 2026-07-16 17:36:44 UTC
+                 RTC time: Thu 2026-07-16 17:36:44
+                Time zone: Etc/UTC (UTC, +0000)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+=== RESOURCES ===
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           40 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  8
+On-line CPU(s) list:                     0-7
+Vendor ID:                               AuthenticAMD
+BIOS Vendor ID:                          QEMU
+Model name:                              AMD EPYC-Rome-v4 Processor (no XSAVES)
+BIOS Model name:                         pc-q35-10.0  CPU @ 2.0GHz
+BIOS CPU family:                         1
+CPU family:                              23
+Model:                                   49
+Thread(s) per core:                      1
+Core(s) per socket:                      8
+Socket(s):                               1
+Stepping:                                0
+BogoMIPS:                                4493.25
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm rep_good nopl cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext perfctr_core ssbd ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 clzero xsaveerptr wbnoinvd arat umip rdpid
+Hypervisor vendor:                       Microsoft
+Virtualization type:                     full
+L1d cache:                               256 KiB (8 instances)
+L1i cache:                               256 KiB (8 instances)
+L2 cache:                                4 MiB (8 instances)
+L3 cache:                                16 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-7
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Mitigation; untrained return thunk; SMT disabled
+Vulnerability Spec rstack overflow:      Vulnerable: Safe RET, no microcode
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       2.3Gi        10Gi        62Mi       3.5Gi        13Gi
+Swap:          8.0Gi          0B       8.0Gi
+NAME      TYPE SIZE USED PRIO
+/swapfile file   8G   0B   -2
+Filesystem     Type     Size  Used Avail Use% Mounted on
+tmpfs          tmpfs    1.6G  2.3M  1.6G   1% /run
+/dev/vda1      ext4     154G   46G  109G  30% /
+tmpfs          tmpfs    7.9G     0  7.9G   0% /dev/shm
+tmpfs          tmpfs    5.0M     0  5.0M   0% /run/lock
+/dev/vda16     ext4     881M  117M  703M  15% /boot
+/dev/vda15     vfat     105M  6.2M   99M   6% /boot/efi
+tmpfs          tmpfs    1.6G   36K  1.6G   1% /run/user/1000
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/a23cef0d45ff9072854762b4100458e40ccebf26bfc4563810b3ca2449fc00ce
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/dec4a0b34ba29c78632ed351d0178cca4663f3252f5229bab7c6a78cd2358ef9
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/985093c5cd79657127dc10132ab6a297d55896cea0ac86a4a78c8ecf59ff1d15
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/196f13198df7788320d675d7ee9067b53bdeac35e411fb856d67e0978e72e289
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/f549486f9e533d2ad39ce2e04d22fdce03344a09b7bea7661f22f4c9e2f2c1ba
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/20b3a630f3e5efe7d0b8903425d7d77285eef61d637c651fceba2e3328be29ce
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/0b4e6f392f45df5d3c26cc4a2772be4e2ad37ea2dc4bbcfea14fdc4e114616c2
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/2b0a7c52f744109544d18b03f6dc0c6b96bfc38b398f6026faddaff7d73d6602
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/082aa17237dc82bd79a32cf0134cf68ec88fe69b4e8227f1cf199ea5a588d416
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/bf148b435aed7cd5a350cdbd93b850789a1dc5b4d777509e7d60bd7ba19c6446
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/a19056190006ec14e04483fa9e501562e344f575317e07c1ef30f5b1a60c41bc
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/4219919ff180b428d54e67ce0f4f86bbd5a9e304c58a770354e387aa541c10ad
+overlay        overlay  154G   46G  109G  30% /var/lib/docker/rootfs/overlayfs/8e316ee74b777a1898b9f001d487490ef77fe2f1b5d52f00348d789ffdc5f739
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0      11:0    1  368K  0 rom  
+vda     253:0    0  160G  0 disk 
+├─vda1  253:1    0  159G  0 part /
+├─vda14 253:14   0    4M  0 part 
+├─vda15 253:15   0  106M  0 part /boot/efi
+└─vda16 259:0    0  913M  0 part /boot
+--- top processes by RSS ---
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+dmitryd+  143446  7.4  3.6 78626304 592796 ?     Sl   17:30   0:27 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node --dns-result-order=ipv4first --inspect-port=0 --experimental-network-inspection /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+999         2360  0.2  2.6 1317584 428888 ?      Ssl  14:53   0:26 /usr/local/bin/python3.11 /home/appuser/.local/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips *
+root         968  0.6  0.9 4762276 162344 ?      Ssl  14:53   1:03 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+1001        2987  0.0  0.7 10089656 129020 ?     Sl   14:53   0:03 node apps/daemon/dist/cli.js --no-open
+dmitryd+  143383  0.7  0.6 11834540 110640 ?     Sl   17:30   0:02 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/server-main.js --start-server --host 127.0.0.1 --port 0 --connection-token-file /run/user/1000/cursor-remote-code.token.877d6ce9398b4a0ad737cf355a7f2f07 --telemetry-level off --enable-remote-auto-shutdown --accept-server-license-terms
+root        3838  0.0  0.6 594464 106028 ?       Sl   14:53   0:01 searxng worker-1
+root         786  0.6  0.6 1418304 101440 ?      Ssl  14:53   0:59 /usr/local/x-ui/x-ui
+dmitryd+  143457  0.2  0.4 1329024 77452 ?       Sl   17:30   0:00 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=fileWatcher
+1001        2311  0.0  0.4 10841316 77144 ?      Ssl  14:53   0:01 next-server (v
+root         830  0.3  0.4 2968816 75560 ?       Ssl  14:53   0:39 /usr/bin/containerd
+1001        2273  0.0  0.4 11205152 74560 ?      Ssl  14:53   0:01 next-server (v
+dmitryd+  143484  0.2  0.4 1063328 73008 ?       Sl   17:30   0:00 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=ptyHost --logsPath /home/dmitrydevops/.cursor-server/data/logs/20260716T173041
+root        2302  0.2  0.3  96564 63848 ?        Ss   14:53   0:20 /usr/bin/python /usr/local/bin/uvicorn main:app --host 0.0.0.0 --port 8020 --workers 1
+dmitryd+  143580  0.0  0.3 1027460 63756 ?       Sl   17:30   0:00 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=143446
+dmitryd+  143976  0.0  0.3 1092696 63560 ?       Sl   17:30   0:00 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=143446
+root        2323  0.2  0.3  96528 63156 ?        Ss   14:53   0:20 /usr/bin/python /usr/local/bin/uvicorn main:app --host 0.0.0.0 --port 8020 --workers 1
+dmitryd+  143341  0.0  0.2 1012868 46536 ?       Sl   17:30   0:00 /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/multiplex-server/e0e6952a313d583840d50b387ab40c7bba7e66b79d95be1f22b3e7fc0706ae74.js 21408981-7918-4593-aac2-1b7328719dd1 0
+root         774  0.1  0.2 950812 45240 ?        Ssl  14:53   0:12 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root         970  0.1  0.2 1298540 40708 ?       Sl   14:53   0:10 bin/xray-linux-amd64 -c bin/config.json
+root        2350  0.0  0.1 142612 31432 ?        Ssl  14:53   0:00 searxng
+999         2338  0.0  0.1 216080 27856 ?        Ss   14:53   0:00 postgres
+root         428  0.0  0.1 288952 27292 ?        SLsl 14:53   0:01 /sbin/multipathd -d -s
+70          2309  0.0  0.1 173956 26472 ?        Ss   14:53   0:01 postgres
+70          2375  0.0  0.1 173952 26408 ?        Ss   14:53   0:01 postgres
+=== PROCESS HEALTH ===
+--- zombie processes ---
+zombie_count=0
+--- high pid count processes ---
+    PID USER     NLWP STAT %CPU %MEM COMMAND         COMMAND
+    968 root       39 Ssl   0.6  0.9 dockerd         /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+ 143446 dmitryd+   35 Sl    7.4  3.6 node            /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node --dns-result-order=ipv4first --inspect-port=0 --experimental-network-inspection /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+    830 root       23 Ssl   0.3  0.4 containerd      /usr/bin/containerd
+    786 root       15 Ssl   0.6  0.6 x-ui            /usr/local/x-ui/x-ui
+    970 root       14 Sl    0.1  0.2 xray-linux-amd6 bin/xray-linux-amd64 -c bin/config.json
+ 143457 dmitryd+   13 Sl    0.2  0.4 node            /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=fileWatcher
+   1929 root       12 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 2b0a7c52f744109544d18b03f6dc0c6b96bfc38b398f6026faddaff7d73d6602 -address /run/containerd/containerd.sock
+   2002 root       12 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id bf148b435aed7cd5a350cdbd93b850789a1dc5b4d777509e7d60bd7ba19c6446 -address /run/containerd/containerd.sock
+ 143484 dmitryd+   12 Sl    0.2  0.4 node            /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /home/dmitrydevops/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=ptyHost --logsPath /home/dmitrydevops/.cursor-server/data/logs/20260716T173041
+   1853 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 20b3a630f3e5efe7d0b8903425d7d77285eef61d637c651fceba2e3328be29ce -address /run/containerd/containerd.sock
+   1866 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 196f13198df7788320d675d7ee9067b53bdeac35e411fb856d67e0978e72e289 -address /run/containerd/containerd.sock
+   1880 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 082aa17237dc82bd79a32cf0134cf68ec88fe69b4e8227f1cf199ea5a588d416 -address /run/containerd/containerd.sock
+   1908 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 4219919ff180b428d54e67ce0f4f86bbd5a9e304c58a770354e387aa541c10ad -address /run/containerd/containerd.sock
+   1914 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id f549486f9e533d2ad39ce2e04d22fdce03344a09b7bea7661f22f4c9e2f2c1ba -address /run/containerd/containerd.sock
+   1923 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 8e316ee74b777a1898b9f001d487490ef77fe2f1b5d52f00348d789ffdc5f739 -address /run/containerd/containerd.sock
+   1931 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id a23cef0d45ff9072854762b4100458e40ccebf26bfc4563810b3ca2449fc00ce -address /run/containerd/containerd.sock
+   1950 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id dec4a0b34ba29c78632ed351d0178cca4663f3252f5229bab7c6a78cd2358ef9 -address /run/containerd/containerd.sock
+   1997 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 0b4e6f392f45df5d3c26cc4a2772be4e2ad37ea2dc4bbcfea14fdc4e114616c2 -address /run/containerd/containerd.sock
+   2040 root       11 Sl    0.0  0.0 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id a19056190006ec14e04483fa9e501562e344f575317e07c1ef30f5b1a60c41bc -address /run/containerd/containerd.sock
+
+=== NETWORK ===
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth0             UP             185.75.249.109/26 fe80::5054:58ff:fe4f:f574/64 
+br-34f369ada433  DOWN           172.19.0.1/16 
+docker0          DOWN           172.17.0.1/16 fe80::3893:c8ff:fe58:f262/64 
+br-5a383e08b8e3  DOWN           172.21.0.1/16 
+br-7f2a39fdce2f  UP             172.23.0.1/16 fe80::ac0f:3aff:fe96:18ad/64 
+br-7fd9933d34d9  UP             172.22.0.1/16 fe80::5cda:3cff:fe11:3214/64 
+br-8d0a355be197  UP             172.18.0.1/16 fe80::b047:e2ff:feb9:9f5/64 
+br-b64ba1d478b2  UP             172.20.0.1/16 fe80::e06c:e2ff:fe5a:6a6d/64 
+br-e12d27d4f27a  UP             172.24.0.1/16 fe80::6443:d4ff:fe3a:a866/64 
+veth3dd7cbf@if2  UP             fe80::60b1:21ff:fedf:f0f8/64 
+vethe04ca1d@if2  UP             fe80::e06f:a1ff:fe84:4643/64 
+veth17a329f@if2  UP             fe80::c4dd:d6ff:feec:b9bb/64 
+veth7e6e598@if2  UP             fe80::41e:49ff:fe49:f47d/64 
+vethf6b5be2@if2  UP             fe80::50ce:37ff:fe17:5f9/64 
+veth5d82efe@if2  UP             fe80::5416:fcff:febb:5663/64 
+vethfe541a8@if2  UP             fe80::3c15:7cff:fe21:a8fb/64 
+veth02c4457@if2  UP             fe80::9440:2eff:fe28:f436/64 
+veth8f0a37e@if2  UP             fe80::60a8:5aff:fed1:243e/64 
+veth658cc0b@if2  UP             fe80::6c04:4fff:fe1e:1e43/64 
+veth46b140c@if2  UP             fe80::d017:44ff:fe83:a2fa/64 
+vethdaa4f76@if2  UP             fe80::b04d:ddff:fe4f:552c/64 
+vethdc2690a@if2  UP             fe80::8871:82ff:fe98:c828/64 
+veth6e1ad61@if3  UP             fe80::28e1:11ff:feb1:5385/64 
+veth2a9f756@if3  UP             fe80::f027:56ff:fe40:2497/64 
+default via 185.75.249.65 dev eth0 proto static 
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown 
+172.18.0.0/16 dev br-8d0a355be197 proto kernel scope link src 172.18.0.1 
+172.19.0.0/16 dev br-34f369ada433 proto kernel scope link src 172.19.0.1 linkdown 
+172.20.0.0/16 dev br-b64ba1d478b2 proto kernel scope link src 172.20.0.1 
+172.21.0.0/16 dev br-5a383e08b8e3 proto kernel scope link src 172.21.0.1 linkdown 
+172.22.0.0/16 dev br-7fd9933d34d9 proto kernel scope link src 172.22.0.1 
+172.23.0.0/16 dev br-7f2a39fdce2f proto kernel scope link src 172.23.0.1 
+172.24.0.0/16 dev br-e12d27d4f27a proto kernel scope link src 172.24.0.1 
+185.75.249.64/26 dev eth0 proto kernel scope link src 185.75.249.109 
+# This is /run/systemd/resolve/stub-resolv.conf managed by man:systemd-resolved(8).
+# Do not edit.
+#
+# This file might be symlinked as /etc/resolv.conf. If you're looking at
+# /etc/resolv.conf and seeing this text, you have followed the symlink.
+#
+# This is a dynamic resolv.conf file for connecting local clients to the
+# internal DNS stub resolver of systemd-resolved. This file lists all
+# configured search domains.
+#
+# Run "resolvectl status" to see details about the uplink DNS servers
+# currently in use.
+#
+# Third party programs should typically not access this file directly, but only
+# through the symlink at /etc/resolv.conf. To manage man:resolv.conf(5) in a
+# different way, replace this symlink by a static file or a different symlink.
+#
+# See man:systemd-resolved.service(8) for details about the supported modes of
+# operation for /etc/resolv.conf.
+
+nameserver 127.0.0.53
+options edns0 trust-ad
+search .
+Global
+         Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+  resolv.conf mode: stub
+
+Link 2 (eth0)
+    Current Scopes: DNS
+         Protocols: +DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+Current DNS Server: 9.9.9.9
+       DNS Servers: 9.9.9.9 149.112.112.112 1.1.1.1
+
+Link 3 (br-34f369ada433)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 4 (docker0)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 5 (br-5a383e08b8e3)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 6 (br-7f2a39fdce2f)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 7 (br-7fd9933d34d9)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 8 (br-8d0a355be197)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 9 (br-b64ba1d478b2)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 10 (br-e12d27d4f27a)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 11 (veth3dd7cbf)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 12 (vethe04ca1d)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 13 (veth17a329f)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 14 (veth7e6e598)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 15 (vethf6b5be2)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 17 (veth5d82efe)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 18 (vethfe541a8)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 19 (veth02c4457)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 20 (veth8f0a37e)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 21 (veth658cc0b)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 22 (veth46b140c)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 23 (vethdaa4f76)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 24 (vethdc2690a)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 25 (veth6e1ad61)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 26 (veth2a9f756)
+    Current Scopes: none
+         Protocols: -DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                               
+udp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=663,fd=16))            
+udp   UNCONN 0      0      127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=663,fd=14))            
+udp   UNCONN 0      0                  *:23274            *:*    users:(("xray-linux-amd6",pid=970,fd=8))             
+tcp   LISTEN 0      4096       127.0.0.1:7456       0.0.0.0:*    users:(("docker-proxy",pid=2801,fd=8))               
+tcp   LISTEN 0      4096       127.0.0.1:62789      0.0.0.0:*    users:(("xray-linux-amd6",pid=970,fd=4))             
+tcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=663,fd=17))            
+tcp   LISTEN 0      511        127.0.0.1:35991      0.0.0.0:*    users:(("node",pid=143341,fd=21))                    
+tcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:(("x-ui",pid=786,fd=9))                        
+tcp   LISTEN 0      4096       127.0.0.1:11111      0.0.0.0:*    users:(("xray-linux-amd6",pid=970,fd=10))            
+tcp   LISTEN 0      511        127.0.0.1:35639      0.0.0.0:*    users:(("node",pid=143383,fd=21))                    
+tcp   LISTEN 0      4096         0.0.0.0:8020       0.0.0.0:*    users:(("docker-proxy",pid=2574,fd=8))               
+tcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=663,fd=15))            
+tcp   LISTEN 0      4096         0.0.0.0:5433       0.0.0.0:*    users:(("docker-proxy",pid=2661,fd=8))               
+tcp   LISTEN 0      4096         0.0.0.0:22222      0.0.0.0:*    users:(("sshd",pid=947,fd=3),("systemd",pid=1,fd=94))
+tcp   LISTEN 0      4096               *:2096             *:*    users:(("x-ui",pid=786,fd=13))                       
+tcp   LISTEN 0      4096               *:16681            *:*    users:(("xray-linux-amd6",pid=970,fd=7))             
+tcp   LISTEN 0      4096               *:56488            *:*    users:(("xray-linux-amd6",pid=970,fd=9))             
+tcp   LISTEN 0      4096            [::]:8020          [::]:*    users:(("docker-proxy",pid=2610,fd=8))               
+tcp   LISTEN 0      4096            [::]:5433          [::]:*    users:(("docker-proxy",pid=2671,fd=8))               
+tcp   LISTEN 0      4096            [::]:22222         [::]:*    users:(("sshd",pid=947,fd=4),("systemd",pid=1,fd=95))
+--- VPN / панель (x-ui, xray) ---
+udp   UNCONN 0      0                  *:23274            *:*    users:(("xray-linux-amd6",pid=970,fd=8))             
+tcp   LISTEN 0      4096       127.0.0.1:62789      0.0.0.0:*    users:(("xray-linux-amd6",pid=970,fd=4))             
+tcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:(("x-ui",pid=786,fd=9))                        
+tcp   LISTEN 0      4096       127.0.0.1:11111      0.0.0.0:*    users:(("xray-linux-amd6",pid=970,fd=10))            
+tcp   LISTEN 0      4096               *:2096             *:*    users:(("x-ui",pid=786,fd=13))                       
+tcp   LISTEN 0      4096               *:16681            *:*    users:(("xray-linux-amd6",pid=970,fd=7))             
+tcp   LISTEN 0      4096               *:56488            *:*    users:(("xray-linux-amd6",pid=970,fd=9))             
+=== PUBLIC PORTS SUMMARY ===
+--- публично слушающие TCP/UDP сокеты ---
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                               
+udp   UNCONN 0      0                  *:23274            *:*    users:(("xray-linux-amd6",pid=970,fd=8))             
+tcp   LISTEN 0      4096         0.0.0.0:8020       0.0.0.0:*    users:(("docker-proxy",pid=2574,fd=8))               
+tcp   LISTEN 0      4096         0.0.0.0:5433       0.0.0.0:*    users:(("docker-proxy",pid=2661,fd=8))               
+tcp   LISTEN 0      4096         0.0.0.0:22222      0.0.0.0:*    users:(("sshd",pid=947,fd=3),("systemd",pid=1,fd=94))
+tcp   LISTEN 0      4096               *:2096             *:*    users:(("x-ui",pid=786,fd=13))                       
+tcp   LISTEN 0      4096               *:16681            *:*    users:(("xray-linux-amd6",pid=970,fd=7))             
+tcp   LISTEN 0      4096               *:56488            *:*    users:(("xray-linux-amd6",pid=970,fd=9))             
+tcp   LISTEN 0      4096            [::]:8020          [::]:*    users:(("docker-proxy",pid=2610,fd=8))               
+tcp   LISTEN 0      4096            [::]:5433          [::]:*    users:(("docker-proxy",pid=2671,fd=8))               
+tcp   LISTEN 0      4096            [::]:22222         [::]:*    users:(("sshd",pid=947,fd=4),("systemd",pid=1,fd=95))
+--- занятые важные порты для 3x-ui/xray ---
+port 80: свободен
+port 443: свободен
+port 2053: занят
+tcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:(("x-ui",pid=786,fd=9))                        
+port 2096: занят
+tcp   LISTEN 0      4096               *:2096             *:*    users:(("x-ui",pid=786,fd=13))                       
+port 22222: занят
+tcp   LISTEN 0      4096         0.0.0.0:22222      0.0.0.0:*    users:(("sshd",pid=947,fd=3),("systemd",pid=1,fd=94))
+tcp   LISTEN 0      4096            [::]:22222         [::]:*    users:(("sshd",pid=947,fd=4),("systemd",pid=1,fd=95))
+port 5433: занят
+tcp   LISTEN 0      4096         0.0.0.0:5433       0.0.0.0:*    users:(("docker-proxy",pid=2661,fd=8))               
+tcp   LISTEN 0      4096            [::]:5433          [::]:*    users:(("docker-proxy",pid=2671,fd=8))               
+port 8020: занят
+tcp   LISTEN 0      4096         0.0.0.0:8020       0.0.0.0:*    users:(("docker-proxy",pid=2574,fd=8))               
+tcp   LISTEN 0      4096            [::]:8020          [::]:*    users:(("docker-proxy",pid=2610,fd=8))               
+
+=== DOCKER ===
+Client: Docker Engine - Community
+ Version:           29.5.3
+ API version:       1.54
+ Go version:        go1.26.4
+ Git commit:        d1c06ef
+ Built:             Wed Jun  3 18:00:12 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.5.3
+  API version:      1.54 (minimum version 1.40)
+  Go version:       go1.26.4
+  Git commit:       285b471
+  Built:            Wed Jun  3 18:00:12 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.4
+  GitCommit:        193637f7ee8ae5f5aa5248f49e7baa3e6164966e
+ runc:
+  Version:          1.3.5
+  GitCommit:        v1.3.5-0-g488fc13e
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+--- docker system df ---
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          14        13        16.25GB   215.7MB (1%)
+Containers      15        13        5.284MB   32.77kB (0%)
+Local Volumes   8         8         2.322GB   0B (0%)
+Build Cache     22        0         2.787GB   1.527GB
+--- docker ps (контейнеры и опубликованные порты) ---
+NAMES                          STATUS                 IMAGE                              PORTS
+compcheck-backend-1            Up 3 hours (healthy)   compcheck-backend:local            8020/tcp
+rusprofile-backend-1           Up 3 hours (healthy)   rusprofile-backend                 0.0.0.0:8020->8020/tcp, [::]:8020->8020/tcp
+rusprofile-postgres-1          Up 3 hours (healthy)   postgres:15-alpine                 0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+compcheck-frontend-1           Up 3 hours             compcheck-frontend:local           3020/tcp
+compcheck-postgres-1           Up 3 hours (healthy)   postgres:15-alpine                 5432/tcp
+watermark-remover-frontend-1   Up 3 hours             watermark-remover-frontend:local   3000/tcp
+watermark-remover-backend-1    Up 3 hours (healthy)   watermark-remover-backend:local    8000/tcp
+watermark-remover-postgres-1   Up 3 hours (healthy)   postgres:15-alpine                 5432/tcp
+searxng-core                   Up 3 hours             searxng/searxng:latest             8080/tcp
+searxng-auth                   Up 3 hours             searxng-auth                       8080/tcp
+searxng-valkey                 Up 3 hours             valkey/valkey:9-alpine             6379/tcp
+open-design                    Up 3 hours (healthy)   open-design:local                  127.0.0.1:7456->7456/tcp
+app-postgres-1                 Up 3 hours (healthy)   postgres:15                        5432/tcp
+--- docker stats --no-stream ---
+NAME                           CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O        PIDS
+compcheck-backend-1            0.20%     50.86MiB / 15.62GiB   0.32%     8.53kB / 4.91kB   14.4MB / 4.1kB   1
+rusprofile-backend-1           0.17%     64.88MiB / 15.62GiB   0.41%     6.71kB / 5.09kB   33.4MB / 4.1kB   1
+rusprofile-postgres-1          0.00%     33.5MiB / 15.62GiB    0.21%     7.59kB / 4.92kB   15.5MB / 713kB   7
+compcheck-frontend-1           0.00%     82.77MiB / 15.62GiB   0.52%     2.58kB / 126B     60.6MB / 0B      11
+compcheck-postgres-1           0.00%     32.96MiB / 15.62GiB   0.21%     6.65kB / 4.4kB    14.5MB / 721kB   7
+watermark-remover-frontend-1   0.00%     86.91MiB / 15.62GiB   0.54%     2.67kB / 126B     57.2MB / 0B      11
+watermark-remover-backend-1    0.19%     504.1MiB / 15.62GiB   3.15%     6.69kB / 3.33kB   317MB / 1.31MB   9
+watermark-remover-postgres-1   0.00%     28.89MiB / 15.62GiB   0.18%     5.01kB / 2.66kB   9.88MB / 713kB   7
+searxng-core                   0.00%     145.6MiB / 15.62GiB   0.91%     18.1kB / 9.61kB   64.1MB / 348kB   9
+searxng-auth                   0.02%     17.65MiB / 15.62GiB   0.11%     2.5kB / 126B      10.9MB / 0B      1
+searxng-valkey                 0.24%     12.56MiB / 15.62GiB   0.08%     8.26kB / 5.37kB   9.71MB / 0B      8
+open-design                    0.00%     215MiB / 1.5GiB       14.00%    68.7kB / 32.3kB   182MB / 5.67MB   12
+app-postgres-1                 0.00%     52.77MiB / 15.62GiB   0.33%     1.95kB / 126B     38.7MB / 680kB   6
+--- docker networks ---
+NETWORK ID     NAME                         DRIVER    SCOPE
+34f369ada433   app_default                  bridge    local
+8d0a355be197   app_internal                 bridge    local
+b64ba1d478b2   apps_network                 bridge    local
+6323576a784e   bridge                       bridge    local
+7f2a39fdce2f   compcheck_internal           bridge    local
+6657f1916c74   host                         host      local
+654607986ed2   none                         null      local
+e12d27d4f27a   rusprofile_default           bridge    local
+5a383e08b8e3   searxng_default              bridge    local
+7fd9933d34d9   watermark-remover_internal   bridge    local
+--- docker compose ls ---
+NAME                STATUS              CONFIG FILES
+app                 running(1)          /opt/apps/money-pulso/app/docker-compose.prod.yaml
+compcheck           running(3)          /opt/apps/compcheck/docker-compose.prod.yml
+open-design         running(1)          /opt/apps/design/docker-compose.prod.yaml
+rusprofile          running(2)          /opt/apps/compcheck/docker-compose.yml
+searxng             running(3)          /opt/apps/search/searxng/docker-compose.yml
+watermark-remover   running(3)          /opt/apps/watermark-remover/app/docker-compose.prod.yml
+--- docker published ports only ---
+rusprofile-backend-1 0.0.0.0:8020->8020/tcp, [::]:8020->8020/tcp
+rusprofile-postgres-1 0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+
+=== 3X-UI INSTALL READINESS ===
+[WARN] x-ui.service уже есть — установка поверх может затронуть текущую панель
+[OK] 80/443 свободны
+[WARN] 2053 занят — дефолтный/частый порт панели может конфликтовать
+[INFO] Docker active. UFW не является полной защитой Docker-published ports; проверяй DOCKER-USER и docker ps.
+rusprofile-backend-1 0.0.0.0:8020->8020/tcp, [::]:8020->8020/tcp
+rusprofile-postgres-1 0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+
+=== IPTABLES ===
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+  272  110K DOCKER-USER  0    --  *      *       0.0.0.0/0            0.0.0.0/0           
+  272  110K DOCKER-FORWARD  0    --  *      *       0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOCKER (8 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     6    --  !br-b64ba1d478b2 br-b64ba1d478b2  0.0.0.0/0            172.20.0.6           tcp dpt:7456
+    2   100 ACCEPT     6    --  !br-e12d27d4f27a br-e12d27d4f27a  0.0.0.0/0            172.24.0.3           tcp dpt:5432
+    2   104 ACCEPT     6    --  !br-e12d27d4f27a br-e12d27d4f27a  0.0.0.0/0            172.24.0.2           tcp dpt:8020
+    0     0 DROP       0    --  !br-34f369ada433 br-34f369ada433  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-5a383e08b8e3 br-5a383e08b8e3  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-7f2a39fdce2f br-7f2a39fdce2f  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-7fd9933d34d9 br-7fd9933d34d9  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-8d0a355be197 br-8d0a355be197  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-b64ba1d478b2 br-b64ba1d478b2  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !br-e12d27d4f27a br-e12d27d4f27a  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       0    --  !docker0 docker0  0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-BRIDGE (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DOCKER     0    --  *      br-34f369ada433  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      br-5a383e08b8e3  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      br-7f2a39fdce2f  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      br-7fd9933d34d9  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      br-8d0a355be197  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      br-b64ba1d478b2  0.0.0.0/0            0.0.0.0/0           
+    4   204 DOCKER     0    --  *      br-e12d27d4f27a  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     0    --  *      docker0  0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-CT (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     0    --  *      br-34f369ada433  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     0    --  *      br-5a383e08b8e3  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     0    --  *      br-7f2a39fdce2f  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     0    --  *      br-7fd9933d34d9  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     0    --  *      br-8d0a355be197  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+  125 74352 ACCEPT     0    --  *      br-b64ba1d478b2  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    9   512 ACCEPT     0    --  *      br-e12d27d4f27a  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     0    --  *      docker0  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+
+Chain DOCKER-FORWARD (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+  272  110K DOCKER-CT  0    --  *      *       0.0.0.0/0            0.0.0.0/0           
+  138 34636 DOCKER-INTERNAL  0    --  *      *       0.0.0.0/0            0.0.0.0/0           
+  138 34636 DOCKER-BRIDGE  0    --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  br-34f369ada433 *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  br-5a383e08b8e3 *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  br-7f2a39fdce2f *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  br-7fd9933d34d9 *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  br-8d0a355be197 *       0.0.0.0/0            0.0.0.0/0           
+  127 34043 ACCEPT     0    --  br-b64ba1d478b2 *       0.0.0.0/0            0.0.0.0/0           
+    7   389 ACCEPT     0    --  br-e12d27d4f27a *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     0    --  docker0 *       0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-INTERNAL (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOCKER-USER (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+--- NAT ---
+Chain PREROUTING (policy ACCEPT 4046 packets, 189K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+ 4039  189K DOCKER     0    --  *      *       0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL
+
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain OUTPUT (policy ACCEPT 5113 packets, 313K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DOCKER     0    --  *      *       0.0.0.0/0           !127.0.0.0/8          ADDRTYPE match dst-type LOCAL
+
+Chain POSTROUTING (policy ACCEPT 5117 packets, 313K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 MASQUERADE  0    --  *      !docker0  172.17.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-e12d27d4f27a  172.24.0.0/16        0.0.0.0/0           
+   11   660 MASQUERADE  0    --  *      !br-b64ba1d478b2  172.20.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-8d0a355be197  172.18.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-7fd9933d34d9  172.22.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-7f2a39fdce2f  172.23.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-5a383e08b8e3  172.21.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  0    --  *      !br-34f369ada433  172.19.0.0/16        0.0.0.0/0           
+
+Chain DOCKER (2 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    2   104 DNAT       6    --  !br-e12d27d4f27a *       0.0.0.0/0            0.0.0.0/0            tcp dpt:8020 to:172.24.0.2:8020
+    2   100 DNAT       6    --  !br-e12d27d4f27a *       0.0.0.0/0            0.0.0.0/0            tcp dpt:5433 to:172.24.0.3:5432
+    0     0 DNAT       6    --  !br-b64ba1d478b2 *       0.0.0.0/0            127.0.0.1            tcp dpt:7456 to:172.20.0.6:7456
+=== NFTABLES ===
+table ip nat {
+	chain DOCKER {
+		iifname != "br-e12d27d4f27a" tcp dport 8020 counter packets 2 bytes 104 dnat to 172.24.0.2:8020
+		iifname != "br-e12d27d4f27a" tcp dport 5433 counter packets 2 bytes 100 dnat to 172.24.0.3:5432
+		ip daddr 127.0.0.1 iifname != "br-b64ba1d478b2" tcp dport 7456 counter packets 0 bytes 0 dnat to 172.20.0.6:7456
+	}
+
+	chain PREROUTING {
+		type nat hook prerouting priority dstnat; policy accept;
+		fib daddr type local counter packets 4039 bytes 188929 jump DOCKER
+	}
+
+	chain OUTPUT {
+		type nat hook output priority dstnat; policy accept;
+		ip daddr != 127.0.0.0/8 fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain POSTROUTING {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 172.17.0.0/16 oifname != "docker0" counter packets 0 bytes 0 masquerade
+		ip saddr 172.24.0.0/16 oifname != "br-e12d27d4f27a" counter packets 0 bytes 0 masquerade
+		ip saddr 172.20.0.0/16 oifname != "br-b64ba1d478b2" counter packets 11 bytes 660 masquerade
+		ip saddr 172.18.0.0/16 oifname != "br-8d0a355be197" counter packets 0 bytes 0 masquerade
+		ip saddr 172.22.0.0/16 oifname != "br-7fd9933d34d9" counter packets 0 bytes 0 masquerade
+		ip saddr 172.23.0.0/16 oifname != "br-7f2a39fdce2f" counter packets 0 bytes 0 masquerade
+		ip saddr 172.21.0.0/16 oifname != "br-5a383e08b8e3" counter packets 0 bytes 0 masquerade
+		ip saddr 172.19.0.0/16 oifname != "br-34f369ada433" counter packets 0 bytes 0 masquerade
+	}
+}
+table ip filter {
+	chain DOCKER {
+		ip daddr 172.20.0.6 iifname != "br-b64ba1d478b2" oifname "br-b64ba1d478b2" tcp dport 7456 counter packets 0 bytes 0 accept
+		ip daddr 172.24.0.3 iifname != "br-e12d27d4f27a" oifname "br-e12d27d4f27a" tcp dport 5432 counter packets 2 bytes 100 accept
+		ip daddr 172.24.0.2 iifname != "br-e12d27d4f27a" oifname "br-e12d27d4f27a" tcp dport 8020 counter packets 2 bytes 104 accept
+		iifname != "br-34f369ada433" oifname "br-34f369ada433" counter packets 0 bytes 0 drop
+		iifname != "br-5a383e08b8e3" oifname "br-5a383e08b8e3" counter packets 0 bytes 0 drop
+		iifname != "br-7f2a39fdce2f" oifname "br-7f2a39fdce2f" counter packets 0 bytes 0 drop
+		iifname != "br-7fd9933d34d9" oifname "br-7fd9933d34d9" counter packets 0 bytes 0 drop
+		iifname != "br-8d0a355be197" oifname "br-8d0a355be197" counter packets 0 bytes 0 drop
+		iifname != "br-b64ba1d478b2" oifname "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		iifname != "br-e12d27d4f27a" oifname "br-e12d27d4f27a" counter packets 0 bytes 0 drop
+		iifname != "docker0" oifname "docker0" counter packets 0 bytes 0 drop
+	}
+
+	chain DOCKER-FORWARD {
+		counter packets 272 bytes 109500 jump DOCKER-CT
+		counter packets 138 bytes 34636 jump DOCKER-INTERNAL
+		counter packets 138 bytes 34636 jump DOCKER-BRIDGE
+		iifname "br-34f369ada433" counter packets 0 bytes 0 accept
+		iifname "br-5a383e08b8e3" counter packets 0 bytes 0 accept
+		iifname "br-7f2a39fdce2f" counter packets 0 bytes 0 accept
+		iifname "br-7fd9933d34d9" counter packets 0 bytes 0 accept
+		iifname "br-8d0a355be197" counter packets 0 bytes 0 accept
+		iifname "br-b64ba1d478b2" counter packets 127 bytes 34043 accept
+		iifname "br-e12d27d4f27a" counter packets 7 bytes 389 accept
+		iifname "docker0" counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER-BRIDGE {
+		oifname "br-34f369ada433" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-5a383e08b8e3" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-7f2a39fdce2f" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-7fd9933d34d9" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-8d0a355be197" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-b64ba1d478b2" counter packets 0 bytes 0 jump DOCKER
+		oifname "br-e12d27d4f27a" counter packets 4 bytes 204 jump DOCKER
+		oifname "docker0" counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain DOCKER-CT {
+		oifname "br-34f369ada433" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-5a383e08b8e3" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-7f2a39fdce2f" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-7fd9933d34d9" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-8d0a355be197" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-b64ba1d478b2" ct state related,established counter packets 125 bytes 74352 accept
+		oifname "br-e12d27d4f27a" ct state related,established counter packets 9 bytes 512 accept
+		oifname "docker0" ct state related,established counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER-INTERNAL {
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy drop;
+		counter packets 272 bytes 109500 jump DOCKER-USER
+		counter packets 272 bytes 109500 jump DOCKER-FORWARD
+	}
+
+	chain DOCKER-USER {
+	}
+}
+table ip6 nat {
+	chain DOCKER {
+	}
+
+	chain PREROUTING {
+		type nat hook prerouting priority dstnat; policy accept;
+		fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+
+	chain OUTPUT {
+		type nat hook output priority dstnat; policy accept;
+		ip6 daddr != ::1 fib daddr type local counter packets 0 bytes 0 jump DOCKER
+	}
+}
+table ip6 filter {
+	chain DOCKER {
+	}
+
+	chain DOCKER-FORWARD {
+		counter packets 0 bytes 0 jump DOCKER-CT
+		counter packets 0 bytes 0 jump DOCKER-INTERNAL
+		counter packets 0 bytes 0 jump DOCKER-BRIDGE
+	}
+
+	chain DOCKER-BRIDGE {
+	}
+
+	chain DOCKER-CT {
+	}
+
+	chain DOCKER-INTERNAL {
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy accept;
+		counter packets 0 bytes 0 jump DOCKER-USER
+		counter packets 0 bytes 0 jump DOCKER-FORWARD
+	}
+
+	chain DOCKER-USER {
+	}
+}
+table ip raw {
+	chain PREROUTING {
+		type filter hook prerouting priority raw; policy accept;
+		ip daddr 172.20.0.2 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.18.0.2 iifname != "br-8d0a355be197" counter packets 0 bytes 0 drop
+		ip daddr 172.23.0.2 iifname != "br-7f2a39fdce2f" counter packets 0 bytes 0 drop
+		ip daddr 172.24.0.2 iifname != "br-e12d27d4f27a" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.3 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.24.0.3 iifname != "br-e12d27d4f27a" counter packets 0 bytes 0 drop
+		ip daddr 172.22.0.2 iifname != "br-7fd9933d34d9" counter packets 0 bytes 0 drop
+		ip daddr 172.23.0.3 iifname != "br-7f2a39fdce2f" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.4 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.5 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.6 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.7 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.8 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 172.20.0.9 iifname != "br-b64ba1d478b2" counter packets 0 bytes 0 drop
+		ip daddr 127.0.0.1 iifname != "lo" tcp dport 7456 counter packets 0 bytes 0 drop
+		ip daddr 172.22.0.3 iifname != "br-7fd9933d34d9" counter packets 0 bytes 0 drop
+	}
+}
+=== FIREWALL ===
+Status: inactive
+--- security packages ---
+ii  fail2ban                                         1.0.2-3ubuntu0.1                          all          ban hosts that cause multiple authentication errors
+ii  ufw                                              0.36.2-6                                  all          program for managing a Netfilter firewall
+● fail2ban.service - Fail2Ban Service
+     Loaded: loaded (/usr/lib/systemd/system/fail2ban.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-07-16 14:53:36 UTC; 2h 43min ago
+       Docs: man:fail2ban(1)
+   Main PID: 774 (fail2ban-server)
+      Tasks: 7 (limit: 19144)
+     Memory: 44.6M (peak: 45.3M)
+        CPU: 12.436s
+     CGroup: /system.slice/fail2ban.service
+             └─774 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+
+Jul 16 14:53:36 noticeably.splendid.slug systemd[1]: Started fail2ban.service - Fail2Ban Service.
+Jul 16 14:53:37 noticeably.splendid.slug fail2ban-server[774]: Server ready
+Status
+|- Number of jail:	2
+`- Jail list:	3x-ipl, sshd
+=== SSH ===
+Include /etc/ssh/sshd_config.d/*.conf
+PermitRootLogin yes
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem	sftp	/usr/lib/openssh/sftp-server
+--- sshd_config.d ---
+total 24
+drwxr-xr-x 2 root root 4096 Jul  9 12:46 .
+drwxr-xr-x 4 root root 4096 Jul 14 06:04 ..
+-rw-r--r-- 1 root root  196 Jul  9 12:47 01-hardening-auth.conf
+-rw------- 1 root root   27 Jun  7 12:33 50-cloud-init.conf
+-rw-r--r-- 1 root root   26 Feb 25 12:56 60-cloudimg-settings.conf
+-rw-r--r-- 1 root root   11 Jul  9 08:22 99-port-migration.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+AllowUsers dmitrydevops
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
+X11Forwarding no
+LoginGraceTime 30PasswordAuthentication yes
+PasswordAuthentication no
+Port 22222
+--- ssh.socket.d ---
+total 12
+drwxr-xr-x  2 root root 4096 Jul  9 08:23 .
+drwxr-xr-x 26 root root 4096 Jul 13 20:31 ..
+-rw-r--r--  1 root root   73 Jul  9 08:23 override.conf
+[Socket]
+ListenStream=
+ListenStream=0.0.0.0:22222
+ListenStream=[::]:22222--- ssh.socket / ssh.service ---
+● ssh.socket - OpenBSD Secure Shell server socket
+     Loaded: loaded (/usr/lib/systemd/system/ssh.socket; enabled; preset: enabled)
+    Drop-In: /run/systemd/generator/ssh.socket.d
+             └─addresses.conf
+             /etc/systemd/system/ssh.socket.d
+             └─override.conf
+     Active: active (running) since Thu 2026-07-16 14:53:36 UTC; 2h 43min ago
+   Triggers: ● ssh.service
+     Listen: 0.0.0.0:22222 (Stream)
+             [::]:22222 (Stream)
+      Tasks: 0 (limit: 19144)
+     Memory: 12.0K (peak: 264.0K)
+        CPU: 1ms
+     CGroup: /system.slice/ssh.socket
+
+Jul 16 14:53:36 noticeably.splendid.slug systemd[1]: Listening on ssh.socket - OpenBSD Secure Shell server socket.
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/usr/lib/systemd/system/ssh.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-07-16 14:53:37 UTC; 2h 43min ago
+TriggeredBy: ● ssh.socket
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 933 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 947 (sshd)
+      Tasks: 1 (limit: 19144)
+     Memory: 9.1M (peak: 12.2M)
+        CPU: 214ms
+     CGroup: /system.slice/ssh.service
+             └─947 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Jul 16 14:53:37 noticeably.splendid.slug sshd[1002]: pam_unix(sshd:session): session opened for user dmitrydevops(uid=1000) by dmitrydevops(uid=0)
+Jul 16 14:53:37 noticeably.splendid.slug sshd[998]: Accepted publickey for dmitrydevops from 95.161.61.232 port 64812 ssh2: ED25519 SHA256:6Lcqyb6lEFCImuloaMkCTGZx8Img8b71NhPshwKOf0w
+Jul 16 14:53:37 noticeably.splendid.slug sshd[998]: pam_unix(sshd:session): session opened for user dmitrydevops(uid=1000) by dmitrydevops(uid=0)
+Jul 16 15:57:20 noticeably.splendid.slug sshd[60090]: Invalid user support from 176.53.159.197 port 31380
+Jul 16 15:57:20 noticeably.splendid.slug sshd[60090]: Connection reset by invalid user support 176.53.159.197 port 31380 [preauth]
+Jul 16 16:07:09 noticeably.splendid.slug sshd[68756]: Invalid user support from 176.53.159.198 port 29544
+Jul 16 16:07:10 noticeably.splendid.slug sshd[68756]: Connection reset by invalid user support 176.53.159.198 port 29544 [preauth]
+Jul 16 17:05:06 noticeably.splendid.slug sshd[120181]: Connection closed by 77.90.185.16 port 65105
+Jul 16 17:30:40 noticeably.splendid.slug sshd[143118]: Accepted publickey for dmitrydevops from 95.161.61.232 port 62225 ssh2: ED25519 SHA256:6Lcqyb6lEFCImuloaMkCTGZx8Img8b71NhPshwKOf0w
+Jul 16 17:30:40 noticeably.splendid.slug sshd[143118]: pam_unix(sshd:session): session opened for user dmitrydevops(uid=1000) by dmitrydevops(uid=0)
+--- authorized_keys (наличие) ---
+  root: нет /root/.ssh/authorized_keys
+--- sessions ---
+dmitrydevops pts/0        2026-07-16 14:53 (95.161.61.232)
+dmitrydevops pts/2        2026-07-16 17:36 (95.161.61.232)
+dmitryde pts/1        95.161.61.232    Thu Jul 16 14:53 - 14:53  (00:00)
+dmitryde pts/0        95.161.61.232    Thu Jul 16 14:53   still logged in
+reboot   system boot  6.8.0-134-generi Thu Jul 16 14:53   still running
+dmitryde pts/0        95.161.61.232    Thu Jul 16 14:37 - 14:53  (00:15)
+reboot   system boot  6.8.0-134-generi Thu Jul 16 14:36 - 14:53  (00:16)
+dmitryde pts/6        95.161.61.232    Wed Jul 15 18:16 - 00:15  (05:58)
+dmitryde pts/1        95.161.61.232    Wed Jul 15 11:16 - 18:16  (06:59)
+dmitryde pts/1        95.161.61.232    Tue Jul 14 07:07 - 22:26  (15:18)
+dmitryde pts/3        95.161.61.232    Mon Jul 13 20:24 - 21:00  (00:36)
+dmitryde pts/3        95.161.61.232    Mon Jul 13 08:39 - 08:58  (00:19)
+dmitryde pts/3        95.161.61.232    Mon Jul 13 08:36 - 08:38  (00:02)
+dmitryde pts/3        95.161.61.232    Mon Jul 13 08:20 - 08:35  (00:14)
+dmitryde pts/3        95.161.61.232    Mon Jul 13 07:47 - 08:13  (00:25)
+dmitryde pts/1        95.161.61.232    Mon Jul 13 06:25 - 06:32  (00:07)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 11:04 - 15:39  (04:35)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 09:11 - 11:04  (01:53)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 09:06 - 09:11  (00:04)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 09:02 - 09:06  (00:04)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 09:02 - 09:02  (00:00)
+dmitryde pts/2        95.161.61.232    Fri Jul 10 08:56 - 09:01  (00:04)
+
+wtmp begins Sun Jun  7 12:33:17 2026
+--- users with shell ---
+root:x:0:0:root:/root:/bin/bash
+dmitrydevops:x:1000:1000:,,,:/home/dmitrydevops:/bin/bash
+--- sudo group ---
+sudo:x:27:dmitrydevops
+=== USERS ===
+--- locked accounts (shadow !) ---
+root
+systemd-network
+systemd-timesync
+dhcpcd
+messagebus
+syslog
+systemd-resolve
+uuidd
+tss
+sshd
+pollinate
+tcpdump
+landscape
+fwupd-refresh
+polkitd
+--- root password policy ---
+Last password change					: Jun 07, 2026
+Password expires					: never
+Password inactive					: never
+Account expires						: never
+Minimum number of days between password change		: 0
+Maximum number of days between password change		: 99999
+Number of days of warning before password expires	: 7
+=== UPDATES ===
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Get:1 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:4 https://download.docker.com/linux/ubuntu noble InRelease [48.5 kB]
+Get:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:9 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [836 kB]
+Get:10 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5776 B]
+Get:11 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+Get:12 https://download.docker.com/linux/ubuntu noble/stable amd64 Packages [61.3 kB]
+Get:13 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [189 kB]
+Get:14 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [44.9 kB]
+Get:15 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1178 kB]
+Get:16 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [232 kB]
+Get:17 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+Fetched 3631 kB in 1s (3566 kB/s)
+Reading package lists...
+Building dependency tree...
+Reading state information...
+41 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Listing...
+apparmor/noble-updates 4.0.1really4.0.1-0ubuntu0.24.04.7 amd64 [upgradable from: 4.0.1really4.0.1-0ubuntu0.24.04.5]
+apport-core-dump-handler/noble-updates 2.28.2-0ubuntu0.1 all [upgradable from: 2.28.1-0ubuntu3.8]
+apport/noble-updates 2.28.2-0ubuntu0.1 all [upgradable from: 2.28.1-0ubuntu3.8]
+cloud-init/noble-updates 26.1-0ubuntu1~24.04.1 all [upgradable from: 25.3-0ubuntu1~24.04.1]
+containerd.io/noble 2.2.6-1~ubuntu.24.04~noble amd64 [upgradable from: 2.2.4-1~ubuntu.24.04~noble]
+coreutils/noble-updates 9.4-3ubuntu6.2 amd64 [upgradable from: 9.4-3ubuntu6.1]
+docker-buildx-plugin/noble 0.35.0-1~ubuntu.24.04~noble amd64 [upgradable from: 0.34.1-1~ubuntu.24.04~noble]
+docker-ce-cli/noble 5:29.6.2-1~ubuntu.24.04~noble amd64 [upgradable from: 5:29.5.3-1~ubuntu.24.04~noble]
+docker-ce-rootless-extras/noble 5:29.6.2-1~ubuntu.24.04~noble amd64 [upgradable from: 5:29.5.3-1~ubuntu.24.04~noble]
+docker-ce/noble 5:29.6.2-1~ubuntu.24.04~noble amd64 [upgradable from: 5:29.5.3-1~ubuntu.24.04~noble]
+docker-compose-plugin/noble 5.3.1-1~ubuntu.24.04~noble amd64 [upgradable from: 5.1.4-1~ubuntu.24.04~noble]
+fwupd/noble-updates 2.0.20-1ubuntu2~24.04.2 amd64 [upgradable from: 1.9.33-0ubuntu1~24.04.1ubuntu1]
+iproute2/noble-updates 6.1.0-1ubuntu6.4 amd64 [upgradable from: 6.1.0-1ubuntu6.2]
+kpartx/noble-updates 0.9.4-5ubuntu8.2 amd64 [upgradable from: 0.9.4-5ubuntu8.1]
+libapparmor1/noble-updates 4.0.1really4.0.1-0ubuntu0.24.04.7 amd64 [upgradable from: 4.0.1really4.0.1-0ubuntu0.24.04.5]
+libfwupd2/noble-updates 1.9.34-0ubuntu1~24.04.1 amd64 [upgradable from: 1.9.33-0ubuntu1~24.04.1ubuntu1]
+libjcat1/noble-updates 0.2.3-1~ubuntu0.24.04.1 amd64 [upgradable from: 0.2.0-2build3]
+libnetplan1/noble-updates 1.1.2-8ubuntu1~24.04.2 amd64 [upgradable from: 1.1.2-8ubuntu1~24.04.1]
+libnftables1/noble-updates 1.0.9-1ubuntu0.1 amd64 [upgradable from: 1.0.9-1build1]
+libntfs-3g89t64/noble-security 1:2022.10.3-1.2ubuntu3.2 amd64 [upgradable from: 1:2022.10.3-1.2ubuntu3.1]
+libplymouth5/noble-updates 24.004.60-1ubuntu7.2 amd64 [upgradable from: 24.004.60-1ubuntu7.1]
+libxmlb2/noble-updates 0.3.24-1~ubuntu0.24.04.1 amd64 [upgradable from: 0.3.18-1]
+linux-base/noble-updates 4.5ubuntu9+24.04.2 all [upgradable from: 4.5ubuntu9+24.04.1]
+lshw/noble-updates 02.19.git.2021.06.19.996aaad9c7-2ubuntu0.24.04.1 amd64 [upgradable from: 02.19.git.2021.06.19.996aaad9c7-2build3]
+multipath-tools/noble-updates 0.9.4-5ubuntu8.2 amd64 [upgradable from: 0.9.4-5ubuntu8.1]
+netplan-generator/noble-updates 1.1.2-8ubuntu1~24.04.2 amd64 [upgradable from: 1.1.2-8ubuntu1~24.04.1]
+netplan.io/noble-updates 1.1.2-8ubuntu1~24.04.2 amd64 [upgradable from: 1.1.2-8ubuntu1~24.04.1]
+nftables/noble-updates 1.0.9-1ubuntu0.1 amd64 [upgradable from: 1.0.9-1build1]
+ntfs-3g/noble-security 1:2022.10.3-1.2ubuntu3.2 amd64 [upgradable from: 1:2022.10.3-1.2ubuntu3.1]
+open-vm-tools/noble-updates 2:13.0.0-2~ubuntu0.24.04.1 amd64 [upgradable from: 2:12.5.0-1~ubuntu0.24.04.2]
+plymouth-theme-ubuntu-text/noble-updates 24.004.60-1ubuntu7.2 amd64 [upgradable from: 24.004.60-1ubuntu7.1]
+plymouth/noble-updates 24.004.60-1ubuntu7.2 amd64 [upgradable from: 24.004.60-1ubuntu7.1]
+python3-apport/noble-updates 2.28.2-0ubuntu0.1 all [upgradable from: 2.28.1-0ubuntu3.8]
+python3-idna/noble-security 3.6-2ubuntu0.2 all [upgradable from: 3.6-2ubuntu0.1]
+python3-netplan/noble-updates 1.1.2-8ubuntu1~24.04.2 amd64 [upgradable from: 1.1.2-8ubuntu1~24.04.1]
+python3-problem-report/noble-updates 2.28.2-0ubuntu0.1 all [upgradable from: 2.28.1-0ubuntu3.8]
+rsyslog/noble-updates 8.2312.0-3ubuntu9.2 amd64 [upgradable from: 8.2312.0-3ubuntu9.1]
+snapd/noble-updates 2.75.2+ubuntu24.04 amd64 [upgradable from: 2.73+ubuntu24.04.2]
+sosreport/noble-updates 4.10.2-0ubuntu0~24.04.1 amd64 [upgradable from: 4.9.2-0ubuntu0~24.04.1]
+ubuntu-pro-client-l10n/noble-security 37.2ubuntu~24.04.1 amd64 [upgradable from: 37.1ubuntu0~24.04]
+ubuntu-pro-client/noble-security 37.2ubuntu~24.04.1 amd64 [upgradable from: 37.1ubuntu0~24.04]
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                Version           Architecture Description
++++-===================-=================-============-===========================================
+ii  unattended-upgrades 2.9.1+nmu4ubuntu1 all          automatic installation of security upgrades
+Commandline: apt install -y unzip
+Commandline: apt install -y fail2ban
+Commandline: apt -y install curl wget jq bash sudo nginx-full certbot python3-certbot-nginx sqlite3 ufw
+Commandline: apt -y install curl wget jq bash sudo nginx-full certbot python3-certbot-nginx sqlite3 ufw
+Commandline: apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+Commandline: apt install smartmontools
+Commandline: apt install iotop
+reboot-required: нет
+=== SERVICES ===
+UNIT FILE                              STATE   PRESET
+apport-autoreport.path                 enabled enabled
+tpm-udev.path                          enabled enabled
+apparmor.service                       enabled enabled
+apport.service                         enabled enabled
+blk-availability.service               enabled enabled
+cloud-config.service                   enabled enabled
+cloud-final.service                    enabled enabled
+cloud-init-local.service               enabled enabled
+cloud-init.service                     enabled enabled
+console-setup.service                  enabled enabled
+containerd.service                     enabled enabled
+cron.service                           enabled enabled
+dmesg.service                          enabled enabled
+docker.service                         enabled enabled
+e2scrub_reap.service                   enabled enabled
+fail2ban.service                       enabled enabled
+finalrd.service                        enabled enabled
+getty@.service                         enabled enabled
+grub-common.service                    enabled enabled
+grub-initrd-fallback.service           enabled enabled
+keyboard-setup.service                 enabled enabled
+lvm2-monitor.service                   enabled enabled
+ModemManager.service                   enabled enabled
+multipathd.service                     enabled enabled
+networkd-dispatcher.service            enabled enabled
+open-iscsi.service                     enabled enabled
+open-vm-tools.service                  enabled enabled
+pollinate.service                      enabled enabled
+rsyslog.service                        enabled enabled
+secureboot-db.service                  enabled enabled
+setvtrgb.service                       enabled enabled
+smartmontools.service                  enabled enabled
+snapd.apparmor.service                 enabled enabled
+snapd.autoimport.service               enabled enabled
+snapd.core-fixup.service               enabled enabled
+snapd.recovery-chooser-trigger.service enabled enabled
+snapd.seeded.service                   enabled enabled
+snapd.service                          enabled enabled
+snapd.system-shutdown.service          enabled enabled
+sysstat.service                        enabled enabled
+systemd-networkd-wait-online.service   enabled enabled
+systemd-networkd.service               enabled enabled
+systemd-pstore.service                 enabled enabled
+systemd-resolved.service               enabled enabled
+systemd-timesyncd.service              enabled enabled
+ua-reboot-cmds.service                 enabled enabled
+ubuntu-advantage.service               enabled enabled
+udisks2.service                        enabled enabled
+ufw.service                            enabled enabled
+unattended-upgrades.service            enabled enabled
+vgauth.service                         enabled enabled
+x-ui.service                           enabled enabled
+apport-forward.socket                  enabled enabled
+cloud-init-hotplugd.socket             enabled enabled
+dm-event.socket                        enabled enabled
+docker.socket                          enabled enabled
+iscsid.socket                          enabled enabled
+lvm2-lvmpolld.socket                   enabled enabled
+lxd-installer.socket                   enabled enabled
+multipathd.socket                      enabled enabled
+snapd.socket                           enabled enabled
+ssh.socket                             enabled enabled
+systemd-networkd.socket                enabled enabled
+uuidd.socket                           enabled enabled
+remote-fs.target                       enabled enabled
+apport-autoreport.timer                enabled enabled
+apt-daily-upgrade.timer                enabled enabled
+apt-daily.timer                        enabled enabled
+dpkg-db-backup.timer                   enabled enabled
+e2scrub_all.timer                      enabled enabled
+fstrim.timer                           enabled enabled
+fwupd-refresh.timer                    enabled enabled
+logrotate.timer                        enabled enabled
+man-db.timer                           enabled enabled
+mdcheck_continue.timer                 enabled enabled
+mdcheck_start.timer                    enabled enabled
+mdmonitor-oneshot.timer                enabled enabled
+motd-news.timer                        enabled enabled
+snapd.snap-repair.timer                enabled enabled
+sysstat-collect.timer                  enabled enabled
+sysstat-summary.timer                  enabled enabled
+ua-timer.timer                         enabled enabled
+update-notifier-download.timer         enabled enabled
+update-notifier-motd.timer             enabled enabled
+
+84 unit files listed.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+  UNIT                        LOAD   ACTIVE SUB     DESCRIPTION
+  containerd.service          loaded active running containerd container runtime
+  cron.service                loaded active running Regular background program processing daemon
+  dbus.service                loaded active running D-Bus System Message Bus
+  docker.service              loaded active running Docker Application Container Engine
+  fail2ban.service            loaded active running Fail2Ban Service
+  getty@tty1.service          loaded active running Getty on tty1
+  ModemManager.service        loaded active running Modem Manager
+  multipathd.service          loaded active running Device-Mapper Multipath Device Controller
+  packagekit.service          loaded active running PackageKit Daemon
+  polkit.service              loaded active running Authorization Manager
+  rsyslog.service             loaded active running System Logging Service
+  serial-getty@ttyS0.service  loaded active running Serial Getty on ttyS0
+  ssh.service                 loaded active running OpenBSD Secure Shell server
+  systemd-journald.service    loaded active running Journal Service
+  systemd-logind.service      loaded active running User Login Management
+  systemd-networkd.service    loaded active running Network Configuration
+  systemd-resolved.service    loaded active running Network Name Resolution
+  systemd-timedated.service   loaded active running Time & Date Service
+  systemd-timesyncd.service   loaded active running Network Time Synchronization
+  systemd-udevd.service       loaded active running Rule-based Manager for Device Events and Files
+  udisks2.service             loaded active running Disk Manager
+  unattended-upgrades.service loaded active running Unattended Upgrades Shutdown
+  user@1000.service           loaded active running User Manager for UID 1000
+  x-ui.service                loaded active running x-ui Service
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+24 loaded units listed.
+=== 3X-UI ===
+root         786  0.6  0.6 1418304 101512 ?      Ssl  14:53   0:59 /usr/local/x-ui/x-ui
+root         970  0.1  0.2 1298540 40712 ?       Sl   14:53   0:10 bin/xray-linux-amd64 -c bin/config.json
+total 86840
+drwxr-xr-x  3 1001 1001     4096 Jun 29 18:32 .
+drwxr-xr-x 11 root root     4096 Jul 10 08:47 ..
+drwxr-xr-x  2 1001 1001     4096 Jul 16 14:53 bin
+-rwxr-xr-x  1 1001 1001 88765424 Jun 29 18:32 x-ui
+-rw-r--r--  1 1001 1001      346 Jun 29 18:32 x-ui.service.arch
+-rw-r--r--  1 1001 1001      347 Jun 29 18:32 x-ui.service.debian
+-rw-r--r--  1 1001 1001      349 Jun 29 18:32 x-ui.service.rhel
+-rwxr-xr-x  1 1001 1001   125765 Jun 29 18:32 x-ui.sh
+total 1484
+drwxr-xr-x   2 root root    4096 Jul 16 17:36 .
+drwxr-xr-x 116 root root    4096 Jul 15 18:45 ..
+-rw-r--r--   1 root root 1285426 Jul 16 17:36 system_metrics.gob
+-rw-r--r--   1 root root  221184 Jul 16 14:39 x-ui.db
+● x-ui.service - x-ui Service
+     Loaded: loaded (/etc/systemd/system/x-ui.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-07-16 14:53:36 UTC; 2h 43min ago
+   Main PID: 786 (x-ui)
+      Tasks: 29 (limit: 19144)
+     Memory: 165.3M (peak: 171.2M)
+        CPU: 1min 9.780s
+     CGroup: /system.slice/x-ui.service
+             ├─786 /usr/local/x-ui/x-ui
+             └─970 bin/xray-linux-amd64 -c bin/config.json
+
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: INFO - Web server running HTTP on 127.0.0.1:2053
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: INFO - XRAY: infra/conf/serial: Reading config: &{Name:bin/config.json Format:json}
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: INFO - Sub server running HTTP on [::]:2096
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: infra/conf: REALITY: Listening on non-443 ports may get your IP blocked by the GFW
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: infra/conf: REALITY: Listening on non-443 ports may get your IP blocked by the GFW
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: transport/internet/tls: ignoring invalid OCSP > common/ocsp: no OCSP server specified in cert
+Jul 16 14:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: core: Xray 26.6.27 started
+Jul 16 14:53:47 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: INFO - xray core supports the online-stats API; using connection-based onlines and access-log-free IP limit
+Jul 16 15:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: transport/internet/tls: ignoring invalid OCSP > common/ocsp: no OCSP server specified in cert
+Jul 16 16:53:37 noticeably.splendid.slug /usr/local/x-ui/x-ui[786]: WARNING - XRAY: transport/internet/tls: ignoring invalid OCSP > common/ocsp: no OCSP server specified in cert
+Xray 26.6.27 (Xray, Penetrates Everything.) 45cf289 (go1.26.4 linux/amd64)
+A unified platform for anti-censorship.
+=== SYSCTL ===
+net.ipv4.ip_forward = 1
+net.ipv4.tcp_congestion_control = cubic
+net.core.default_qdisc = fq_codel
+--- limits ---
+1024
+=== AUTH FAILURES ===
+2026-07-14T16:11:57.188219+00:00 noticeably sshd[1803039]: Connection reset by invalid user support 176.53.159.197 port 54700 [preauth]
+2026-07-14T18:59:08.693196+00:00 noticeably sshd[1966735]: Invalid user support from 176.53.159.197 port 3310
+2026-07-14T18:59:08.860944+00:00 noticeably sshd[1966735]: Connection reset by invalid user support 176.53.159.197 port 3310 [preauth]
+2026-07-14T19:07:32.809592+00:00 noticeably sshd[1974912]: Invalid user support from 176.53.159.198 port 9774
+2026-07-14T19:07:32.973308+00:00 noticeably sshd[1974912]: Connection reset by invalid user support 176.53.159.198 port 9774 [preauth]
+2026-07-14T22:01:28.227766+00:00 noticeably sshd[2143820]: Invalid user support from 176.53.159.198 port 59936
+2026-07-14T22:01:28.390109+00:00 noticeably sshd[2143820]: Connection reset by invalid user support 176.53.159.198 port 59936 [preauth]
+2026-07-14T22:02:26.578890+00:00 noticeably sshd[2144785]: Invalid user support from 176.53.159.197 port 29158
+2026-07-14T22:02:26.741304+00:00 noticeably sshd[2144785]: Connection reset by invalid user support 176.53.159.197 port 29158 [preauth]
+2026-07-15T01:05:49.443163+00:00 noticeably sshd[2253780]: Invalid user support from 176.53.159.198 port 37574
+2026-07-15T01:05:49.605052+00:00 noticeably sshd[2253780]: Connection reset by invalid user support 176.53.159.198 port 37574 [preauth]
+2026-07-15T01:10:25.945930+00:00 noticeably sshd[2256248]: Invalid user support from 176.53.159.197 port 12168
+2026-07-15T01:10:26.106698+00:00 noticeably sshd[2256248]: Connection reset by invalid user support 176.53.159.197 port 12168 [preauth]
+2026-07-15T03:59:29.046650+00:00 noticeably sshd[2345688]: Invalid user support from 176.53.159.197 port 18224
+2026-07-15T03:59:29.208952+00:00 noticeably sshd[2345688]: Connection reset by invalid user support 176.53.159.197 port 18224 [preauth]
+2026-07-15T04:07:40.428413+00:00 noticeably sshd[2350061]: Invalid user support from 176.53.159.198 port 54268
+2026-07-15T04:07:40.592976+00:00 noticeably sshd[2350061]: Connection reset by invalid user support 176.53.159.198 port 54268 [preauth]
+2026-07-15T04:47:06.000727+00:00 noticeably sshd[2371445]: Connection closed by invalid user root 116.182.13.167 port 42672 [preauth]
+2026-07-15T07:01:27.601472+00:00 noticeably sshd[2443294]: Invalid user support from 176.53.159.198 port 35756
+2026-07-15T07:01:27.756631+00:00 noticeably sshd[2443294]: Connection reset by invalid user support 176.53.159.198 port 35756 [preauth]
+2026-07-15T07:03:14.439897+00:00 noticeably sshd[2444285]: Invalid user support from 176.53.159.197 port 35880
+2026-07-15T07:03:14.595986+00:00 noticeably sshd[2444285]: Connection reset by invalid user support 176.53.159.197 port 35880 [preauth]
+2026-07-15T10:05:48.587053+00:00 noticeably sshd[2541039]: Invalid user support from 176.53.159.198 port 3032
+2026-07-15T10:05:48.740020+00:00 noticeably sshd[2541039]: Connection reset by invalid user support 176.53.159.198 port 3032 [preauth]
+2026-07-15T10:10:47.193805+00:00 noticeably sshd[2543612]: Invalid user support from 176.53.159.197 port 17234
+2026-07-15T10:10:47.347878+00:00 noticeably sshd[2543612]: Connection reset by invalid user support 176.53.159.197 port 17234 [preauth]
+2026-07-15T12:58:51.736363+00:00 noticeably sshd[2668430]: Invalid user support from 176.53.159.197 port 65408
+2026-07-15T12:58:51.892131+00:00 noticeably sshd[2668430]: Connection reset by invalid user support 176.53.159.197 port 65408 [preauth]
+2026-07-15T13:07:37.539684+00:00 noticeably sshd[2672998]: Invalid user support from 176.53.159.198 port 15392
+2026-07-15T13:07:37.692695+00:00 noticeably sshd[2672998]: Connection reset by invalid user support 176.53.159.198 port 15392 [preauth]
+2026-07-15T16:01:24.836234+00:00 noticeably sshd[2763862]: Invalid user support from 176.53.159.198 port 28540
+2026-07-15T16:01:24.995931+00:00 noticeably sshd[2763862]: Connection reset by invalid user support 176.53.159.198 port 28540 [preauth]
+2026-07-15T16:02:42.610160+00:00 noticeably sshd[2764514]: Invalid user support from 176.53.159.197 port 15060
+2026-07-15T16:02:42.766032+00:00 noticeably sshd[2764514]: Connection reset by invalid user support 176.53.159.197 port 15060 [preauth]
+2026-07-15T19:05:41.081075+00:00 noticeably sshd[2872349]: Invalid user support from 176.53.159.198 port 24198
+2026-07-15T19:05:41.237981+00:00 noticeably sshd[2872349]: Connection reset by invalid user support 176.53.159.198 port 24198 [preauth]
+2026-07-15T19:09:45.303954+00:00 noticeably sshd[2874926]: Invalid user support from 176.53.159.197 port 42930
+2026-07-15T19:09:45.466524+00:00 noticeably sshd[2874926]: Connection reset by invalid user support 176.53.159.197 port 42930 [preauth]
+2026-07-15T21:58:05.607584+00:00 noticeably sshd[2978217]: Invalid user support from 176.53.159.197 port 35448
+2026-07-15T21:58:05.762585+00:00 noticeably sshd[2978217]: Connection reset by invalid user support 176.53.159.197 port 35448 [preauth]
+2026-07-15T22:22:43.906755+00:00 noticeably sshd[2993363]: Invalid user support from 176.53.159.198 port 42572
+2026-07-15T22:22:44.066641+00:00 noticeably sshd[2993363]: Connection reset by invalid user support 176.53.159.198 port 42572 [preauth]
+2026-07-16T14:40:02.899271+00:00 noticeably sshd[6626]: Invalid user support from 176.53.159.198 port 47766
+2026-07-16T14:40:03.056020+00:00 noticeably sshd[6626]: Connection reset by invalid user support 176.53.159.198 port 47766 [preauth]
+2026-07-16T14:49:43.696988+00:00 noticeably sshd[15109]: Invalid user support from 176.53.159.197 port 32480
+2026-07-16T14:49:43.850591+00:00 noticeably sshd[15109]: Connection reset by invalid user support 176.53.159.197 port 32480 [preauth]
+2026-07-16T15:57:20.296214+00:00 noticeably sshd[60090]: Invalid user support from 176.53.159.197 port 31380
+2026-07-16T15:57:20.454535+00:00 noticeably sshd[60090]: Connection reset by invalid user support 176.53.159.197 port 31380 [preauth]
+2026-07-16T16:07:09.960184+00:00 noticeably sshd[68756]: Invalid user support from 176.53.159.198 port 29544
+2026-07-16T16:07:10.117557+00:00 noticeably sshd[68756]: Connection reset by invalid user support 176.53.159.198 port 29544 [preauth]
+--- top bruteforce IPs ---
+=== JOURNAL ===
+Jul 16 17:34:59 noticeably.splendid.slug kernel: br-8d0a355be197: port 2(veth1a2dd2b) entered disabled state
+Jul 16 17:34:59 noticeably.splendid.slug kernel: veth1a2dd2b (unregistering): left allmulticast mode
+Jul 16 17:34:59 noticeably.splendid.slug kernel: veth1a2dd2b (unregistering): left promiscuous mode
+Jul 16 17:34:59 noticeably.splendid.slug kernel: br-8d0a355be197: port 2(veth1a2dd2b) entered disabled state
+Jul 16 17:35:00 noticeably.splendid.slug systemd[1]: run-docker-netns-9294e684690a.mount: Deactivated successfully.
+Jul 16 17:35:00 noticeably.splendid.slug systemd[1]: var-lib-docker-rootfs-overlayfs-0e4019e77f916e8cb9d16214b4d0e5653c284462f20765deaeb6da0ae6b3a935.mount: Deactivated successfully.
+Jul 16 17:35:01 noticeably.splendid.slug CRON[148524]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+Jul 16 17:35:01 noticeably.splendid.slug CRON[148525]: (root) CMD (command -v debian-sa1 > /dev/null && debian-sa1 1 1)
+Jul 16 17:35:01 noticeably.splendid.slug CRON[148524]: pam_unix(cron:session): session closed for user root
+Jul 16 17:35:02 noticeably.splendid.slug dockerd[968]: time="2026-07-16T17:35:02.439160350Z" level=warning msg="healthcheck failed" actualDuration="347.489µs" error="Unavailable: connection error: desc = \"transport: Error while dialing: only one connection allowed\"" timeout=15s
+Jul 16 17:35:02 noticeably.splendid.slug dockerd[968]: time="2026-07-16T17:35:02.470727398Z" level=warning msg="healthcheck failed" actualDuration="344.104µs" error="Unavailable: connection error: desc = \"transport: Error while dialing: only one connection allowed\"" timeout=15s
+Jul 16 17:35:07 noticeably.splendid.slug dockerd[968]: time="2026-07-16T17:35:07.439326399Z" level=error msg="healthcheck failed fatally" error="session healthcheck failed fatally: Unavailable: connection error: desc = \"transport: Error while dialing: only one connection allowed\""
+Jul 16 17:35:07 noticeably.splendid.slug dockerd[968]: time="2026-07-16T17:35:07.469777005Z" level=error msg="healthcheck failed fatally" error="session healthcheck failed fatally: Unavailable: connection error: desc = \"transport: Error while dialing: only one connection allowed\""
+Jul 16 17:36:44 noticeably.splendid.slug sudo[150151]: dmitrydevops : TTY=pts/0 ; PWD=/home/dmitrydevops ; USER=root ; COMMAND=/usr/bin/bash /home/dmitrydevops/audit.sh
+Jul 16 17:36:44 noticeably.splendid.slug sudo[150151]: pam_unix(sudo:session): session opened for user root(uid=0) by dmitrydevops(uid=1000)
+Jul 16 17:36:44 noticeably.splendid.slug dbus-daemon[771]: [system] Activating via systemd: service name='org.freedesktop.timedate1' unit='dbus-org.freedesktop.timedate1.service' requested by ':1.72' (uid=0 pid=150164 comm="timedatectl" label="unconfined")
+Jul 16 17:36:44 noticeably.splendid.slug systemd[1]: Starting systemd-timedated.service - Time & Date Service...
+Jul 16 17:36:44 noticeably.splendid.slug dbus-daemon[771]: [system] Successfully activated service 'org.freedesktop.timedate1'
+Jul 16 17:36:44 noticeably.splendid.slug systemd[1]: Started systemd-timedated.service - Time & Date Service.
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: Starting apt-news.service - Update APT News...
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: Starting esm-cache.service - Update the local ESM caches...
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: apt-news.service: Deactivated successfully.
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: Finished apt-news.service - Update APT News.
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: esm-cache.service: Deactivated successfully.
+Jul 16 17:36:49 noticeably.splendid.slug systemd[1]: Finished esm-cache.service - Update the local ESM caches.
+Jul 16 17:36:50 noticeably.splendid.slug dbus-daemon[771]: [system] Activating via systemd: service name='org.freedesktop.PackageKit' unit='packagekit.service' requested by ':1.75' (uid=0 pid=150760 comm="/usr/bin/gdbus call --system --dest org.freedeskto" label="unconfined")
+Jul 16 17:36:50 noticeably.splendid.slug systemd[1]: Starting packagekit.service - PackageKit Daemon...
+Jul 16 17:36:50 noticeably.splendid.slug PackageKit[150764]: daemon start
+Jul 16 17:36:50 noticeably.splendid.slug dbus-daemon[771]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Jul 16 17:36:50 noticeably.splendid.slug systemd[1]: Started packagekit.service - PackageKit Daemon.
+=== HARDENING READINESS (справка, не блокирует аудит) ===
+Целевой SSH_PORT (env): 22222
+Проверяемый порт: 22222
+ADMIN_USER (env): не задан
+Настройка — ручные команды: Tasks/first_server_optimization.md
+
+--- sshd -t ---
+  [OK]   sshd -t конфиг валиден
+
+--- слушающие SSH-порты (ss -tln + конфиг) ---
+порты в конфиге: 22222
+LISTEN 0      4096         0.0.0.0:22222      0.0.0.0:*          
+LISTEN 0      4096            [::]:22222         [::]:*          
+--- ssh.socket Listen ---
+0.0.0.0:22222
+(Stream)
+[::]:22222
+(Stream)
+
+--- порты в конфиге (sshd + ssh.socket.d) ---
+  22222
+
+  [OK]   IPv4: 0.0.0.0:22222 слушает
+  [OK]   IPv6: [::]:22222 слушает
+
+--- риск lockout (UFW vs реальный порт sshd) ---
+  [OK]   UFW inactive
+
+--- риск lockout (ключи и auth) ---
+  [WARN] ADMIN_USER не задан — для отчёта: export ADMIN_USER=dmitrydevops
+  [FAIL] PasswordAuthentication no без ключа — lockout
+  [FAIL] PermitRootLogin no без ключей — lockout
+
+--- SSH hardening (текущее) ---
+PermitRootLogin yes
+PasswordAuthentication no
+PermitRootLogin no
+AllowUsers dmitrydevops
+PasswordAuthentication yes
+PasswordAuthentication no
+Port 22222
+
+--- fail2ban ---
+  [OK]   fail2ban установлен
+active
+
+--- VPN порты для UFW ---
+--- автоопределение VPN TCP (xray, публичные) ---
+16681 56488 
+--- автоопределение VPN UDP (xray, публичные) ---
+23274 
+--- Docker / UFW caveat ---
+  [WARN] Docker active: опубликованные docker-порты могут обходить обычные UFW INPUT-правила
+rusprofile-backend-1 0.0.0.0:8020->8020/tcp, [::]:8020->8020/tcp
+rusprofile-postgres-1 0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+
+--- панель x-ui (НЕ открывать в UFW) ---
+tcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:(("x-ui",pid=786,fd=9))                        
+tcp   LISTEN 0      4096               *:2096             *:*    users:(("x-ui",pid=786,fd=13))                       
+
+--- ip_forward / BBR ---
+net.ipv4.ip_forward = 1
+net.ipv4.tcp_congestion_control = cubic
+
+HARDENING CHECK: замечаний: 2 (см. [FAIL] выше)
+
+=== AUDIT SUMMARY ===
+Полный отчёт: /home/dmitrydevops/server-audit-2026-07-16-203644/full-report.txt
+Запуск: bash audit.sh
+Hardening: есть замечания (2) — секция HARDENING READINESS

@@ -47,7 +47,7 @@
 
 Страница статистики: временные ряды score и фильтров поверх диапазона цены по минутным бакетам.
 
-## Быстрый старт
+## Быстрый старт (dev)
 
 Из каталога **`app/`** (рядом с `docker-compose.yaml`):
 
@@ -55,10 +55,62 @@
 docker compose up --build
 ```
 
-Остановка: `docker compose down`. Переменные окружения — файл **`.env`** в `app/`; описание переменных — **[`.env.example`](.env.example)**
+Остановка:
+
+```bash
+docker compose down
+```
+
+Переменные окружения — файл **`app/.env`** (образец: [`app/.env.example`](app/.env.example)).
 
 После запуска: **`http://localhost:8000/admin/`**
 
+## Prod сервер
+
+Compose: `app/docker-compose.prod.yaml`. Нужны внешняя сеть Traefik `apps_network`, файл `app/.env` (см. [`app/.env.example`](app/.env.example)), каталоги `app/logs` и `app/statistics-data` (монтируются в контейнер).
+
+Маршрут наружу — только Traefik **labels** (`Host(screener.dmitryrod.ru)` → порт 8000). Static IP на `apps_network` не используется (после reboot IP динамический, конфликтов `Address already in use` нет).
+
+Отдельный стек: Traefik (`/opt/apps/traefik`) должен быть Up.
+
+Первый запуск / обновление кода из каталога `app/`:
+
+```bash
+cd /opt/apps/money-pulso/app
+docker compose -f docker-compose.prod.yaml build app
+docker compose -f docker-compose.prod.yaml up -d
+```
+
+Пересоздание app после правок кода или volumes (postgres volume не трогается):
+
+```bash
+cd /opt/apps/money-pulso/app
+docker compose -f docker-compose.prod.yaml build app
+docker compose -f docker-compose.prod.yaml up -d app --force-recreate
+```
+
+Только restart без rebuild:
+
+```bash
+cd /opt/apps/money-pulso/app
+docker compose -f docker-compose.prod.yaml restart app
+```
+
+Логи и статус:
+
+```bash
+docker logs money-pulso-app --tail 100
+docker compose -f docker-compose.prod.yaml ps
+```
+
+Остановка стека:
+
+```bash
+cd /opt/apps/money-pulso/app
+docker compose -f docker-compose.prod.yaml down
+```
+
+Миграции Alembic выполняются при старте контейнера (`alembic upgrade head`). Админка снаружи: хост из Traefik labels (см. `docker-compose.prod.yaml`), не localhost.
 ## Безопасность
 
 - Секреты (боты, БД, ключ подписи сессии) задаются только через окружение; реальные значения не коммитить.
